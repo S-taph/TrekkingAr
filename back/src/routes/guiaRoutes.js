@@ -1,6 +1,6 @@
 import express from "express"
 import { body, param } from "express-validator"
-import { getAllGuias, getGuiaById, createGuia, updateGuia } from "../controllers/guiaController.js"
+import { getAllGuias, getGuiaById, createGuia, updateGuia, debugAllGuias } from "../controllers/guiaController.js"
 import { authenticateToken, requireRole } from "../middleware/auth.js"
 
 const router = express.Router()
@@ -21,6 +21,8 @@ const idValidation = [param("id").isInt({ min: 1 }).withMessage("ID debe ser un 
 // Rutas públicas
 router.get("/", getAllGuias)
 router.get("/:id", idValidation, getGuiaById)
+
+router.get("/debug/all", debugAllGuias)
 
 // Rutas protegidas (solo admin para crear/actualizar)
 router.post("/", authenticateToken, requireRole(["admin"]), guiaValidation, createGuia)

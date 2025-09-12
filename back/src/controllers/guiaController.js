@@ -335,3 +335,47 @@ export const asignarGuiaAViaje = async (req, res) => {
     })
   }
 }
+
+export const debugAllGuias = async (req, res) => {
+  try {
+    console.log("[v0] Debug: Obteniendo todos los guías sin filtros")
+
+    const guias = await Guia.findAll({
+      include: [
+        {
+          model: Usuario,
+          as: "usuario",
+          attributes: ["id_usuarios", "nombre", "apellido", "email", "telefono", "rol"],
+        },
+      ],
+      order: [["id_guia", "ASC"]],
+    })
+
+    console.log(`[v0] Debug: Encontrados ${guias.length} guías en total`)
+
+    const usuarios = await Usuario.findAll({
+      attributes: ["id_usuarios", "nombre", "apellido", "email", "rol"],
+      order: [["id_usuarios", "ASC"]],
+    })
+
+    console.log(`[v0] Debug: Encontrados ${usuarios.length} usuarios en total`)
+
+    res.json({
+      success: true,
+      debug: true,
+      data: {
+        totalGuias: guias.length,
+        totalUsuarios: usuarios.length,
+        guias: guias,
+        usuarios: usuarios,
+      },
+    })
+  } catch (error) {
+    console.error("[v0] Error en debug:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error en debug",
+      error: error.message,
+    })
+  }
+}
