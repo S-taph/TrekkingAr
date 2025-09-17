@@ -9,7 +9,6 @@ import {
   Grid2,
   Card,
   CardContent,
-  CardActions,
   Chip,
   IconButton,
   Dialog,
@@ -24,6 +23,13 @@ import {
   Select,
   MenuItem,
   Tooltip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
 } from "@mui/material"
 import {
   Add as AddIcon,
@@ -89,38 +95,44 @@ export default function ViajesManager() {
   const [deleteDialog, setDeleteDialog] = useState(false)
   const [viajeToDelete, setViajeToDelete] = useState(null)
 
-const loadViajes = useCallback(async () => {
-  try {
-    setLoading(true)
-    const params = {
-      page: pagination.currentPage,
-      limit: pagination.itemsPerPage,
-      ...filters,
-    }
-
-    // Limpiar parámetros vacíos
-    Object.keys(params).forEach((key) => {
-      if (params[key] === "" || params[key] === null || params[key] === undefined) {
-        delete params[key]
+  const loadViajes = useCallback(async () => {
+    try {
+      setLoading(true)
+      const params = {
+        page: pagination.currentPage,
+        limit: pagination.itemsPerPage,
+        ...filters,
       }
-    })
 
-    const response = await viajesAPI.getViajes(params)
+      // Limpiar parámetros vacíos
+      Object.keys(params).forEach((key) => {
+        if (params[key] === "" || params[key] === null || params[key] === undefined) {
+          delete params[key]
+        }
+      })
 
-    if (response.success) {
-      setViajes(response.data.viajes)
-      setPagination(response.data.pagination)
+      console.log("[v0] Cargando viajes con parámetros:", params)
+      const response = await viajesAPI.getViajes(params)
+      console.log("[v0] Respuesta del servidor para viajes:", response)
+
+      if (response.success) {
+        setViajes(response.data.viajes)
+        setPagination(response.data.pagination)
+        console.log("[v0] Viajes cargados:", response.data.viajes.length)
+      } else {
+        setError(response.message || "Error al cargar viajes")
+      }
+    } catch (error) {
+      console.error("[v0] Error en loadViajes:", error)
+      setError(error.message || "Error al cargar viajes")
+    } finally {
+      setLoading(false)
     }
-  } catch (error) {
-    setError(error.message || "Error al cargar viajes")
-  } finally {
-    setLoading(false)
-  }
-}, [pagination.currentPage, pagination.itemsPerPage, filters])
+  }, [pagination.currentPage, pagination.itemsPerPage, filters])
 
   useEffect(() => {
-  loadViajes()
-}, [loadViajes])
+    loadViajes()
+  }, [loadViajes])
 
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({
@@ -281,67 +293,83 @@ const loadViajes = useCallback(async () => {
         </Box>
       ) : (
         <>
-          <Grid2 container spacing={3}>
-            {viajes.map((viaje) => (
-              <Grid2 item xs={12} sm={6} md={4} key={viaje.id_viaje}>
-                <Card elevation={2} sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
-                      <Typography variant="h6" component="h3" gutterBottom>
-                        {viaje.titulo}
-                      </Typography>
-                      <Chip
-                        label={viaje.activo ? "Activo" : "Inactivo"}
-                        color={viaje.activo ? "success" : "default"}
-                        size="small"
-                      />
-                    </Box>
-
-                    <Typography variant="body2" color="textSecondary" paragraph>
-                      {viaje.descripcion_corta?.substring(0, 100)}
-                      {viaje.descripcion_corta?.length > 100 && "..."}
-                    </Typography>
-
-                    <Box display="flex" gap={1} mb={2}>
+          <TableContainer component={Paper} elevation={2}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Título</TableCell>
+                  <TableCell>Categoría</TableCell>
+                  <TableCell>Dificultad</TableCell>
+                  <TableCell>Duración</TableCell>
+                  <TableCell>Precio</TableCell>
+                  <TableCell>Estado</TableCell>
+                  <TableCell align="center">Acciones</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {viajes.map((viaje) => (
+                  <TableRow key={viaje.id_viaje} hover>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight="medium">
+                          {viaje.titulo}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary" noWrap sx={{ maxWidth: 300 }}>
+                          {viaje.descripcion_corta?.substring(0, 80)}
+                          {viaje.descripcion_corta?.length > 80 && "..."}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{viaje.categoria?.nombre || "Sin categoría"}</Typography>
+                    </TableCell>
+                    <TableCell>
                       <Chip
                         label={viaje.dificultad}
                         color={getDificultadColor(viaje.dificultad)}
                         size="small"
                         sx={{ textTransform: "capitalize" }}
                       />
-                      <Chip label={`${viaje.duracion_dias} días`} variant="outlined" size="small" />
-                    </Box>
-
-                    <Typography variant="h6" color="primary.main">
-                      {formatCurrency(viaje.precio_base)}
-                    </Typography>
-
-                    <Typography variant="body2" color="textSecondary">
-                      Categoría: {viaje.categoria?.nombre || "Sin categoría"}
-                    </Typography>
-                  </CardContent>
-
-                  <CardActions>
-                    <Tooltip title="Ver detalles">
-                      <IconButton size="small" onClick={() => handleViewViaje(viaje)}>
-                        <ViewIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Editar">
-                      <IconButton size="small" onClick={() => handleEditViaje(viaje)}>
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Eliminar">
-                      <IconButton size="small" color="error" onClick={() => handleDeleteViaje(viaje)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </CardActions>
-                </Card>
-              </Grid2>
-            ))}
-          </Grid2>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{viaje.duracion_dias} días</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="primary.main" fontWeight="medium">
+                        {formatCurrency(viaje.precio_base)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={viaje.activo ? "Activo" : "Inactivo"}
+                        color={viaje.activo ? "success" : "default"}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Box display="flex" gap={1} justifyContent="center">
+                        <Tooltip title="Ver detalles">
+                          <IconButton size="small" onClick={() => handleViewViaje(viaje)}>
+                            <ViewIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Editar">
+                          <IconButton size="small" onClick={() => handleEditViaje(viaje)}>
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Eliminar">
+                          <IconButton size="small" color="error" onClick={() => handleDeleteViaje(viaje)}>
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
           {/* Paginación */}
           {pagination.totalPages > 1 && (

@@ -10,6 +10,7 @@ import {
   CircularProgress,
   Autocomplete,
   Grid2,
+  MenuItem,
 } from "@mui/material"
 import { guiasAPI, usuariosAPI } from "../../services/api"
 
@@ -36,15 +37,15 @@ export default function GuiaForm({ guia, mode, onSuccess, onCancel }) {
     fetchUsuarios()
   }, [])
 
-  // Cargar usuarios con filtro
   const fetchUsuarios = async (search = "") => {
     setLoadingUsuarios(true)
     try {
-      const response = await usuariosAPI.getUsuarios({ 
-        search, 
-        rol: 'usuario'
+      const response = await usuariosAPI.getUsuarios({
+        search,
+        limit: 50, // Increase limit for better search results
       })
-      setUsuarios(response.data || response)
+      console.log("[v0] Usuarios cargados:", response)
+      setUsuarios(response.data?.usuarios || response.data || response)
     } catch (error) {
       console.error("Error cargando usuarios:", error)
       setUsuarios([])
@@ -78,7 +79,7 @@ export default function GuiaForm({ guia, mode, onSuccess, onCancel }) {
         disponible: guia.disponible !== undefined ? guia.disponible : true,
         activo: guia.activo !== undefined ? guia.activo : true,
       })
-      
+
       // Si está en modo edición, cargar el usuario actual
       if (guia.id_usuario && guia.usuario) {
         setUsuarios([guia.usuario])
@@ -150,10 +151,10 @@ export default function GuiaForm({ guia, mode, onSuccess, onCancel }) {
           <Grid2 item xs={12}>
             <Autocomplete
               options={usuarios}
-              getOptionLabel={(option) => 
-                `${option.nombre} ${option.apellido} (${option.email}) - DNI: ${option.dni}`
+              getOptionLabel={(option) =>
+                `${option.nombre} ${option.apellido} (${option.email})${option.dni ? ` - DNI: ${option.dni}` : ""}`
               }
-              value={usuarios.find(user => user.id_usuarios === formData.id_usuario) || null}
+              value={usuarios.find((user) => user.id_usuarios === formData.id_usuario) || null}
               onChange={handleUserSelect}
               onInputChange={(event, newInputValue) => {
                 setSearchTerm(newInputValue)
@@ -162,8 +163,9 @@ export default function GuiaForm({ guia, mode, onSuccess, onCancel }) {
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Buscar usuario"
+                  label="Buscar usuario para convertir en guía"
                   placeholder="Escribe nombre, apellido o email..."
+                  helperText="Busca entre todos los usuarios registrados para asignar como guía"
                   InputProps={{
                     ...params.InputProps,
                     endAdornment: (
@@ -175,9 +177,29 @@ export default function GuiaForm({ guia, mode, onSuccess, onCancel }) {
                   }}
                 />
               )}
+              renderOption={(props, option) => (
+                <Box component="li" {...props}>
+                  <Box>
+                    <Typography variant="body1">
+                      {option.nombre} {option.apellido}
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      {option.email} {option.dni && `• DNI: ${option.dni}`}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
               noOptionsText="No se encontraron usuarios"
-              filterOptions={(x) => x}
+              filterOptions={(x) => x} // Disable client-side filtering since we do server-side search
             />
+          </Grid2>
+        )}
+
+        {mode === "edit" && (
+          <Grid2 item xs={12}>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Editando guía: {guia?.usuario?.nombre} {guia?.usuario?.apellido} ({guia?.usuario?.email})
+            </Alert>
           </Grid2>
         )}
 
@@ -261,14 +283,7 @@ export default function GuiaForm({ guia, mode, onSuccess, onCancel }) {
         </Grid2>
 
         <Grid2 item xs={12} md={6}>
-          <TextField
-            fullWidth
-            select
-            name="activo"
-            label="Estado"
-            value={formData.activo}
-            onChange={handleChange}
-          >
+          <TextField fullWidth select name="activo" label="Estado" value={formData.activo} onChange={handleChange}>
             <MenuItem value={true}>Activo</MenuItem>
             <MenuItem value={false}>Inactivo</MenuItem>
           </TextField>

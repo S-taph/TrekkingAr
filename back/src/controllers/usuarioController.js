@@ -1,39 +1,69 @@
-// controllers/usuarioController.js
-import Usuario from '../models/Usuario.js'
+import { Usuario } from "../models/associations.js"
+import { Op } from "sequelize"
 
 const getUsuarios = async (req, res) => {
   try {
-    const { search, rol } = req.query
-    let query = { activo: true }
+    console.log("[v0] getUsuarios called with query:", req.query)
+
+    const { search, rol, limit = 50 } = req.query
+    const whereClause = { activo: true }
 
     if (search) {
-      query.$or = [
-        { nombre: { $regex: search, $options: 'i' } },
-        { apellido: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { dni: { $regex: search, $options: 'i' } }
+      whereClause[Op.or] = [
+        { nombre: { [Op.like]: `%${search}%` } },
+        { apellido: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+        { dni: { [Op.like]: `%${search}%` } },
       ]
     }
 
     if (rol) {
-      query.rol = rol
+      whereClause.rol = rol
     }
 
-    const usuarios = await Usuario.find(query)
-      .select('_id nombre apellido email dni rol')
-      .limit(20)
-      .sort({ apellido: 1, nombre: 1 })
+    const usuarios = await Usuario.findAll({
+      where: whereClause,
+      attributes: ["id_usuarios", "nombre", "apellido", "email", "dni", "rol"],
+      limit: Number.parseInt(limit),
+      order: [
+        ["apellido", "ASC"],
+        ["nombre", "ASC"],
+      ],
+    })
 
-    // Devuelve directamente el array para coincidir con tu patrón frontend
+    console.log("[v0] Found usuarios:", usuarios.length)
+
+    // Return the array directly to match frontend expectations
     res.json(usuarios)
-    
   } catch (error) {
-    console.error('Error en getUsuarios:', error)
-    res.status(500).json({ 
-      message: 'Error al obtener usuarios',
-      error: error.message 
+    console.error("[v0] Error in getUsuarios:", error)
+    res.status(500).json({
+      message: "Error al obtener usuarios",
+      error: error.message,
     })
   }
 }
 
-export { getUsuarios }
+const getUsuarioById = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const usuario = await Usuario.findByPk(id, {
+      attributes: ["id_usuarios", "nombre", "apellido", "email", "dni", "rol", "activo"],
+    })
+
+    if (!usuario) {
+      return res.status(404).json({ message: "Usuario no encontrado" })
+    }
+
+    res.json(usuario)
+  } catch (error) {
+    console.error("Error in getUsuarioById:", error)
+    res.status(500).json({
+      message: "Error al obtener usuario",
+      error: error.message,
+    })
+  }
+}
+
+export { getUsuarios, getUsuarioById }

@@ -87,7 +87,7 @@ export default function GuiasManager() {
 
       console.log("[v0] Cargando guías con parámetros:", params)
       const response = await guiasAPI.getGuias(params)
-      console.log("[v0] Respuesta del servidor:", response)
+      console.log("[v0] Respuesta del servidor para guías:", response)
 
       if (response.success) {
         setGuias(response.data.guias)

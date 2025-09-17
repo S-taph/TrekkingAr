@@ -15,6 +15,7 @@ import usuarioRoutes from "./routes/usuarioRoutes.js"
 // Importar configuración de BD y modelos
 import sequelize from "./config/database.js"
 import "./models/associations.js"
+import seedDatabase from "../scripts/seedDatabase.js"
 
 // Cargar variables de entorno
 dotenv.config()
@@ -51,7 +52,7 @@ app.use("/api/categorias", categoriaRoutes)
 app.use("/api/viajes", viajeRoutes)
 app.use("/api/reservas", reservaRoutes)
 app.use("/api/guias", guiaRoutes)
-app.use('/api/usuarios', usuarioRoutes)
+app.use("/api/usuarios", usuarioRoutes)
 
 // Ruta de health check
 app.get("/api/health", (req, res) => {
@@ -104,6 +105,8 @@ const startServer = async () => {
       await sequelize.sync({ alter: false }) // No forzar recreación
       console.log("✅ Modelos sincronizados")
     }
+
+    await seedDatabase()
 
     // Iniciar servidor
     app.listen(PORT, () => {

@@ -13,8 +13,11 @@ const apiRequest = async (endpoint, options = {}) => {
     headers: {
       "Content-Type": "application/json",
       "x-bypass-auth": "true",
-      ...(endpoint.includes("/guias") &&
-      (options.method === "POST" || options.method === "PUT" || options.method === "DELETE")
+      ...(endpoint.includes("/guias") ||
+      endpoint.includes("/viajes") ||
+      endpoint.includes("/reservas") ||
+      endpoint.includes("/categorias") ||
+      endpoint.includes("/usuarios")
         ? { Authorization: `Bearer ${getAuthToken()}` }
         : {}),
       ...options.headers,
@@ -23,13 +26,11 @@ const apiRequest = async (endpoint, options = {}) => {
   }
 
   try {
-    console.log("[v0] Haciendo petición a:", `${API_BASE_URL}${endpoint}`) // Debug
-    console.log("[v0] Configuración:", config) // Debug
-
+    console.log("[v0] API Request:", `${API_BASE_URL}${endpoint}`, config)
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
     const data = await response.json()
 
-    console.log("[v0] Respuesta del servidor:", { status: response.status, data }) // Debug
+    console.log("[v0] API Response:", response.status, data)
 
     if (!response.ok) {
       throw new Error(data.message || `Error ${response.status}: ${response.statusText}`)
@@ -142,5 +143,33 @@ export const usuariosAPI = {
   deleteUsuario: (id) =>
     apiRequest(`/usuarios/${id}`, {
       method: "DELETE",
+    }),
+}
+
+// Auth API
+export const authAPI = {
+  login: (credentials) =>
+    apiRequest("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    }),
+
+  logout: () =>
+    apiRequest("/auth/logout", {
+      method: "POST",
+    }),
+
+  register: (userData) =>
+    apiRequest("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(userData),
+    }),
+
+  verifyToken: (token) =>
+    apiRequest("/auth/verify", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     }),
 }
