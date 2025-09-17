@@ -68,6 +68,8 @@ export const guiasAPI = {
     apiRequest(`/guias/${id}`, {
       method: "DELETE",
     }),
+
+  debugAllGuias: () => apiRequest("/guias/debug/all"),
 }
 
 // Viajes API

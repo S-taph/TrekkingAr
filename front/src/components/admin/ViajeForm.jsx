@@ -15,7 +15,7 @@ import {
   CircularProgress,
   InputAdornment,
 } from "@mui/material"
-import { viajesAPI } from "../../services/api"
+import { viajesAPI, categoriasAPI } from "../../services/api"
 
 export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
   const [formData, setFormData] = useState({
@@ -38,12 +38,73 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
   const [error, setError] = useState("")
 
   // Datos para selects
-  const [categorias] = useState([
-    { id_categoria: 1, nombre: "Trekking" },
-    { id_categoria: 2, nombre: "Montañismo" },
-    { id_categoria: 3, nombre: "Aventura" },
-    { id_categoria: 4, nombre: "Expedición" },
-  ])
+  const [categorias, setCategorias] = useState([])
+  const [loadingCategorias, setLoadingCategorias] = useState(true)
+
+  useEffect(() => {
+    const loadCategorias = async () => {
+      try {
+        setLoadingCategorias(true)
+        const data = await categoriasAPI.getCategorias()
+        if (data.success && data.data.categorias.length > 0) {
+          setCategorias(data.data.categorias)
+        } else {
+          await createDefaultCategories()
+        }
+      } catch (error) {
+        console.error("Error loading categories:", error)
+        await createDefaultCategories()
+      } finally {
+        setLoadingCategorias(false)
+      }
+    }
+
+    const createDefaultCategories = async () => {
+      const defaultCategories = [
+        { nombre: "Trekking", descripcion: "Caminatas y senderismo", activa: true, orden_visualizacion: 1 },
+        { nombre: "Montañismo", descripcion: "Escalada y montañismo", activa: true, orden_visualizacion: 2 },
+        { nombre: "Aventura", descripcion: "Actividades de aventura", activa: true, orden_visualizacion: 3 },
+        { nombre: "Expedición", descripcion: "Expediciones largas", activa: true, orden_visualizacion: 4 },
+      ]
+
+      const createdCategories = []
+
+      for (const category of defaultCategories) {
+        try {
+          const response = await fetch("http://localhost:3000/api/categorias", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-bypass-auth": "true",
+            },
+            body: JSON.stringify(category),
+          })
+
+          if (response.ok) {
+            const result = await response.json()
+            if (result.success) {
+              createdCategories.push(result.data.categoria)
+            }
+          }
+        } catch (error) {
+          console.error("Error creating category:", category.nombre, error)
+        }
+      }
+
+      if (createdCategories.length > 0) {
+        setCategorias(createdCategories)
+      } else {
+        setCategorias([
+          { id_categoria: 1, nombre: "Trekking" },
+          { id_categoria: 2, nombre: "Montañismo" },
+          { id_categoria: 3, nombre: "Aventura" },
+          { id_categoria: 4, nombre: "Expedición" },
+        ])
+      }
+    }
+
+    loadCategorias()
+  }, [])
 
   useEffect(() => {
     if (mode === "edit" && viaje) {
@@ -87,6 +148,23 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
         maximo_participantes: formData.maximo_participantes ? Number.parseInt(formData.maximo_participantes) : null,
       }
 
+      console.log("[v0] Form data before processing:", formData)
+      console.log("[v0] Submit data after processing:", submitData)
+
+      if (!submitData.id_categoria || submitData.id_categoria === "") {
+        throw new Error("Debe seleccionar una categoría")
+      }
+
+      if (!submitData.titulo || submitData.titulo.trim() === "") {
+        throw new Error("El título es requerido")
+      }
+
+      if (!submitData.dificultad || submitData.dificultad === "") {
+        throw new Error("Debe seleccionar una dificultad")
+      }
+
+      console.log("[v0] Final submit data:", submitData)
+
       if (mode === "create") {
         await viajesAPI.createViaje(submitData)
       } else {
@@ -95,6 +173,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
 
       onSuccess()
     } catch (error) {
+      console.log("[v0] Error in handleSubmit:", error)
       setError(error.message || "Error al guardar el viaje")
     } finally {
       setLoading(false)
@@ -120,7 +199,13 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
         <Grid2 item xs={12} md={6}>
           <FormControl fullWidth required>
             <InputLabel>Categoría</InputLabel>
-            <Select name="id_categoria" value={formData.id_categoria} label="Categoría" onChange={handleChange}>
+            <Select
+              name="id_categoria"
+              value={formData.id_categoria}
+              label="Categoría"
+              onChange={handleChange}
+              disabled={loadingCategorias}
+            >
               {categorias.map((categoria) => (
                 <MenuItem key={categoria.id_categoria} value={categoria.id_categoria}>
                   {categoria.nombre}

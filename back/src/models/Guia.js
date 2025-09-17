@@ -19,7 +19,7 @@ const Guia = sequelize.define(
     },
     matricula: {
       type: DataTypes.STRING(50),
-      allowNull: false,
+      allowNull: false, // Made matricula required
       unique: true,
       comment: "Número de matrícula profesional del guía",
     },
@@ -60,6 +60,12 @@ const Guia = sequelize.define(
     total_viajes_guiados: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
+    },
+    activo: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+      allowNull: false,
+      comment: "Indica si el guía está activo o inactivo",
     },
     fecha_registro: {
       type: DataTypes.DATE,

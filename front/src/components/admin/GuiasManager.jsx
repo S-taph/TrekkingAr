@@ -93,6 +93,16 @@ export default function GuiasManager() {
         setGuias(response.data.guias)
         setPagination(response.data.pagination)
         console.log("[v0] Guías cargados:", response.data.guias.length)
+
+        if (response.data.guias.length === 0) {
+          console.log("[v0] No se encontraron guías, verificando usuarios con rol guía...")
+          try {
+            const debugResponse = await guiasAPI.debugAllGuias()
+            console.log("[v0] Debug response:", debugResponse)
+          } catch (debugError) {
+            console.error("[v0] Error en debug:", debugError)
+          }
+        }
       } else {
         setError(response.message || "Error al cargar guías")
       }
@@ -174,6 +184,12 @@ export default function GuiasManager() {
           <Typography variant="subtitle1" color="textSecondary">
             {pagination.totalItems} guías encontrados
           </Typography>
+          {pagination.totalItems === 0 && (
+            <Typography variant="body2" color="warning.main" sx={{ mt: 1 }}>
+              No hay perfiles de guía creados. Los usuarios con rol "guia" deben tener un perfil de guía para aparecer
+              aquí.
+            </Typography>
+          )}
         </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateGuia}>
           Nuevo Guía

@@ -38,10 +38,12 @@ import {
   Visibility as ViewIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
+  Info as InfoIcon,
 } from "@mui/icons-material"
 import { viajesAPI } from "../../services/api"
 import ViajeForm from "./ViajeForm"
 import ViajeDetail from "./ViajeDetail"
+import products from "../../data/products"
 
 const getDificultadColor = (dificultad) => {
   switch (dificultad) {
@@ -65,10 +67,25 @@ const formatCurrency = (amount) => {
   }).format(amount)
 }
 
+const convertProductsToViajes = (products) => {
+  return products.map((product) => ({
+    id_viaje: `temp_${product.id}`,
+    titulo: product.name,
+    descripcion_corta: `Viaje de ${product.category?.toLowerCase() || "aventura"} con calificación ${product.rating}/5`,
+    categoria: { nombre: product.category || "Aventura" },
+    dificultad: product.category === "Montaña" ? "moderado" : "facil",
+    duracion_dias: Math.floor(Math.random() * 7) + 1, // Random 1-7 days
+    precio_base: product.price,
+    activo: true,
+    isExample: true, // Flag to identify example data
+  }))
+}
+
 export default function ViajesManager() {
   const [viajes, setViajes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [showingExampleData, setShowingExampleData] = useState(false)
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -76,7 +93,6 @@ export default function ViajesManager() {
     itemsPerPage: 12,
   })
 
-  // Estados para filtros
   const [filters, setFilters] = useState({
     search: "",
     dificultad: "",
@@ -85,13 +101,11 @@ export default function ViajesManager() {
     precio_max: "",
   })
 
-  // Estados para modales
   const [showForm, setShowForm] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
   const [selectedViaje, setSelectedViaje] = useState(null)
   const [formMode, setFormMode] = useState("create") // 'create' o 'edit'
 
-  // Estados para confirmación de eliminación
   const [deleteDialog, setDeleteDialog] = useState(false)
   const [viajeToDelete, setViajeToDelete] = useState(null)
 
@@ -104,7 +118,6 @@ export default function ViajesManager() {
         ...filters,
       }
 
-      // Limpiar parámetros vacíos
       Object.keys(params).forEach((key) => {
         if (params[key] === "" || params[key] === null || params[key] === undefined) {
           delete params[key]
@@ -115,16 +128,36 @@ export default function ViajesManager() {
       const response = await viajesAPI.getViajes(params)
       console.log("[v0] Respuesta del servidor para viajes:", response)
 
-      if (response.success) {
+      if (response.success && response.data.viajes.length > 0) {
         setViajes(response.data.viajes)
         setPagination(response.data.pagination)
+        setShowingExampleData(false)
         console.log("[v0] Viajes cargados:", response.data.viajes.length)
       } else {
-        setError(response.message || "Error al cargar viajes")
+        console.log("[v0] No hay viajes en la base de datos, usando datos de ejemplo")
+        const exampleViajes = convertProductsToViajes(products)
+        setViajes(exampleViajes)
+        setShowingExampleData(true)
+        setPagination({
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: exampleViajes.length,
+          itemsPerPage: 12,
+        })
       }
     } catch (error) {
       console.error("[v0] Error en loadViajes:", error)
-      setError(error.message || "Error al cargar viajes")
+      console.log("[v0] Error al cargar viajes, usando datos de ejemplo")
+      const exampleViajes = convertProductsToViajes(products)
+      setViajes(exampleViajes)
+      setShowingExampleData(true)
+      setPagination({
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: exampleViajes.length,
+        itemsPerPage: 12,
+      })
+      setError("No se pudieron cargar los viajes de la base de datos. Mostrando datos de ejemplo.")
     } finally {
       setLoading(false)
     }
@@ -153,6 +186,10 @@ export default function ViajesManager() {
   }
 
   const handleEditViaje = (viaje) => {
+    if (viaje.isExample) {
+      setError("No puedes editar viajes de ejemplo. Primero debes guardarlos en la base de datos.")
+      return
+    }
     setSelectedViaje(viaje)
     setFormMode("edit")
     setShowForm(true)
@@ -164,6 +201,10 @@ export default function ViajesManager() {
   }
 
   const handleDeleteViaje = (viaje) => {
+    if (viaje.isExample) {
+      setError("No puedes eliminar viajes de ejemplo.")
+      return
+    }
     setViajeToDelete(viaje)
     setDeleteDialog(true)
   }
@@ -194,7 +235,6 @@ export default function ViajesManager() {
 
   return (
     <Box>
-      {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
           <Typography variant="h4" gutterBottom>
@@ -202,6 +242,7 @@ export default function ViajesManager() {
           </Typography>
           <Typography variant="subtitle1" color="textSecondary">
             {pagination.totalItems} viajes encontrados
+            {showingExampleData && " (datos de ejemplo)"}
           </Typography>
         </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateViaje}>
@@ -215,7 +256,13 @@ export default function ViajesManager() {
         </Alert>
       )}
 
-      {/* Filtros */}
+      {showingExampleData && (
+        <Alert severity="info" sx={{ mb: 2 }} icon={<InfoIcon />}>
+          Se están mostrando datos de ejemplo del archivo products.js porque no hay viajes en la base de datos. Los
+          viajes de ejemplo no pueden ser editados o eliminados.
+        </Alert>
+      )}
+
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
@@ -286,7 +333,6 @@ export default function ViajesManager() {
         </CardContent>
       </Card>
 
-      {/* Lista de viajes */}
       {loading ? (
         <Box display="flex" justifyContent="center" py={4}>
           <CircularProgress />
@@ -308,11 +354,18 @@ export default function ViajesManager() {
               </TableHead>
               <TableBody>
                 {viajes.map((viaje) => (
-                  <TableRow key={viaje.id_viaje} hover>
+                  <TableRow
+                    key={viaje.id_viaje}
+                    hover
+                    sx={viaje.isExample ? { backgroundColor: "rgba(255, 235, 59, 0.1)" } : {}}
+                  >
                     <TableCell>
                       <Box>
                         <Typography variant="subtitle1" fontWeight="medium">
                           {viaje.titulo}
+                          {viaje.isExample && (
+                            <Chip label="Ejemplo" size="small" color="warning" sx={{ ml: 1, fontSize: "0.7rem" }} />
+                          )}
                         </Typography>
                         <Typography variant="body2" color="textSecondary" noWrap sx={{ maxWidth: 300 }}>
                           {viaje.descripcion_corta?.substring(0, 80)}
@@ -353,15 +406,24 @@ export default function ViajesManager() {
                             <ViewIcon />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Editar">
-                          <IconButton size="small" onClick={() => handleEditViaje(viaje)}>
-                            <EditIcon />
-                          </IconButton>
+                        <Tooltip title={viaje.isExample ? "No se puede editar datos de ejemplo" : "Editar"}>
+                          <span>
+                            <IconButton size="small" onClick={() => handleEditViaje(viaje)} disabled={viaje.isExample}>
+                              <EditIcon />
+                            </IconButton>
+                          </span>
                         </Tooltip>
-                        <Tooltip title="Eliminar">
-                          <IconButton size="small" color="error" onClick={() => handleDeleteViaje(viaje)}>
-                            <DeleteIcon />
-                          </IconButton>
+                        <Tooltip title={viaje.isExample ? "No se puede eliminar datos de ejemplo" : "Eliminar"}>
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleDeleteViaje(viaje)}
+                              disabled={viaje.isExample}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </span>
                         </Tooltip>
                       </Box>
                     </TableCell>
@@ -371,7 +433,6 @@ export default function ViajesManager() {
             </Table>
           </TableContainer>
 
-          {/* Paginación */}
           {pagination.totalPages > 1 && (
             <Box display="flex" justifyContent="center" mt={4}>
               <Pagination
@@ -386,7 +447,6 @@ export default function ViajesManager() {
         </>
       )}
 
-      {/* Modal de formulario */}
       <Dialog open={showForm} onClose={() => setShowForm(false)} maxWidth="md" fullWidth>
         <DialogTitle>{formMode === "create" ? "Crear Nuevo Viaje" : "Editar Viaje"}</DialogTitle>
         <DialogContent>
@@ -399,7 +459,6 @@ export default function ViajesManager() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de detalle */}
       <Dialog open={showDetail} onClose={() => setShowDetail(false)} maxWidth="md" fullWidth>
         <DialogTitle>Detalles del Viaje</DialogTitle>
         <DialogContent>
@@ -410,7 +469,6 @@ export default function ViajesManager() {
         </DialogActions>
       </Dialog>
 
-      {/* Dialog de confirmación de eliminación */}
       <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)}>
         <DialogTitle>Confirmar Eliminación</DialogTitle>
         <DialogContent>

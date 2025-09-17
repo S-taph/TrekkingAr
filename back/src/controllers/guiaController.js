@@ -8,7 +8,8 @@ import Viaje from "../models/Viaje.js"
 
 export const getAllGuias = async (req, res) => {
   try {
-    console.log("[v0] Parámetros recibidos en getAllGuias:", req.query)
+    console.log("[v0] === INICIANDO getAllGuias ===")
+    console.log("[v0] Parámetros recibidos:", req.query)
 
     const { disponible, activo, especialidad, search, page = 1, limit = 10 } = req.query
 
@@ -25,33 +26,63 @@ export const getAllGuias = async (req, res) => {
       whereClause.especialidades = { [Op.like]: `%${especialidad}%` }
     }
 
-    const includeClause = {
-      model: Usuario,
-      as: "usuario",
-      attributes: ["id_usuarios", "nombre", "apellido", "email", "telefono"],
-    }
+    console.log("[v0] Where clause construido:", whereClause)
 
-    if (search) {
-      includeClause.where = {
-        [Op.or]: [{ nombre: { [Op.like]: `%${search}%` } }, { apellido: { [Op.like]: `%${search}%` } }],
-      }
+    let includeClause = []
+
+    try {
+      // Test if associations are working
+      const testGuia = await Guia.findOne({
+        include: [
+          {
+            model: Usuario,
+            as: "usuario",
+            attributes: ["id_usuarios", "nombre", "apellido", "email", "telefono"],
+          },
+        ],
+        limit: 1,
+      })
+
+      console.log("[v0] Test association successful, using full include")
+
+      includeClause = [
+        {
+          model: Usuario,
+          as: "usuario",
+          attributes: ["id_usuarios", "nombre", "apellido", "email", "telefono"],
+          where: search
+            ? {
+                [Op.or]: [{ nombre: { [Op.like]: `%${search}%` } }, { apellido: { [Op.like]: `%${search}%` } }],
+              }
+            : undefined,
+        },
+      ]
+    } catch (assocError) {
+      console.log("[v0] Association test failed, using simple query:", assocError.message)
+      includeClause = []
     }
 
     const offset = (page - 1) * limit
 
-    console.log("[v0] Consulta con whereClause:", whereClause)
-    console.log("[v0] Include clause:", includeClause)
+    console.log("[v0] Ejecutando consulta con include:", includeClause.length > 0 ? "SI" : "NO")
 
     const { count, rows: guias } = await Guia.findAndCountAll({
       where: whereClause,
-      include: [includeClause],
+      include: includeClause,
       limit: Number.parseInt(limit),
       offset: Number.parseInt(offset),
       order: [["calificacion_promedio", "DESC"]],
     })
 
-    console.log("[v0] Guías encontrados:", count)
-    console.log("[v0] Primeros guías:", guias.slice(0, 2))
+    console.log("[v0] Consulta exitosa. Guías encontrados:", count)
+    console.log(
+      "[v0] Primeros guías (sample):",
+      guias.slice(0, 2).map((g) => ({
+        id: g.id_guia,
+        matricula: g.matricula,
+        usuario: g.usuario ? `${g.usuario.nombre} ${g.usuario.apellido}` : "Sin usuario",
+      })),
+    )
 
     res.json({
       success: true,
@@ -66,11 +97,13 @@ export const getAllGuias = async (req, res) => {
       },
     })
   } catch (error) {
-    console.error("[v0] Error al obtener guías:", error)
+    console.error("[v0] Error completo en getAllGuias:", error)
+    console.error("[v0] Stack trace:", error.stack)
     res.status(500).json({
       success: false,
       message: "Error interno del servidor",
       error: error.message,
+      details: process.env.NODE_ENV === "development" ? error.stack : undefined,
     })
   }
 }
@@ -171,6 +204,10 @@ export const createGuia = async (req, res) => {
         success: false,
         message: "Ya existe un perfil de guía para este usuario",
       })
+    }
+
+    if (guiaData.activo === undefined) {
+      guiaData.activo = true
     }
 
     console.log("[v0] Creando guía con datos:", guiaData)
@@ -360,14 +397,24 @@ export const debugAllGuias = async (req, res) => {
 
     console.log(`[v0] Debug: Encontrados ${usuarios.length} usuarios en total`)
 
+    const usuariosGuia = usuarios.filter((u) => u.rol === "guia")
+    const usuariosGuiaSinPerfil = usuariosGuia.filter((u) => !guias.some((g) => g.id_usuario === u.id_usuarios))
+
+    console.log(`[v0] Debug: Usuarios con rol guía: ${usuariosGuia.length}`)
+    console.log(`[v0] Debug: Usuarios guía sin perfil: ${usuariosGuiaSinPerfil.length}`)
+
     res.json({
       success: true,
       debug: true,
       data: {
         totalGuias: guias.length,
         totalUsuarios: usuarios.length,
+        usuariosConRolGuia: usuariosGuia.length,
+        usuariosGuiaSinPerfil: usuariosGuiaSinPerfil.length,
         guias: guias,
         usuarios: usuarios,
+        usuariosGuia: usuariosGuia,
+        usuariosGuiaSinPerfil: usuariosGuiaSinPerfil,
       },
     })
   } catch (error) {

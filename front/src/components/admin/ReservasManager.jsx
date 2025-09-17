@@ -83,41 +83,41 @@ export default function ReservasManager() {
 
   // Estados para modales
   const [showDetail, setShowDetail] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
   const [selectedReserva, setSelectedReserva] = useState(null)
 
   useEffect(() => {
-  const loadReservas = async () => {
-    try {
-      setLoading(true)
-      const params = {
-        page: pagination.currentPage,
-        limit: pagination.itemsPerPage, // ← Esta variable se usa aquí
-        ...filters,
-      }
-
-      // Limpiar parámetros vacíos
-      Object.keys(params).forEach((key) => {
-        if (params[key] === "" || params[key] === null || params[key] === undefined) {
-          delete params[key]
+    const loadReservas = async () => {
+      try {
+        setLoading(true)
+        const params = {
+          page: pagination.currentPage,
+          limit: pagination.itemsPerPage, // ← Esta variable se usa aquí
+          ...filters,
         }
-      })
 
-      const response = await reservasAPI.getReservas(params)
+        // Limpiar parámetros vacíos
+        Object.keys(params).forEach((key) => {
+          if (params[key] === "" || params[key] === null || params[key] === undefined) {
+            delete params[key]
+          }
+        })
 
-      if (response.success) {
-        setReservas(response.data.reservas)
-        setPagination(response.data.pagination)
+        const response = await reservasAPI.getReservas(params)
+
+        if (response.success) {
+          setReservas(response.data.reservas)
+          setPagination(response.data.pagination)
+        }
+      } catch (error) {
+        setError(error.message || "Error al cargar reservas")
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      setError(error.message || "Error al cargar reservas")
-    } finally {
-      setLoading(false)
     }
-  }
-  
-  loadReservas()
-}, [pagination.currentPage, pagination.itemsPerPage, filters])
 
+    loadReservas()
+  }, [pagination.currentPage, pagination.itemsPerPage, filters])
 
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({
@@ -134,6 +134,30 @@ export default function ReservasManager() {
   const handleViewReserva = (reserva) => {
     setSelectedReserva(reserva)
     setShowDetail(true)
+  }
+
+  const handleEditReserva = (reserva) => {
+    setSelectedReserva(reserva)
+    setShowEdit(true)
+  }
+
+  const handleUpdateReserva = async (updatedData) => {
+    try {
+      // Here you would call the API to update the reservation
+      // await reservasAPI.updateReserva(selectedReserva.id_reserva, updatedData)
+
+      // For now, just update the local state
+      setReservas((prev) =>
+        prev.map((reserva) =>
+          reserva.id_reserva === selectedReserva.id_reserva ? { ...reserva, ...updatedData } : reserva,
+        ),
+      )
+
+      setShowEdit(false)
+      setSelectedReserva(null)
+    } catch (error) {
+      setError(error.message || "Error al actualizar reserva")
+    }
   }
 
   // Mock data para demostración
@@ -316,7 +340,7 @@ export default function ReservasManager() {
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Editar">
-                              <IconButton size="small">
+                              <IconButton size="small" onClick={() => handleEditReserva(reserva)}>
                                 <EditIcon />
                               </IconButton>
                             </Tooltip>
@@ -400,6 +424,86 @@ export default function ReservasManager() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowDetail(false)}>Cerrar</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de edición */}
+      <Dialog open={showEdit} onClose={() => setShowEdit(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Editar Reserva</DialogTitle>
+        <DialogContent>
+          {selectedReserva && (
+            <Box sx={{ mt: 2 }}>
+              <Grid2 container spacing={2}>
+                <Grid2 item xs={12}>
+                  <FormControl fullWidth>
+                    <InputLabel>Estado</InputLabel>
+                    <Select
+                      value={selectedReserva.estado}
+                      label="Estado"
+                      onChange={(e) => setSelectedReserva((prev) => ({ ...prev, estado: e.target.value }))}
+                    >
+                      <MenuItem value="pendiente">Pendiente</MenuItem>
+                      <MenuItem value="confirmada">Confirmada</MenuItem>
+                      <MenuItem value="cancelada">Cancelada</MenuItem>
+                      <MenuItem value="completada">Completada</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid2>
+                <Grid2 item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Cantidad de personas"
+                    type="number"
+                    value={selectedReserva.cantidad_personas}
+                    onChange={(e) =>
+                      setSelectedReserva((prev) => ({
+                        ...prev,
+                        cantidad_personas: Number.parseInt(e.target.value),
+                      }))
+                    }
+                  />
+                </Grid2>
+                <Grid2 item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Fecha del viaje"
+                    type="date"
+                    value={selectedReserva.fecha_viaje?.split("T")[0] || selectedReserva.fecha_viaje}
+                    onChange={(e) =>
+                      setSelectedReserva((prev) => ({
+                        ...prev,
+                        fecha_viaje: e.target.value,
+                      }))
+                    }
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid2>
+                <Grid2 item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Precio total"
+                    type="number"
+                    value={selectedReserva.precio_total}
+                    onChange={(e) =>
+                      setSelectedReserva((prev) => ({
+                        ...prev,
+                        precio_total: Number.parseFloat(e.target.value),
+                      }))
+                    }
+                    InputProps={{
+                      startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
+                    }}
+                  />
+                </Grid2>
+              </Grid2>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowEdit(false)}>Cancelar</Button>
+          <Button onClick={() => handleUpdateReserva(selectedReserva)} variant="contained">
+            Guardar Cambios
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
