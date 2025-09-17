@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import {
-  Grid,
+  Grid2,
   Card,
   CardContent,
   Typography,
@@ -27,7 +27,7 @@ import {
 } from "@mui/icons-material"
 import { viajesAPI, reservasAPI, guiasAPI } from "../../services/api"
 
-const StatCard = ({ title, value, icon, color = "primary" }) => (
+const StatCard = ({ title, value, icon }) => (
   <Card elevation={2}>
     <CardContent>
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -189,44 +189,40 @@ export default function Dashboard() {
       </Typography>
 
       {/* Estadísticas principales */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Grid2 container spacing={3} sx={{ mb: 4 }}>
+        <Grid2 size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="Total Usuarios"
             value={estadisticas?.totalUsuarios || 0}
             icon={<PeopleIcon fontSize="large" />}
-            color="primary"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </Grid2>
+        <Grid2 size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="Viajes Activos"
             value={estadisticas?.totalViajes || 0}
             icon={<HikingIcon fontSize="large" />}
-            color="success"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </Grid2>
+        <Grid2 size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="Guías Activos"
             value={estadisticas?.totalGuias || 0}
             icon={<GuideIcon fontSize="large" />}
-            color="info"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </Grid2>
+        <Grid2 size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="Total Reservas"
             value={estadisticas?.totalReservas || 0}
             icon={<ReservasIcon fontSize="large" />}
-            color="warning"
           />
-        </Grid>
-      </Grid>
+        </Grid2>
+      </Grid2>
 
-      <Grid container spacing={3}>
+      <Grid2 container spacing={3}>
         {/* Ingresos del mes */}
-        <Grid item xs={12} md={6}>
+        <Grid2 item xs={12} md={6}>
           <Card elevation={2}>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
@@ -244,10 +240,10 @@ export default function Dashboard() {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
+        </Grid2>
 
         {/* Reservas por estado */}
-        <Grid item xs={12} md={6}>
+        <Grid2 item xs={12} md={6}>
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -276,10 +272,10 @@ export default function Dashboard() {
               </List>
             </CardContent>
           </Card>
-        </Grid>
+        </Grid2>
 
         {/* Próximas salidas */}
-        <Grid item xs={12}>
+        <Grid2 item xs={12}>
           <Paper elevation={2} sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Próximas Salidas (7 días)
@@ -326,16 +322,16 @@ export default function Dashboard() {
               <Typography color="textSecondary">No hay salidas programadas para los próximos 7 días</Typography>
             )}
           </Paper>
-        </Grid>
-      </Grid>
+        </Grid2>
+      </Grid2>
 
       {/* Acciones rápidas */}
       <Paper elevation={2} sx={{ p: 3, mt: 3 }}>
         <Typography variant="h6" gutterBottom>
           Acciones Rápidas
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
+        <Grid2 container spacing={2}>
+          <Grid2 item xs={12} sm={6} md={3}>
             <Button
               variant="outlined"
               fullWidth
@@ -344,8 +340,8 @@ export default function Dashboard() {
             >
               Nuevo Viaje
             </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          </Grid2>
+          <Grid2 item xs={12} sm={6} md={3}>
             <Button
               variant="outlined"
               fullWidth
@@ -354,8 +350,8 @@ export default function Dashboard() {
             >
               Nuevo Guía
             </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          </Grid2>
+          <Grid2 item xs={12} sm={6} md={3}>
             <Button
               variant="outlined"
               fullWidth
@@ -364,8 +360,8 @@ export default function Dashboard() {
             >
               Ver Reservas
             </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          </Grid2>
+          <Grid2 item xs={12} sm={6} md={3}>
             <Button
               variant="outlined"
               fullWidth
@@ -374,8 +370,8 @@ export default function Dashboard() {
             >
               Gestionar Usuarios
             </Button>
-          </Grid>
-        </Grid>
+          </Grid2>
+        </Grid2>
       </Paper>
     </Box>
   )

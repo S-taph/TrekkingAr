@@ -5,7 +5,7 @@ import {
   Box,
   Typography,
   TextField,
-  Grid,
+  Grid2,
   Card,
   CardContent,
   Chip,
@@ -86,15 +86,12 @@ export default function ReservasManager() {
   const [selectedReserva, setSelectedReserva] = useState(null)
 
   useEffect(() => {
-    loadReservas()
-  }, [pagination.currentPage, filters])
-
   const loadReservas = async () => {
     try {
       setLoading(true)
       const params = {
         page: pagination.currentPage,
-        limit: pagination.itemsPerPage,
+        limit: pagination.itemsPerPage, // ← Esta variable se usa aquí
         ...filters,
       }
 
@@ -117,6 +114,10 @@ export default function ReservasManager() {
       setLoading(false)
     }
   }
+  
+  loadReservas()
+}, [pagination.currentPage, pagination.itemsPerPage, filters])
+
 
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({
@@ -201,8 +202,8 @@ export default function ReservasManager() {
             <FilterIcon sx={{ mr: 1, verticalAlign: "middle" }} />
             Filtros
           </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={3}>
+          <Grid2 container spacing={2}>
+            <Grid2 item xs={12} md={3}>
               <TextField
                 fullWidth
                 label="Buscar reservas"
@@ -212,8 +213,8 @@ export default function ReservasManager() {
                   startAdornment: <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />,
                 }}
               />
-            </Grid>
-            <Grid item xs={12} md={3}>
+            </Grid2>
+            <Grid2 item xs={12} md={3}>
               <FormControl fullWidth>
                 <InputLabel>Estado</InputLabel>
                 <Select
@@ -228,8 +229,8 @@ export default function ReservasManager() {
                   <MenuItem value="completada">Completada</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12} md={3}>
+            </Grid2>
+            <Grid2 item xs={12} md={3}>
               <TextField
                 fullWidth
                 label="Fecha desde"
@@ -238,8 +239,8 @@ export default function ReservasManager() {
                 onChange={(e) => handleFilterChange("fecha_desde", e.target.value)}
                 InputLabelProps={{ shrink: true }}
               />
-            </Grid>
-            <Grid item xs={12} md={3}>
+            </Grid2>
+            <Grid2 item xs={12} md={3}>
               <TextField
                 fullWidth
                 label="Fecha hasta"
@@ -248,8 +249,8 @@ export default function ReservasManager() {
                 onChange={(e) => handleFilterChange("fecha_hasta", e.target.value)}
                 InputLabelProps={{ shrink: true }}
               />
-            </Grid>
-          </Grid>
+            </Grid2>
+          </Grid2>
         </CardContent>
       </Card>
 
@@ -260,38 +261,38 @@ export default function ReservasManager() {
         </Box>
       ) : (
         <>
-          <Grid container spacing={3}>
+          <Grid2 container spacing={3}>
             {reservas.map((reserva) => (
-              <Grid item xs={12} key={reserva.id_reserva}>
+              <Grid2 item xs={12} key={reserva.id_reserva}>
                 <Card elevation={2}>
                   <CardContent>
-                    <Grid container spacing={2} alignItems="center">
-                      <Grid item xs={12} md={3}>
+                    <Grid2 container spacing={2} alignItems="center">
+                      <Grid2 item xs={12} md={3}>
                         <Typography variant="h6" gutterBottom>
                           {reserva.usuario?.nombre} {reserva.usuario?.apellido}
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
                           {reserva.usuario?.email}
                         </Typography>
-                      </Grid>
+                      </Grid2>
 
-                      <Grid item xs={12} md={3}>
+                      <Grid2 item xs={12} md={3}>
                         <Typography variant="subtitle1" gutterBottom>
                           {reserva.viaje?.titulo}
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
                           {reserva.viaje?.duracion_dias} días
                         </Typography>
-                      </Grid>
+                      </Grid2>
 
-                      <Grid item xs={12} md={2}>
+                      <Grid2 item xs={12} md={2}>
                         <Typography variant="body2" color="textSecondary" gutterBottom>
                           Fecha del viaje
                         </Typography>
                         <Typography variant="body1">{formatDate(reserva.fecha_viaje)}</Typography>
-                      </Grid>
+                      </Grid2>
 
-                      <Grid item xs={12} md={2}>
+                      <Grid2 item xs={12} md={2}>
                         <Typography variant="body2" color="textSecondary" gutterBottom>
                           Personas
                         </Typography>
@@ -299,9 +300,9 @@ export default function ReservasManager() {
                         <Typography variant="h6" color="primary.main">
                           {formatCurrency(reserva.precio_total)}
                         </Typography>
-                      </Grid>
+                      </Grid2>
 
-                      <Grid item xs={12} md={2}>
+                      <Grid2 item xs={12} md={2}>
                         <Box display="flex" flexDirection="column" alignItems="flex-end" gap={1}>
                           <Chip
                             label={reserva.estado}
@@ -321,13 +322,13 @@ export default function ReservasManager() {
                             </Tooltip>
                           </Box>
                         </Box>
-                      </Grid>
-                    </Grid>
+                      </Grid2>
+                    </Grid2>
                   </CardContent>
                 </Card>
-              </Grid>
+              </Grid2>
             ))}
-          </Grid>
+          </Grid2>
 
           {/* Paginación */}
           {pagination.totalPages > 1 && (

@@ -4,7 +4,7 @@ import {
   Box,
   Typography,
   Chip,
-  Grid,
+  Grid2,
   Card,
   CardContent,
   Button,
@@ -73,9 +73,9 @@ export default function ViajeDetail({ viaje, onEdit }) {
         </Button>
       </Box>
 
-      <Grid container spacing={3}>
+      <Grid2 container spacing={3}>
         {/* Información principal */}
-        <Grid item xs={12} md={8}>
+        <Grid2 item xs={12} md={8}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -119,10 +119,10 @@ export default function ViajeDetail({ viaje, onEdit }) {
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </Grid2>
 
         {/* Información lateral */}
-        <Grid item xs={12} md={4}>
+        <Grid2 item xs={12} md={4}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -194,8 +194,8 @@ export default function ViajeDetail({ viaje, onEdit }) {
               </List>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Grid2>
+      </Grid2>
     </Box>
   )
 }

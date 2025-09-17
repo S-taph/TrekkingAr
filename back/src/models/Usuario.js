@@ -29,6 +29,18 @@ const Usuario = sequelize.define(
       type: DataTypes.STRING(100),
       allowNull: false,
     },
+    dni: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      unique: true,
+      validate: {
+        isInt: true,
+        len: {
+          args: [7, 8],
+          msg: 'El DNI debe tener 7 u 8 dígitos'
+        }
+      }
+    },
     telefono: {
       type: DataTypes.STRING(20),
       allowNull: true,

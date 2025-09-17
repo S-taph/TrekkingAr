@@ -10,6 +10,7 @@ import categoriaRoutes from "./routes/categoriaRoutes.js"
 import viajeRoutes from "./routes/viajeRoutes.js"
 import reservaRoutes from "./routes/reservaRoutes.js"
 import guiaRoutes from "./routes/guiaRoutes.js"
+import usuarioRoutes from "./routes/usuarioRoutes.js"
 
 // Importar configuración de BD y modelos
 import sequelize from "./config/database.js"
@@ -50,6 +51,7 @@ app.use("/api/categorias", categoriaRoutes)
 app.use("/api/viajes", viajeRoutes)
 app.use("/api/reservas", reservaRoutes)
 app.use("/api/guias", guiaRoutes)
+app.use('/api/usuarios', usuarioRoutes)
 
 // Ruta de health check
 app.get("/api/health", (req, res) => {

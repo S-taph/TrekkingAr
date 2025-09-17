@@ -1,3 +1,4 @@
+// URL base de la API
 const API_BASE_URL = "http://localhost:3000/api"
 
 const getAuthToken = () => {
@@ -114,4 +115,32 @@ export const reservasAPI = {
 // Categorías API
 export const categoriasAPI = {
   getCategorias: () => apiRequest("/categorias"),
+}
+
+// Usuarios API
+
+export const usuariosAPI = {
+  getUsuarios: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString()
+    return apiRequest(`/usuarios?${queryString}`)
+  },
+
+  getUsuarioById: (id) => apiRequest(`/usuarios/${id}`),
+
+  createUsuario: (usuarioData) =>
+    apiRequest("/usuarios", {
+      method: "POST",
+      body: JSON.stringify(usuarioData),
+    }),
+
+  updateUsuario: (id, usuarioData) =>
+    apiRequest(`/usuarios/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(usuarioData),
+    }),
+
+  deleteUsuario: (id) =>
+    apiRequest(`/usuarios/${id}`, {
+      method: "DELETE",
+    }),
 }

@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Box,
   Typography,
   Button,
   TextField,
-  Grid,
+  Grid2,
   Card,
   CardContent,
   CardActions,
@@ -89,38 +89,38 @@ export default function ViajesManager() {
   const [deleteDialog, setDeleteDialog] = useState(false)
   const [viajeToDelete, setViajeToDelete] = useState(null)
 
-  useEffect(() => {
-    loadViajes()
-  }, [pagination.currentPage, filters])
-
-  const loadViajes = async () => {
-    try {
-      setLoading(true)
-      const params = {
-        page: pagination.currentPage,
-        limit: pagination.itemsPerPage,
-        ...filters,
-      }
-
-      // Limpiar parámetros vacíos
-      Object.keys(params).forEach((key) => {
-        if (params[key] === "" || params[key] === null || params[key] === undefined) {
-          delete params[key]
-        }
-      })
-
-      const response = await viajesAPI.getViajes(params)
-
-      if (response.success) {
-        setViajes(response.data.viajes)
-        setPagination(response.data.pagination)
-      }
-    } catch (error) {
-      setError(error.message || "Error al cargar viajes")
-    } finally {
-      setLoading(false)
+const loadViajes = useCallback(async () => {
+  try {
+    setLoading(true)
+    const params = {
+      page: pagination.currentPage,
+      limit: pagination.itemsPerPage,
+      ...filters,
     }
+
+    // Limpiar parámetros vacíos
+    Object.keys(params).forEach((key) => {
+      if (params[key] === "" || params[key] === null || params[key] === undefined) {
+        delete params[key]
+      }
+    })
+
+    const response = await viajesAPI.getViajes(params)
+
+    if (response.success) {
+      setViajes(response.data.viajes)
+      setPagination(response.data.pagination)
+    }
+  } catch (error) {
+    setError(error.message || "Error al cargar viajes")
+  } finally {
+    setLoading(false)
   }
+}, [pagination.currentPage, pagination.itemsPerPage, filters])
+
+  useEffect(() => {
+  loadViajes()
+}, [loadViajes])
 
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({
@@ -210,8 +210,8 @@ export default function ViajesManager() {
             <FilterIcon sx={{ mr: 1, verticalAlign: "middle" }} />
             Filtros
           </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
+          <Grid2 container spacing={2}>
+            <Grid2 item xs={12} md={4}>
               <TextField
                 fullWidth
                 label="Buscar viajes"
@@ -221,8 +221,8 @@ export default function ViajesManager() {
                   startAdornment: <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />,
                 }}
               />
-            </Grid>
-            <Grid item xs={12} md={2}>
+            </Grid2>
+            <Grid2 item xs={12} md={2}>
               <FormControl fullWidth>
                 <InputLabel>Dificultad</InputLabel>
                 <Select
@@ -237,8 +237,8 @@ export default function ViajesManager() {
                   <MenuItem value="extremo">Extremo</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12} md={2}>
+            </Grid2>
+            <Grid2 item xs={12} md={2}>
               <FormControl fullWidth>
                 <InputLabel>Estado</InputLabel>
                 <Select
@@ -251,8 +251,8 @@ export default function ViajesManager() {
                   <MenuItem value="false">Inactivos</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12} md={2}>
+            </Grid2>
+            <Grid2 item xs={12} md={2}>
               <TextField
                 fullWidth
                 label="Precio mínimo"
@@ -260,8 +260,8 @@ export default function ViajesManager() {
                 value={filters.precio_min}
                 onChange={(e) => handleFilterChange("precio_min", e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={2}>
+            </Grid2>
+            <Grid2 item xs={12} md={2}>
               <TextField
                 fullWidth
                 label="Precio máximo"
@@ -269,8 +269,8 @@ export default function ViajesManager() {
                 value={filters.precio_max}
                 onChange={(e) => handleFilterChange("precio_max", e.target.value)}
               />
-            </Grid>
-          </Grid>
+            </Grid2>
+          </Grid2>
         </CardContent>
       </Card>
 
@@ -281,9 +281,9 @@ export default function ViajesManager() {
         </Box>
       ) : (
         <>
-          <Grid container spacing={3}>
+          <Grid2 container spacing={3}>
             {viajes.map((viaje) => (
-              <Grid item xs={12} sm={6} md={4} key={viaje.id_viaje}>
+              <Grid2 item xs={12} sm={6} md={4} key={viaje.id_viaje}>
                 <Card elevation={2} sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
                   <CardContent sx={{ flexGrow: 1 }}>
                     <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
@@ -339,9 +339,9 @@ export default function ViajesManager() {
                     </Tooltip>
                   </CardActions>
                 </Card>
-              </Grid>
+              </Grid2>
             ))}
-          </Grid>
+          </Grid2>
 
           {/* Paginación */}
           {pagination.totalPages > 1 && (

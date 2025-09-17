@@ -6,7 +6,7 @@ import {
   Typography,
   Button,
   TextField,
-  Grid,
+  Grid2,
   Card,
   CardContent,
   CardActions,
@@ -193,8 +193,8 @@ export default function GuiasManager() {
             <FilterIcon sx={{ mr: 1, verticalAlign: "middle" }} />
             Filtros
           </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
+          <Grid2 container spacing={2}>
+            <Grid2 item xs={12} md={4}>
               <TextField
                 fullWidth
                 label="Buscar guías"
@@ -204,8 +204,8 @@ export default function GuiasManager() {
                   startAdornment: <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />,
                 }}
               />
-            </Grid>
-            <Grid item xs={12} md={4}>
+            </Grid2>
+            <Grid2 item xs={12} md={4}>
               <TextField
                 fullWidth
                 label="Especialidad"
@@ -213,8 +213,8 @@ export default function GuiasManager() {
                 onChange={(e) => handleFilterChange("especialidad", e.target.value)}
                 placeholder="ej: montañismo, trekking"
               />
-            </Grid>
-            <Grid item xs={12} md={4}>
+            </Grid2>
+            <Grid2 item xs={12} md={4}>
               <FormControl fullWidth>
                 <InputLabel>Estado</InputLabel>
                 <Select
@@ -227,8 +227,8 @@ export default function GuiasManager() {
                   <MenuItem value="false">Inactivos</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
-          </Grid>
+            </Grid2>
+          </Grid2>
         </CardContent>
       </Card>
 
@@ -239,9 +239,9 @@ export default function GuiasManager() {
         </Box>
       ) : (
         <>
-          <Grid container spacing={3}>
+          <Grid2 container spacing={3}>
             {guias.map((guia) => (
-              <Grid item xs={12} sm={6} md={4} key={guia.id_guia}>
+              <Grid2 item xs={12} sm={6} md={4} key={guia.id_guia}>
                 <Card elevation={2} sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
                   <CardContent sx={{ flexGrow: 1 }}>
                     <Box display="flex" alignItems="center" mb={2}>
@@ -305,9 +305,9 @@ export default function GuiasManager() {
                     </Tooltip>
                   </CardActions>
                 </Card>
-              </Grid>
+              </Grid2>
             ))}
-          </Grid>
+          </Grid2>
 
           {/* Paginación */}
           {pagination.totalPages > 1 && (

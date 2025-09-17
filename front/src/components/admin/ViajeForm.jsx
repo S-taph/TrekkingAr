@@ -5,7 +5,7 @@ import {
   Box,
   TextField,
   Button,
-  Grid,
+  Grid2,
   FormControl,
   InputLabel,
   Select,
@@ -109,15 +109,15 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
+      <Grid2 container spacing={3}>
         {/* Información básica */}
-        <Grid item xs={12}>
+        <Grid2 item xs={12}>
           <Typography variant="h6" gutterBottom>
             Información Básica
           </Typography>
-        </Grid>
+        </Grid2>
 
-        <Grid item xs={12} md={6}>
+        <Grid2 item xs={12} md={6}>
           <FormControl fullWidth required>
             <InputLabel>Categoría</InputLabel>
             <Select name="id_categoria" value={formData.id_categoria} label="Categoría" onChange={handleChange}>
@@ -128,9 +128,9 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
               ))}
             </Select>
           </FormControl>
-        </Grid>
+        </Grid2>
 
-        <Grid item xs={12} md={6}>
+        <Grid2 item xs={12} md={6}>
           <FormControl fullWidth required>
             <InputLabel>Dificultad</InputLabel>
             <Select name="dificultad" value={formData.dificultad} label="Dificultad" onChange={handleChange}>
@@ -140,9 +140,9 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
               <MenuItem value="extremo">Extremo</MenuItem>
             </Select>
           </FormControl>
-        </Grid>
+        </Grid2>
 
-        <Grid item xs={12}>
+        <Grid2 item xs={12}>
           <TextField
             fullWidth
             required
@@ -151,9 +151,9 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             value={formData.titulo}
             onChange={handleChange}
           />
-        </Grid>
+        </Grid2>
 
-        <Grid item xs={12}>
+        <Grid2 item xs={12}>
           <TextField
             fullWidth
             multiline
@@ -164,9 +164,9 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             onChange={handleChange}
             helperText="Descripción breve que aparecerá en las tarjetas de viajes"
           />
-        </Grid>
+        </Grid2>
 
-        <Grid item xs={12}>
+        <Grid2 item xs={12}>
           <TextField
             fullWidth
             multiline
@@ -177,16 +177,16 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             onChange={handleChange}
             helperText="Descripción detallada del viaje"
           />
-        </Grid>
+        </Grid2>
 
         {/* Detalles del viaje */}
-        <Grid item xs={12}>
+        <Grid2 item xs={12}>
           <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
             Detalles del Viaje
           </Typography>
-        </Grid>
+        </Grid2>
 
-        <Grid item xs={12} md={4}>
+        <Grid2 item xs={12} md={4}>
           <TextField
             fullWidth
             required
@@ -199,9 +199,9 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
               endAdornment: <InputAdornment position="end">días</InputAdornment>,
             }}
           />
-        </Grid>
+        </Grid2>
 
-        <Grid item xs={12} md={4}>
+        <Grid2 item xs={12} md={4}>
           <TextField
             fullWidth
             required
@@ -214,9 +214,9 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
               startAdornment: <InputAdornment position="start">$</InputAdornment>,
             }}
           />
-        </Grid>
+        </Grid2>
 
-        <Grid item xs={12} md={4}>
+        <Grid2 item xs={12} md={4}>
           <FormControl fullWidth>
             <InputLabel>Estado</InputLabel>
             <Select name="activo" value={formData.activo} label="Estado" onChange={handleChange}>
@@ -224,9 +224,9 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
               <MenuItem value={false}>Inactivo</MenuItem>
             </Select>
           </FormControl>
-        </Grid>
+        </Grid2>
 
-        <Grid item xs={12} md={6}>
+        <Grid2 item xs={12} md={6}>
           <TextField
             fullWidth
             type="number"
@@ -235,9 +235,9 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             value={formData.minimo_participantes}
             onChange={handleChange}
           />
-        </Grid>
+        </Grid2>
 
-        <Grid item xs={12} md={6}>
+        <Grid2 item xs={12} md={6}>
           <TextField
             fullWidth
             type="number"
@@ -246,16 +246,16 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             value={formData.maximo_participantes}
             onChange={handleChange}
           />
-        </Grid>
+        </Grid2>
 
         {/* Información adicional */}
-        <Grid item xs={12}>
+        <Grid2 item xs={12}>
           <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
             Información Adicional
           </Typography>
-        </Grid>
+        </Grid2>
 
-        <Grid item xs={12}>
+        <Grid2 item xs={12}>
           <TextField
             fullWidth
             multiline
@@ -266,9 +266,9 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             onChange={handleChange}
             helperText="Servicios y elementos incluidos en el precio"
           />
-        </Grid>
+        </Grid2>
 
-        <Grid item xs={12}>
+        <Grid2 item xs={12}>
           <TextField
             fullWidth
             multiline
@@ -279,9 +279,9 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             onChange={handleChange}
             helperText="Servicios y elementos NO incluidos en el precio"
           />
-        </Grid>
+        </Grid2>
 
-        <Grid item xs={12}>
+        <Grid2 item xs={12}>
           <TextField
             fullWidth
             multiline
@@ -292,8 +292,8 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             onChange={handleChange}
             helperText="Recomendaciones para los participantes"
           />
-        </Grid>
-      </Grid>
+        </Grid2>
+      </Grid2>
 
       {/* Botones */}
       <Box display="flex" justifyContent="flex-end" gap={2} mt={3}>

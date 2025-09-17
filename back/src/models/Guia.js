@@ -17,6 +17,12 @@ const Guia = sequelize.define(
         key: "id_usuarios",
       },
     },
+    matricula: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      unique: true,
+      comment: "Número de matrícula profesional del guía",
+    },
     certificaciones: {
       type: DataTypes.TEXT,
       allowNull: true,

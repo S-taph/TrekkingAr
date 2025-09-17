@@ -75,7 +75,7 @@ const Footer = () => (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Box
                 component="img"
-                src="https://http2.mlstatic.com/frontend-assets/ml-web-navigation/ui-navigation/5.21.22/mercadopago/logo_mp_blue.png"
+                src="https://http2.mlstatic.com/frontend-assets/ui-navigation/5.21.22/mercadopago/logo_mp_blue.svg"
                 alt="MercadoPago"
                 sx={{ height: 20, width: "auto" }}
               />
