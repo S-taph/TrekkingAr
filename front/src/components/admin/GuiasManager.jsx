@@ -73,8 +73,8 @@ export default function GuiasManager() {
         ...filters,
       }
 
-      if (params.disponible !== undefined) {
-        params.activo = params.disponible
+      if (params.disponible !== undefined && params.disponible !== "") {
+        params.activo = params.disponible === "true"
         delete params.disponible
       }
 
@@ -150,7 +150,7 @@ export default function GuiasManager() {
   const handleToggleStatus = async (guia) => {
     try {
       await guiasAPI.updateGuia(guia.id_guia, { activo: !guia.activo })
-      loadGuias()
+      await loadGuias()
     } catch (error) {
       setError(error.message || "Error al cambiar estado del guía")
     }
@@ -287,7 +287,7 @@ export default function GuiasManager() {
                     </Typography>
 
                     <Typography variant="body2" color="textSecondary" paragraph>
-                      <strong>Experiencia:</strong> {guia.experiencia_anos || 0} años
+                      <strong>Experiencia:</strong> {guia.anos_experiencia || 0} {guia.anos_experiencia === 1 ? "año" : "años"}
                     </Typography>
 
                     {guia.idiomas && (

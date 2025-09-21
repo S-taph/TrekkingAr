@@ -17,6 +17,7 @@ import {
   Badge,
   Stack,
 } from "@mui/material"
+import { alpha } from "@mui/material/styles"
 import MenuIcon from "@mui/icons-material/Menu"
 import HomeIcon from "@mui/icons-material/Home"
 import HikingIcon from "@mui/icons-material/Hiking"
@@ -52,18 +53,16 @@ export default function Header() {
     <>
       <AppBar
         position="fixed"
-        sx={{
-          top: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: "transparent",
-          boxShadow: "none",
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
-          zIndex: 1300,
-          padding: "0 1rem",
-          margin: 0,
-        }}
+         sx={(theme) => ({
+           top: 0,
+           left: 0,
+           right: 0,
+           backgroundColor: alpha(theme.palette.background.paper, 0.9), // semi-transparent using theme background (0.9 = ~90% opacity)
+           boxShadow: theme.shadows[4], // use theme shadow
+           zIndex: theme.zIndex.appBar,
+           padding: "0 1rem",
+           margin: 0,
+         })}
       >
         <Toolbar sx={{ display: "flex", alignItems: "center" }}>
           <IconButton
@@ -121,7 +120,7 @@ export default function Header() {
                   sx={{
                     textTransform: "none",
                     fontSize: "0.9rem",
-                    fontWeight: 500,
+                    fontWeight: 1000,
                     px: 1.5,
                     color: "white",
                     textShadow: "0 1px 2px rgba(0,0,0,0.5)",

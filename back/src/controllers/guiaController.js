@@ -241,6 +241,7 @@ export const createGuia = async (req, res) => {
 
 export const updateGuia = async (req, res) => {
   try {
+    // Validaciones
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -251,8 +252,8 @@ export const updateGuia = async (req, res) => {
     }
 
     const { id } = req.params
-    const updateData = req.body
 
+    // Buscar guía por PK
     const guia = await Guia.findByPk(id)
     if (!guia) {
       return res.status(404).json({
@@ -261,28 +262,20 @@ export const updateGuia = async (req, res) => {
       })
     }
 
-    await guia.update(updateData)
+    // Actualizar solo lo que viene en req.body
+    await guia.update(req.body)
 
-    const guiaActualizado = await Guia.findByPk(id, {
-      include: [
-        {
-          model: Usuario,
-          as: "usuario",
-          attributes: ["id_usuarios", "nombre", "apellido", "email"],
-        },
-      ],
-    })
-
-    res.json({
+    return res.json({
       success: true,
-      message: "Perfil de guía actualizado exitosamente",
-      data: { guia: guiaActualizado },
+      message: "Guía actualizado correctamente",
+      data: guia,
     })
   } catch (error) {
-    console.error("Error al actualizar guía:", error)
-    res.status(500).json({
+    console.error("Error en updateGuia:", error)
+    return res.status(500).json({
       success: false,
-      message: "Error interno del servidor",
+      message: "Error al actualizar guía",
+      error: error.message,
     })
   }
 }
