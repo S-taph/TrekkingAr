@@ -43,11 +43,16 @@ export default function AdminLayout({ children, currentPath = "/admin", onNaviga
   }
 
   const drawer = (
-    <div>
+    <Box sx={{ bgcolor: "#f5f5f5", height: "100%" }}>
       <Toolbar>
         <Box display="flex" alignItems="center" gap={1}>
-          <HikingIcon sx={{ color: "#64b5f6" }} />
-          <Typography variant="h6" noWrap component="div" sx={{ color: "#64b5f6", fontWeight: "bold" }}>
+          <HikingIcon sx={{ color: "#1976d2" }} />
+          <Typography
+            variant="h6"
+            noWrap
+            component="div"
+            sx={{ color: "#1976d2", fontWeight: "bold" }}
+          >
             TrekkingAR
           </Typography>
         </Box>
@@ -60,21 +65,35 @@ export default function AdminLayout({ children, currentPath = "/admin", onNaviga
               selected={currentPath === item.path}
               onClick={() => onNavigate(item.path)}
               sx={{
+                borderRadius: 2,
+                my: 0.5,
+                mx: 1,
                 "&.Mui-selected": {
-                  backgroundColor: "#e3f2fd",
+                  backgroundColor: "#1976d2",
+                  color: "#fff",
+                  "& .MuiListItemIcon-root": { color: "#fff" },
                   "&:hover": {
-                    backgroundColor: "#e3f2fd",
+                    backgroundColor: "#1976d2",
+                    color: "#000", // Texto negro al hacer hover sobre seleccionado
+                    "& .MuiListItemIcon-root": { color: "#000" },
                   },
+                },
+                "&:hover": {
+                  backgroundColor: currentPath === item.path ? "#1976d2" : "#e3f2fd",
                 },
               }}
             >
-              <ListItemIcon sx={{ color: currentPath === item.path ? "#64b5f6" : "inherit" }}>{item.icon}</ListItemIcon>
+              <ListItemIcon
+                sx={{ color: currentPath === item.path ? "#fff" : "inherit" }}
+              >
+                {item.icon}
+              </ListItemIcon>
               <ListItemText primary={item.text} />
             </ListItemButton>
           </ListItem>
         ))}
       </List>
-    </div>
+    </Box>
   )
 
   return (
@@ -84,7 +103,7 @@ export default function AdminLayout({ children, currentPath = "/admin", onNaviga
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
-          backgroundColor: "#64b5f6",
+          backgroundColor: "#1976d2",
         }}
       >
         <Toolbar>
@@ -104,25 +123,32 @@ export default function AdminLayout({ children, currentPath = "/admin", onNaviga
       </AppBar>
 
       <Box component="nav" sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}>
+        {/* Drawer para móvil */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
+          ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: "block", sm: "none" },
-            "& .MuiDrawer-paper": { boxSizing: "border-box", width: drawerWidth },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: drawerWidth,
+            },
           }}
         >
           {drawer}
         </Drawer>
+
+        {/* Drawer permanente */}
         <Drawer
           variant="permanent"
           sx={{
             display: { xs: "none", sm: "block" },
-            "& .MuiDrawer-paper": { boxSizing: "border-box", width: drawerWidth },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: drawerWidth,
+            },
           }}
           open
         >
@@ -136,6 +162,8 @@ export default function AdminLayout({ children, currentPath = "/admin", onNaviga
           flexGrow: 1,
           p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
+          bgcolor: "#f0f2f5",
+          minHeight: "100vh",
         }}
       >
         <Toolbar />

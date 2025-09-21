@@ -17,7 +17,7 @@ export default function AdminApp() {
   const renderContent = () => {
     switch (currentPath) {
       case "/admin":
-        return <Dashboard />
+        return <Dashboard onNavigate={handleNavigate} />
       case "/admin/usuarios":
         return <div>Gestión de Usuarios (próximamente)</div>
       case "/admin/viajes":

@@ -1,109 +1,131 @@
 "use client"
 
-const GuiaDetail = ({ guia, onClose }) => {
+import { Box, Typography, Grid, Card, CardContent, Chip, Avatar } from "@mui/material"
+
+const GuiaDetail = ({ guia }) => {
   if (!guia) return null
 
+  const getInitials = (nombre, apellido) =>
+    `${nombre?.[0] || ""}${apellido?.[0] || ""}`.toUpperCase()
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Detalles del Guía</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors duration-200">
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <Box>
+      {/* Header: Avatar y Nombre */}
+      <Box display="flex" flexDirection="column" alignItems="center" mb={4}>
+        <Avatar sx={{ width: 80, height: 80, bgcolor: "primary.main", mb: 2 }}>
+          {getInitials(guia.usuario?.nombre, guia.usuario?.apellido)}
+        </Avatar>
+        <Typography variant="h5" fontWeight="bold">
+          {guia.usuario?.nombre} {guia.usuario?.apellido}
+        </Typography>
+        <Box display="flex" gap={1} mt={1}>
+          <Chip
+            label={guia.activo ? "Activo" : "Inactivo"}
+            color={guia.activo ? "success" : "default"}
+            size="small"
+          />
+          <Chip
+            label={guia.disponible ? "Disponible" : "No disponible"}
+            color={guia.disponible ? "success" : "error"}
+            size="small"
+          />
+        </Box>
+      </Box>
 
-        <div className="p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ID del Guía</label>
-              <p className="text-gray-900">{guia.id_guia}</p>
-            </div>
+      {/* Información General */}
+      <Section title="Información General">
+        <Grid container spacing={2}>
+          <DetailCard label="ID del Guía" value={guia.id_guia} />
+          <DetailCard label="Años de Experiencia" value={guia.anos_experiencia || "No especificado"} />
+          <DetailCard label="Idiomas" value={guia.idiomas || "No especificado"} />
+          <DetailCard
+            label="Tarifa por Día"
+            value={guia.tarifa_por_dia ? `$${guia.tarifa_por_dia}` : "No especificado"}
+          />
+        </Grid>
+      </Section>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
-              <p className="text-gray-900">
-                {guia.usuario?.nombre} {guia.usuario?.apellido}
-              </p>
-            </div>
+      {/* Actividad */}
+      <Section title="Actividad">
+        <Grid container spacing={2}>
+          <DetailCard
+            label="Calificación Promedio"
+            value={guia.calificacion_promedio ? `${guia.calificacion_promedio}/5` : "Sin calificar"}
+          />
+          <DetailCard
+            label="Total Viajes Guiados"
+            value={guia.total_viajes_guiados || 0}
+          />
+        </Grid>
+      </Section>
 
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Certificaciones</label>
-              <p className="text-gray-900">{guia.certificaciones || "No especificado"}</p>
-            </div>
+      {/* Registro y Actualización */}
+      <Section title="Registro y Actualización">
+        <Grid container spacing={2}>
+          <DetailCard
+            label="Fecha de Registro"
+            value={
+              guia.fecha_registro
+                ? new Date(guia.fecha_registro).toLocaleDateString()
+                : "No disponible"
+            }
+          />
+          <DetailCard
+            label="Última Actualización"
+            value={
+              guia.fecha_actualizacion
+                ? new Date(guia.fecha_actualizacion).toLocaleDateString()
+                : "No disponible"
+            }
+          />
+        </Grid>
+      </Section>
 
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Especialidades</label>
-              <p className="text-gray-900">{guia.especialidades || "No especificado"}</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Años de Experiencia</label>
-              <p className="text-gray-900">{guia.anos_experiencia || "No especificado"}</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Idiomas</label>
-              <p className="text-gray-900">{guia.idiomas || "No especificado"}</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa por Día</label>
-              <p className="text-gray-900">{guia.tarifa_por_dia ? `$${guia.tarifa_por_dia}` : "No especificado"}</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Disponibilidad</label>
-              <span
-                className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                  guia.disponible ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                }`}
-              >
-                {guia.disponible ? "Disponible" : "No disponible"}
-              </span>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Calificación Promedio</label>
-              <p className="text-gray-900">
-                {guia.calificacion_promedio ? `${guia.calificacion_promedio}/5` : "Sin calificar"}
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Total Viajes Guiados</label>
-              <p className="text-gray-900">{guia.total_viajes_guiados || 0}</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Registro</label>
-              <p className="text-gray-900">
-                {guia.fecha_registro ? new Date(guia.fecha_registro).toLocaleDateString() : "No disponible"}
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Última Actualización</label>
-              <p className="text-gray-900">
-                {guia.fecha_actualizacion ? new Date(guia.fecha_actualizacion).toLocaleDateString() : "No disponible"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end p-6 border-t border-gray-200">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors duration-200"
-          >
-            Cerrar
-          </button>
-        </div>
-      </div>
-    </div>
+      {/* Campos largos */}
+      <Section title="Información Adicional">
+        <DetailBlock label="Certificaciones" value={guia.certificaciones || "No especificado"} />
+        <DetailBlock label="Especialidades" value={guia.especialidades || "No especificado"} />
+      </Section>
+    </Box>
   )
 }
+
+/* Subcomponente: Sección con título */
+const Section = ({ title, children }) => (
+  <Box mb={3}>
+    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+      {title}
+    </Typography>
+    {children}
+  </Box>
+)
+
+/* Subcomponente: Detalles cortos dentro de Grid */
+const DetailCard = ({ label, value }) => (
+  <Grid item xs={12} sm={6}>
+    <Card variant="outlined">
+      <CardContent>
+        <Typography variant="caption" color="text.secondary">
+          {label}
+        </Typography>
+        <Typography variant="body1" fontWeight="medium">
+          {value}
+        </Typography>
+      </CardContent>
+    </Card>
+  </Grid>
+)
+
+/* Subcomponente: Bloques largos */
+const DetailBlock = ({ label, value }) => (
+  <Card variant="outlined" sx={{ mb: 2 }}>
+    <CardContent>
+      <Typography variant="caption" color="text.secondary" gutterBottom>
+        {label}
+      </Typography>
+      <Typography variant="body1">{value}</Typography>
+    </CardContent>
+  </Card>
+)
 
 export default GuiaDetail
