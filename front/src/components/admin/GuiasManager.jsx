@@ -25,6 +25,8 @@ import {
   MenuItem,
   Tooltip,
   Avatar,
+  Rating,
+  Skeleton,
 } from "@mui/material"
 import {
   Add as AddIcon,
@@ -36,6 +38,8 @@ import {
   FilterList as FilterIcon,
   Star as StarIcon,
 } from "@mui/icons-material"
+// eslint-disable-next-line no-unused-vars
+import { motion } from "framer-motion"
 import { guiasAPI } from "../../services/api"
 import GuiaForm from "./GuiaForm"
 import GuiaDetail from "./GuiaDetail"
@@ -51,14 +55,12 @@ export default function GuiasManager() {
     itemsPerPage: 12,
   })
 
-  // Estados para filtros
   const [filters, setFilters] = useState({
     search: "",
     especialidad: "",
-    disponible: "", // Cambiar valor por defecto para mostrar todos
+    disponible: "",
   })
 
-  // Estados para modales
   const [showForm, setShowForm] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
   const [selectedGuia, setSelectedGuia] = useState(null)
@@ -78,36 +80,21 @@ export default function GuiasManager() {
         delete params.disponible
       }
 
-      // Limpiar parámetros vacíos
       Object.keys(params).forEach((key) => {
         if (params[key] === "" || params[key] === null || params[key] === undefined) {
           delete params[key]
         }
       })
 
-      console.log("[v0] Cargando guías con parámetros:", params)
       const response = await guiasAPI.getGuias(params)
-      console.log("[v0] Respuesta del servidor para guías:", response)
 
       if (response.success) {
         setGuias(response.data.guias)
         setPagination(response.data.pagination)
-        console.log("[v0] Guías cargados:", response.data.guias.length)
-
-        if (response.data.guias.length === 0) {
-          console.log("[v0] No se encontraron guías, verificando usuarios con rol guía...")
-          try {
-            const debugResponse = await guiasAPI.debugAllGuias()
-            console.log("[v0] Debug response:", debugResponse)
-          } catch (debugError) {
-            console.error("[v0] Error en debug:", debugError)
-          }
-        }
       } else {
         setError(response.message || "Error al cargar guías")
       }
     } catch (error) {
-      console.error("[v0] Error en loadGuias:", error)
       setError(error.message || "Error al cargar guías")
     } finally {
       setLoading(false)
@@ -119,10 +106,7 @@ export default function GuiasManager() {
   }, [loadGuias])
 
   const handleFilterChange = (field, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
+    setFilters((prev) => ({ ...prev, [field]: value }))
     setPagination((prev) => ({ ...prev, currentPage: 1 }))
   }
 
@@ -161,35 +145,20 @@ export default function GuiasManager() {
     loadGuias()
   }
 
-  const getInitials = (nombre, apellido) => {
-    return `${nombre?.charAt(0) || ""}${apellido?.charAt(0) || ""}`.toUpperCase()
-  }
-
-  if (loading && guias.length === 0) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    )
-  }
+  const getInitials = (nombre, apellido) =>
+    `${nombre?.charAt(0) || ""}${apellido?.charAt(0) || ""}`.toUpperCase()
 
   return (
     <Box>
       {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Box>
           <Typography variant="h4" gutterBottom>
             Gestión de Guías
           </Typography>
-          <Typography variant="subtitle1" color="textSecondary">
-            {pagination.totalItems} guías encontrados
+          <Typography variant="subtitle1" color="text.secondary">
+            {pagination.totalItems} guías encontradas
           </Typography>
-          {pagination.totalItems === 0 && (
-            <Typography variant="body2" color="warning.main" sx={{ mt: 1 }}>
-              No hay perfiles de guía creados. Los usuarios con rol "guia" deben tener un perfil de guía para aparecer
-              aquí.
-            </Typography>
-          )}
         </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateGuia}>
           Nuevo Guía
@@ -203,77 +172,79 @@ export default function GuiasManager() {
       )}
 
       {/* Filtros */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            <FilterIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-            Filtros
-          </Typography>
-          <Grid2 container spacing={2}>
-            <Grid2 item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Buscar guías"
-                value={filters.search}
-                onChange={(e) => handleFilterChange("search", e.target.value)}
-                InputProps={{
-                  startAdornment: <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />,
-                }}
-              />
-            </Grid2>
-            <Grid2 item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Especialidad"
-                value={filters.especialidad}
-                onChange={(e) => handleFilterChange("especialidad", e.target.value)}
-                placeholder="ej: montañismo, trekking"
-              />
-            </Grid2>
-            <Grid2 item xs={12} md={4}>
-              <FormControl fullWidth>
-                <InputLabel>Estado</InputLabel>
-                <Select
-                  value={filters.disponible}
-                  label="Estado"
-                  onChange={(e) => handleFilterChange("disponible", e.target.value)}
-                >
-                  <MenuItem value="">Todos</MenuItem>
-                  <MenuItem value="true">Activos</MenuItem>
-                  <MenuItem value="false">Inactivos</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid2>
+      <Card sx={{ mb: 4, p: 2 }}>
+        <Typography variant="h6" gutterBottom sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <FilterIcon /> Filtros
+        </Typography>
+        <Grid2 container spacing={2}>
+          <Grid2 item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Buscar guías"
+              value={filters.search}
+              onChange={(e) => handleFilterChange("search", e.target.value)}
+              InputProps={{
+                startAdornment: <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />,
+              }}
+            />
           </Grid2>
-        </CardContent>
+          <Grid2 item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Especialidad"
+              value={filters.especialidad}
+              onChange={(e) => handleFilterChange("especialidad", e.target.value)}
+              placeholder="Ej: montañismo, trekking"
+            />
+          </Grid2>
+          <Grid2 item xs={12} md={4}>
+            <FormControl fullWidth>
+              <InputLabel>Estado</InputLabel>
+              <Select
+                value={filters.disponible}
+                label="Estado"
+                onChange={(e) => handleFilterChange("disponible", e.target.value)}
+              >
+                <MenuItem value="">Todos</MenuItem>
+                <MenuItem value="true">Activos</MenuItem>
+                <MenuItem value="false">Inactivos</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid2>
+        </Grid2>
       </Card>
 
       {/* Lista de guías */}
       {loading ? (
-        <Box display="flex" justifyContent="center" py={4}>
-          <CircularProgress />
-        </Box>
+        <Grid2 container spacing={3}>
+          {Array.from({ length: pagination.itemsPerPage }).map((_, i) => (
+            <Grid2 item xs={12} sm={6} md={4} key={i}>
+              <Skeleton variant="rectangular" height={180} sx={{ borderRadius: 2 }} />
+            </Grid2>
+          ))}
+        </Grid2>
       ) : (
-        <>
-          <Grid2 container spacing={3}>
-            {guias.map((guia) => (
-              <Grid2 item xs={12} sm={6} md={4} key={guia.id_guia}>
-                <Card elevation={2} sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+        <Grid2 container spacing={4}>
+          {guias.map((guia) => (
+            <Grid2 item xs={12} sm={6} md={4} key={guia.id_guia}>
+              <motion.div whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 150 }}>
+                <Card elevation={3} sx={{ borderRadius: 3, display: "flex", flexDirection: "column", height: "100%" }}>
                   <CardContent sx={{ flexGrow: 1 }}>
                     <Box display="flex" alignItems="center" mb={2}>
-                      <Avatar sx={{ mr: 2, bgcolor: "primary.main" }}>
+                      <Avatar sx={{ mr: 2, bgcolor: guia.activo ? "success.main" : "grey.400" }}>
                         {getInitials(guia.usuario?.nombre, guia.usuario?.apellido)}
                       </Avatar>
                       <Box flexGrow={1}>
-                        <Typography variant="h6" component="h3">
+                        <Typography variant="h6">
                           {guia.usuario?.nombre} {guia.usuario?.apellido}
                         </Typography>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <StarIcon fontSize="small" color="warning" />
-                          <Typography variant="body2" color="textSecondary">
-                            {guia.calificacion_promedio || "Sin calificar"}
-                          </Typography>
-                        </Box>
+                        <Rating
+                          value={guia.calificacion_promedio || 0}
+                          precision={0.5}
+                          readOnly
+                          size="small"
+                          sx={{ mt: 0.5 }}
+                        />
                       </Box>
                       <Chip
                         label={guia.activo ? "Activo" : "Inactivo"}
@@ -282,20 +253,17 @@ export default function GuiasManager() {
                       />
                     </Box>
 
-                    <Typography variant="body2" color="textSecondary" paragraph>
+                    <Typography variant="body2" color="text.secondary" paragraph>
                       <strong>Especialidades:</strong> {guia.especialidades || "No especificadas"}
                     </Typography>
-
-                    <Typography variant="body2" color="textSecondary" paragraph>
+                    <Typography variant="body2" color="text.secondary" paragraph>
                       <strong>Experiencia:</strong> {guia.anos_experiencia || 0} {guia.anos_experiencia === 1 ? "año" : "años"}
                     </Typography>
-
                     {guia.idiomas && (
-                      <Typography variant="body2" color="textSecondary" paragraph>
+                      <Typography variant="body2" color="text.secondary" paragraph>
                         <strong>Idiomas:</strong> {guia.idiomas}
                       </Typography>
                     )}
-
                     {guia.tarifa_por_dia && (
                       <Typography variant="body2" color="primary.main">
                         <strong>Tarifa:</strong> ${guia.tarifa_por_dia}/día
@@ -305,51 +273,46 @@ export default function GuiasManager() {
 
                   <CardActions>
                     <Tooltip title="Ver detalles">
-                      <IconButton size="small" onClick={() => handleViewGuia(guia)}>
+                      <IconButton onClick={() => handleViewGuia(guia)}>
                         <ViewIcon />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Editar">
-                      <IconButton size="small" onClick={() => handleEditGuia(guia)}>
+                      <IconButton onClick={() => handleEditGuia(guia)}>
                         <EditIcon />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title={guia.activo ? "Desactivar" : "Activar"}>
-                      <IconButton size="small" onClick={() => handleToggleStatus(guia)}>
+                      <IconButton onClick={() => handleToggleStatus(guia)}>
                         {guia.activo ? <ToggleOnIcon color="success" /> : <ToggleOffIcon />}
                       </IconButton>
                     </Tooltip>
                   </CardActions>
                 </Card>
-              </Grid2>
-            ))}
-          </Grid2>
+              </motion.div>
+            </Grid2>
+          ))}
+        </Grid2>
+      )}
 
-          {/* Paginación */}
-          {pagination.totalPages > 1 && (
-            <Box display="flex" justifyContent="center" mt={4}>
-              <Pagination
-                count={pagination.totalPages}
-                page={pagination.currentPage}
-                onChange={handlePageChange}
-                color="primary"
-                size="large"
-              />
-            </Box>
-          )}
-        </>
+      {/* Paginación */}
+      {pagination.totalPages > 1 && (
+        <Box display="flex" justifyContent="center" mt={4}>
+          <Pagination
+            count={pagination.totalPages}
+            page={pagination.currentPage}
+            onChange={handlePageChange}
+            color="primary"
+            size="large"
+          />
+        </Box>
       )}
 
       {/* Modal de formulario */}
       <Dialog open={showForm} onClose={() => setShowForm(false)} maxWidth="md" fullWidth>
         <DialogTitle>{formMode === "create" ? "Crear Nuevo Guía" : "Editar Guía"}</DialogTitle>
         <DialogContent>
-          <GuiaForm
-            guia={selectedGuia}
-            mode={formMode}
-            onSuccess={handleFormSuccess}
-            onCancel={() => setShowForm(false)}
-          />
+          <GuiaForm guia={selectedGuia} mode={formMode} onSuccess={handleFormSuccess} onCancel={() => setShowForm(false)} />
         </DialogContent>
       </Dialog>
 
