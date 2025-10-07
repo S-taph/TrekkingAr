@@ -1,109 +1,122 @@
-import React, { useState } from 'react';
-import Container from '@mui/material/Container';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import FilterListIcon from '@mui/icons-material/FilterList';
-import Drawer from '@mui/material/Drawer';
+"use client"
 
-import Header from '../components/Header.jsx';
-import Banner from '../components/Banner.jsx';
-import FilterBar from '../components/FilterBar.jsx';
-import ProductList from '../components/ProductList.jsx';
-import Hero from '../components/Hero.jsx';
-import Footer from '../components/Footer.jsx';
-import ProximosViajes from '../components/ProximosViajes.jsx';
-import MediosPago from '../components/MediosPago.jsx';
-import SearchBar from '../components/SearchBar.jsx';
+import { useState, useCallback } from "react"
+import { Container, Box, Button, Drawer, Typography } from "@mui/material"
+import FilterListIcon from "@mui/icons-material/FilterList"
+
+import Header from "../components/Header.jsx"
+import Banner from "../components/Banner.jsx"
+import FilterBar from "../components/FilterBar.jsx"
+import ProductList from "../components/ProductList.jsx"
+import Hero from "../components/Hero.jsx"
+import Footer from "../components/Footer.jsx"
+import ProximosViajes from "../components/ProximosViajes.jsx"
+import MediosPago from "../components/MediosPago.jsx"
+import SearchBar from "../components/SearchBar.jsx"
 
 export default function Home() {
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [searchFilters, setSearchFilters] = useState({})
+  const [sidebarFilters, setSidebarFilters] = useState({})
 
-  const toggleFilterDrawer = (open) => () => {
-    setFilterOpen(open);
-  };
+  const toggleFilterDrawer = (open) => () => setFilterOpen(open)
+
+  const handleSearch = useCallback((filters) => {
+    console.log("[v0] Búsqueda aplicada:", filters)
+    setSearchFilters(filters)
+  }, [])
+
+  const handleSidebarFilter = useCallback((filters) => {
+    console.log("[v0] Filtros sidebar aplicados:", filters)
+    setSidebarFilters(filters)
+  }, [])
 
   return (
     <>
+      {/* HEADER */}
       <Header />
-      <Banner />
 
-      <Container sx={{ mt: 4 }}>
-        {/* Barra de búsqueda */}
-        <SearchBar />
+      {/* HERO PRINCIPAL CON CTA */}
+      <Box sx={{ position: "relative", mt: { xs: 8, md: 0 }, mb: 6 }}>
+        <Hero />
+      </Box>
 
-        {/* Botón para abrir filtro en celus */}
-        <Box sx={{ mb: 2, display: { xs: 'flex', md: 'none' }, justifyContent: 'flex-start' }}>
+      {/* BANNER DESTACADO */}
+      <Box sx={{ mt: 4, mb: 8 }}>
+        <Banner />
+      </Box>
+
+      {/* CONTENEDOR PRINCIPAL */}
+      <Container maxWidth="lg" sx={{ mb: 10 }}>
+        {/* BARRA DE BÚSQUEDA */}
+        <Box sx={{ mb: 4 }}>
+          <SearchBar onSearch={handleSearch} />
+        </Box>
+
+        {/* BOTÓN FILTRO EN MÓVIL */}
+        <Box sx={{ mb: 3, display: { xs: "flex", md: "none" }, justifyContent: "flex-start" }}>
           <Button
-            variant="outlined"
+            variant="contained"
             startIcon={<FilterListIcon />}
             onClick={toggleFilterDrawer(true)}
+            sx={{
+              bgcolor: "primary.main",
+              "&:hover": { bgcolor: "primary.dark" },
+            }}
           >
             Filtrar
           </Button>
         </Box>
 
-        {/* Contenedor flex para ProductList y FilterBar */}
+        {/* PRODUCTOS + FILTROS */}
         <Box
           sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            gap: 3,
-            alignItems: 'flex-start',
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            gap: 4,
+            alignItems: "flex-start",
           }}
         >
-          {/* FilterBar visible solo md+ y de ancho fijo */}
-          <Box
-            sx={{
-              width: 280,
-              display: { xs: 'none', md: 'block' },
-            }}
-          >
-            <FilterBar />
+          {/* FILTROS desktop */}
+          <Box sx={{ width: 300, display: { xs: "none", md: "block" } }}>
+            <FilterBar onFilterChange={handleSidebarFilter} />
           </Box>
 
-          {/* ProductList ocupa todo el ancho en xs, y flex 1 en md+ */}
+          {/* PRODUCT LIST */}
           <Box sx={{ flex: 1 }}>
-            <ProductList />
+            <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
+              Nuestros Viajes
+            </Typography>
+            <ProductList searchFilters={searchFilters} sidebarFilters={sidebarFilters} />
           </Box>
         </Box>
 
-        {/* Sección Próximos Viajes */}
-        <Box sx={{ mt: 6 }}>
+        {/* PRÓXIMOS VIAJES */}
+        <Box sx={{ mt: 12 }}>
+          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 4 }}>
+            Próximos Viajes
+          </Typography>
           <ProximosViajes />
         </Box>
 
-        {/* Styling del Hero */}
-        <Box
-          sx={{
-            mt: 4,
-            display: 'flex',
-            justifyContent: 'center',
-            maxWidth: { xs: '100%', md: '900px' },
-            mx: 'auto',
-            width: '100%',
-          }}
-        >
-          <Hero />
-        </Box>
-
-        {/* Sección Medios de Pago */}
+        {/* MEDIOS DE PAGO */}
+        <Box sx={{ mt: 12 }}>
+          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
+            Medios de Pago
+          </Typography>
           <MediosPago />
+        </Box>
       </Container>
 
-      {/* Footer */}
+      {/* FOOTER */}
       <Footer />
 
-      {/* Drawer para barra de filtros en celus */}
-      <Drawer
-        anchor="right"
-        open={filterOpen}
-        onClose={toggleFilterDrawer(false)}
-        ModalProps={{ keepMounted: true }}
-      >
+      {/* DRAWER FILTROS MOBILE */}
+      <Drawer anchor="right" open={filterOpen} onClose={toggleFilterDrawer(false)} ModalProps={{ keepMounted: true }}>
         <Box sx={{ width: 280, p: 2 }}>
-          <FilterBar />
+          <FilterBar onFilterChange={handleSidebarFilter} />
         </Box>
       </Drawer>
     </>
-  );
+  )
 }

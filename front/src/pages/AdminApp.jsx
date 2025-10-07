@@ -6,6 +6,7 @@ import Dashboard from "../components/admin/Dashboard"
 import ViajesManager from "../components/admin/ViajesManager"
 import GuiasManager from "../components/admin/GuiasManager"
 import ReservasManager from "../components/admin/ReservasManager"
+import UsuariosManager from "../components/admin/UsuariosManager"
 
 export default function AdminApp() {
   const [currentPath, setCurrentPath] = useState("/admin")
@@ -19,7 +20,7 @@ export default function AdminApp() {
       case "/admin":
         return <Dashboard onNavigate={handleNavigate} />
       case "/admin/usuarios":
-        return <div>Gestión de Usuarios (próximamente)</div>
+        return <UsuariosManager />
       case "/admin/viajes":
         return <ViajesManager />
       case "/admin/guias":

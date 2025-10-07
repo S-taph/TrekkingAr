@@ -3,6 +3,7 @@ import cors from "cors"
 import helmet from "helmet"
 import rateLimit from "express-rate-limit"
 import dotenv from "dotenv"
+import cookieParser from "cookie-parser"
 
 // Importar rutas
 import authRoutes from "./routes/authRoutes.js"
@@ -35,8 +36,14 @@ const limiter = rateLimit({
 
 // Middlewares globales
 app.use(helmet()) // Headers de seguridad
-app.use(cors()) // CORS
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true, // Permitir envío de cookies
+  }),
+) // CORS
 app.use(limiter) // Rate limiting
+app.use(cookieParser()) // Agregando middleware de cookie-parser
 app.use(express.json({ limit: "10mb" })) // Parse JSON
 app.use(express.urlencoded({ extended: true })) // Parse URL-encoded
 

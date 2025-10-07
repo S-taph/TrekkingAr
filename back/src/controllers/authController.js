@@ -21,7 +21,7 @@ export const register = async (req, res) => {
       })
     }
 
-    const { email, password, nombre, apellido, telefono, experiencia_previa } = req.body
+    const { email, password, nombre, apellido, telefono, experiencia_previa, dni } = req.body
 
     // Verificar si ya existe el usuario
     const existingUser = await Usuario.findOne({ where: { email } })
@@ -32,7 +32,7 @@ export const register = async (req, res) => {
       })
     }
 
-    // Hash de la contraseña - 12 rounds es suficiente
+    // Hash de la contraseña - 12 rounds
     const saltRounds = 12
     const password_hash = await bcrypt.hash(password, saltRounds)
 
@@ -44,10 +44,18 @@ export const register = async (req, res) => {
       apellido,
       telefono,
       experiencia_previa,
+      dni,
       rol: "cliente", // por defecto siempre cliente
     })
 
     const token = generateToken(usuario.id_usuarios)
+
+    res.cookie("token", token, {
+      httpOnly: true, // No accesible desde JavaScript
+      secure: process.env.NODE_ENV === "production", // Solo HTTPS en producción
+      sameSite: "strict", // Protección CSRF
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días en milisegundos
+    })
 
     res.status(201).json({
       success: true,
@@ -60,7 +68,6 @@ export const register = async (req, res) => {
           apellido: usuario.apellido,
           rol: usuario.rol,
         },
-        token,
       },
     })
   } catch (error) {
@@ -113,6 +120,13 @@ export const login = async (req, res) => {
 
     const token = generateToken(usuario.id_usuarios)
 
+    res.cookie("token", token, {
+      httpOnly: true, // No accesible desde JavaScript
+      secure: process.env.NODE_ENV === "production", // Solo HTTPS en producción
+      sameSite: "strict", // Protección CSRF
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días en milisegundos
+    })
+
     res.json({
       success: true,
       message: "Login exitoso",
@@ -124,7 +138,6 @@ export const login = async (req, res) => {
           apellido: usuario.apellido,
           rol: usuario.rol,
         },
-        token,
       },
     })
   } catch (error) {
@@ -156,6 +169,27 @@ export const getProfile = async (req, res) => {
     })
   } catch (error) {
     console.error("Error al obtener perfil:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error interno del servidor",
+    })
+  }
+}
+
+export const logout = async (req, res) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    })
+
+    res.json({
+      success: true,
+      message: "Logout exitoso",
+    })
+  } catch (error) {
+    console.error("Error en logout:", error)
     res.status(500).json({
       success: false,
       message: "Error interno del servidor",

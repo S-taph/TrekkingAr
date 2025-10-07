@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 import {
   AppBar,
   Toolbar,
@@ -16,6 +18,8 @@ import {
   Button,
   Badge,
   Stack,
+  Menu,
+  MenuItem,
 } from "@mui/material"
 import { alpha } from "@mui/material/styles"
 import MenuIcon from "@mui/icons-material/Menu"
@@ -28,14 +32,33 @@ import ArticleIcon from "@mui/icons-material/Article"
 import InfoIcon from "@mui/icons-material/Info"
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart"
 import LoginIcon from "@mui/icons-material/Login"
-import ContactMailIcon from "@mui/icons-material/ContactMail" // Import added for ContactMailIcon
+import AccountCircleIcon from "@mui/icons-material/AccountCircle"
+import LogoutIcon from "@mui/icons-material/Logout"
+import ContactMailIcon from "@mui/icons-material/ContactMail"
 
 export default function Header() {
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [cartCount] = useState(3) // Ejemplo con 3 items
+  const [cartCount] = useState(3)
+  const [anchorEl, setAnchorEl] = useState(null)
 
   const toggleDrawer = (open) => () => {
     setDrawerOpen(open)
+  }
+
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget)
+  }
+
+  const handleMenuClose = () => {
+    setAnchorEl(null)
+  }
+
+  const handleLogout = async () => {
+    await logout()
+    handleMenuClose()
+    navigate("/")
   }
 
   const menuItems = [
@@ -46,23 +69,23 @@ export default function Header() {
     { text: "Galería", icon: <PhotoLibraryIcon /> },
     { text: "Blog", icon: <ArticleIcon /> },
     { text: "Nosotros", icon: <InfoIcon /> },
-    { text: "Contacto", icon: <ContactMailIcon /> }, // ContactMailIcon used here
+    { text: "Contacto", icon: <ContactMailIcon /> },
   ]
 
   return (
     <>
       <AppBar
         position="fixed"
-         sx={(theme) => ({
-           top: 0,
-           left: 0,
-           right: 0,
-           backgroundColor: alpha(theme.palette.background.paper, 0.9), // semi-transparent using theme background (0.9 = ~90% opacity)
-           boxShadow: theme.shadows[4], // use theme shadow
-           zIndex: theme.zIndex.appBar,
-           padding: "0 1rem",
-           margin: 0,
-         })}
+        sx={(theme) => ({
+          top: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: alpha("#64b5f6", 0.95),
+          boxShadow: theme.shadows[4],
+          zIndex: theme.zIndex.appBar,
+          padding: "0 1rem",
+          margin: 0,
+        })}
       >
         <Toolbar sx={{ display: "flex", alignItems: "center" }}>
           <IconButton
@@ -148,23 +171,53 @@ export default function Header() {
               </Badge>
             </IconButton>
 
-            <Button
-              startIcon={<LoginIcon />}
-              sx={{
-                textTransform: "none",
-                fontWeight: 500,
-                ml: 1,
-                color: "white",
-                border: "1px solid rgba(255, 255, 255, 0.5)",
-                textShadow: "0 1px 2px rgba(0,0,0,0.5)",
-                "&:hover": {
-                  bgcolor: "rgba(255, 255, 255, 0.2)",
-                  borderColor: "rgba(255, 255, 255, 0.7)",
-                },
-              }}
-            >
-              Iniciar Sesión
-            </Button>
+            {user ? (
+              <>
+                <IconButton
+                  onClick={handleMenuOpen}
+                  sx={{
+                    ml: 1,
+                    color: "white",
+                    "&:hover": {
+                      bgcolor: "rgba(255, 255, 255, 0.2)",
+                    },
+                  }}
+                >
+                  <AccountCircleIcon />
+                </IconButton>
+                <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+                  <MenuItem disabled>
+                    <Typography variant="body2" color="text.secondary">
+                      {user.nombre} {user.apellido}
+                    </Typography>
+                  </MenuItem>
+                  <Divider />
+                  <MenuItem onClick={handleLogout}>
+                    <LogoutIcon sx={{ mr: 1 }} fontSize="small" />
+                    Cerrar Sesión
+                  </MenuItem>
+                </Menu>
+              </>
+            ) : (
+              <Button
+                startIcon={<LoginIcon />}
+                onClick={() => navigate("/login")}
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 500,
+                  ml: 1,
+                  color: "white",
+                  border: "1px solid rgba(255, 255, 255, 0.5)",
+                  textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+                  "&:hover": {
+                    bgcolor: "rgba(255, 255, 255, 0.2)",
+                    borderColor: "rgba(255, 255, 255, 0.7)",
+                  },
+                }}
+              >
+                Iniciar Sesión
+              </Button>
+            )}
           </Box>
         </Toolbar>
       </AppBar>

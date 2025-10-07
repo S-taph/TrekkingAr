@@ -1,27 +1,14 @@
 // URL base de la API
 const API_BASE_URL = "http://localhost:3000/api"
 
-const getAuthToken = () => {
-  // Por ahora usamos un token mock para admin
-  // En producción esto vendría del login del usuario
-  return "mock-admin-token"
-}
-
-// Configuración base para fetch
 const apiRequest = async (endpoint, options = {}) => {
   const config = {
     headers: {
       "Content-Type": "application/json",
       "x-bypass-auth": "true",
-      ...(endpoint.includes("/guias") ||
-      endpoint.includes("/viajes") ||
-      endpoint.includes("/reservas") ||
-      endpoint.includes("/categorias") ||
-      endpoint.includes("/usuarios")
-        ? { Authorization: `Bearer ${getAuthToken()}` }
-        : {}),
       ...options.headers,
     },
+    credentials: "include", // Incluir cookies en todas las peticiones
     ...options,
   }
 
@@ -167,11 +154,5 @@ export const authAPI = {
       body: JSON.stringify(userData),
     }),
 
-  verifyToken: (token) =>
-    apiRequest("/auth/verify", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }),
+  getProfile: () => apiRequest("/auth/profile"),
 }
