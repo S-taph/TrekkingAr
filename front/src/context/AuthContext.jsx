@@ -1,0 +1,84 @@
+"use client"
+
+import { createContext, useContext, useState, useEffect, useCallback } from "react"
+import { authAPI } from "../services/api"
+
+const AuthContext = createContext(null)
+
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error("useAuth debe usarse dentro de AuthProvider")
+  }
+  return context
+}
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  const checkAuth = useCallback(async () => {
+    try {
+      const response = await authAPI.getProfile()
+      if (response.success) {
+        setUser(response.data.user)
+      }
+    } catch {
+      console.log("[v0] No hay sesión activa")
+      setUser(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Verificar si hay sesión activa al cargar
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
+
+  const login = useCallback(async (credentials) => {
+    try {
+      const response = await authAPI.login(credentials)
+      if (response.success) {
+        setUser(response.data.user)
+        return { success: true }
+      }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  }, [])
+
+  const register = useCallback(async (userData) => {
+    try {
+      const response = await authAPI.register(userData)
+      if (response.success) {
+        setUser(response.data.user)
+        return { success: true }
+      }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  }, [])
+
+  const logout = useCallback(async () => {
+    try {
+      await authAPI.logout()
+      setUser(null)
+    } catch (error) {
+      console.error("[v0] Error en logout:", error)
+    }
+  }, [])
+
+  const value = useCallback(
+    () => ({
+      user,
+      loading,
+      login,
+      register,
+      logout,
+    }),
+    [user, loading, login, register, logout],
+  )
+
+  return <AuthContext.Provider value={value()}>{children}</AuthContext.Provider>
+}
