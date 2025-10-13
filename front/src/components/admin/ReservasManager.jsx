@@ -23,6 +23,8 @@ import {
   MenuItem,
   Tooltip,
   Button,
+  Divider,
+  Avatar,
 } from "@mui/material"
 import {
   Visibility as ViewIcon,
@@ -73,7 +75,6 @@ export default function ReservasManager() {
     itemsPerPage: 12,
   })
 
-  // Estados para filtros
   const [filters, setFilters] = useState({
     search: "",
     estado: "",
@@ -81,7 +82,6 @@ export default function ReservasManager() {
     fecha_hasta: "",
   })
 
-  // Estados para modales
   const [showDetail, setShowDetail] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
   const [selectedReserva, setSelectedReserva] = useState(null)
@@ -92,11 +92,10 @@ export default function ReservasManager() {
         setLoading(true)
         const params = {
           page: pagination.currentPage,
-          limit: pagination.itemsPerPage, // ← Esta variable se usa aquí
+          limit: pagination.itemsPerPage,
           ...filters,
         }
 
-        // Limpiar parámetros vacíos
         Object.keys(params).forEach((key) => {
           if (params[key] === "" || params[key] === null || params[key] === undefined) {
             delete params[key]
@@ -143,16 +142,11 @@ export default function ReservasManager() {
 
   const handleUpdateReserva = async (updatedData) => {
     try {
-      // Here you would call the API to update the reservation
-      // await reservasAPI.updateReserva(selectedReserva.id_reserva, updatedData)
-
-      // For now, just update the local state
       setReservas((prev) =>
         prev.map((reserva) =>
           reserva.id_reserva === selectedReserva.id_reserva ? { ...reserva, ...updatedData } : reserva,
         ),
       )
-
       setShowEdit(false)
       setSelectedReserva(null)
     } catch (error) {
@@ -222,8 +216,8 @@ export default function ReservasManager() {
       {/* Filtros */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
-            <FilterIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+          <Typography variant="h6" gutterBottom sx={{ display: "flex", alignItems: "center" }}>
+            <FilterIcon sx={{ mr: 1 }} />
             Filtros
           </Typography>
           <Grid2 container spacing={2}>
@@ -236,15 +230,21 @@ export default function ReservasManager() {
                 InputProps={{
                   startAdornment: <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />,
                 }}
+                sx={{ height: 56 }}
               />
             </Grid2>
+
             <Grid2 item xs={12} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Estado</InputLabel>
+              <FormControl fullWidth sx={{ height: 56 }}>
+                <InputLabel sx={{ lineHeight: "56px" }}>Estado</InputLabel>
                 <Select
                   value={filters.estado}
                   label="Estado"
                   onChange={(e) => handleFilterChange("estado", e.target.value)}
+                  sx={{
+                    height: 56,
+                    "& .MuiSelect-select": { display: "flex", alignItems: "center", height: "100%" },
+                  }}
                 >
                   <MenuItem value="">Todos</MenuItem>
                   <MenuItem value="pendiente">Pendiente</MenuItem>
@@ -254,6 +254,7 @@ export default function ReservasManager() {
                 </Select>
               </FormControl>
             </Grid2>
+
             <Grid2 item xs={12} md={3}>
               <TextField
                 fullWidth
@@ -264,6 +265,7 @@ export default function ReservasManager() {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid2>
+
             <Grid2 item xs={12} md={3}>
               <TextField
                 fullWidth
@@ -288,36 +290,41 @@ export default function ReservasManager() {
           <Grid2 container spacing={3}>
             {reservas.map((reserva) => (
               <Grid2 item xs={12} key={reserva.id_reserva}>
-                <Card elevation={2}>
+                <Card elevation={3} sx={{ borderRadius: 3 }}>
                   <CardContent>
                     <Grid2 container spacing={2} alignItems="center">
                       <Grid2 item xs={12} md={3}>
-                        <Typography variant="h6" gutterBottom>
-                          {reserva.usuario?.nombre} {reserva.usuario?.apellido}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {reserva.usuario?.email}
-                        </Typography>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Avatar sx={{ bgcolor: "primary.main" }}>
+                            {reserva.usuario?.nombre?.[0] || ""}{reserva.usuario?.apellido?.[0] || ""}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="h6">
+                              {reserva.usuario?.nombre} {reserva.usuario?.apellido}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {reserva.usuario?.email}
+                            </Typography>
+                          </Box>
+                        </Box>
                       </Grid2>
 
                       <Grid2 item xs={12} md={3}>
-                        <Typography variant="subtitle1" gutterBottom>
-                          {reserva.viaje?.titulo}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
+                        <Typography variant="subtitle1">{reserva.viaje?.titulo}</Typography>
+                        <Typography variant="body2" color="text.secondary">
                           {reserva.viaje?.duracion_dias} días
                         </Typography>
                       </Grid2>
 
                       <Grid2 item xs={12} md={2}>
-                        <Typography variant="body2" color="textSecondary" gutterBottom>
+                        <Typography variant="body2" color="text.secondary">
                           Fecha del viaje
                         </Typography>
                         <Typography variant="body1">{formatDate(reserva.fecha_viaje)}</Typography>
                       </Grid2>
 
-                      <Grid2 item xs={12} md={2}>
-                        <Typography variant="body2" color="textSecondary" gutterBottom>
+                      <Grid2 item xs={12} md={2} textAlign="right">
+                        <Typography variant="body2" color="text.secondary">
                           Personas
                         </Typography>
                         <Typography variant="body1">{reserva.cantidad_personas}</Typography>
@@ -326,25 +333,23 @@ export default function ReservasManager() {
                         </Typography>
                       </Grid2>
 
-                      <Grid2 item xs={12} md={2}>
-                        <Box display="flex" flexDirection="column" alignItems="flex-end" gap={1}>
-                          <Chip
-                            label={reserva.estado}
-                            color={getEstadoColor(reserva.estado)}
-                            sx={{ textTransform: "capitalize" }}
-                          />
-                          <Box>
-                            <Tooltip title="Ver detalles">
-                              <IconButton size="small" onClick={() => handleViewReserva(reserva)}>
-                                <ViewIcon />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Editar">
-                              <IconButton size="small" onClick={() => handleEditReserva(reserva)}>
-                                <EditIcon />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
+                      <Grid2 item xs={12} md={2} textAlign="right">
+                        <Chip
+                          label={reserva.estado}
+                          color={getEstadoColor(reserva.estado)}
+                          sx={{ textTransform: "capitalize", mb: 1 }}
+                        />
+                        <Box>
+                          <Tooltip title="Ver detalles">
+                            <IconButton size="small" onClick={() => handleViewReserva(reserva)}>
+                              <ViewIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Editar">
+                            <IconButton size="small" onClick={() => handleEditReserva(reserva)}>
+                              <EditIcon />
+                            </IconButton>
+                          </Tooltip>
                         </Box>
                       </Grid2>
                     </Grid2>
@@ -354,7 +359,6 @@ export default function ReservasManager() {
             ))}
           </Grid2>
 
-          {/* Paginación */}
           {pagination.totalPages > 1 && (
             <Box display="flex" justifyContent="center" mt={4}>
               <Pagination
@@ -369,56 +373,56 @@ export default function ReservasManager() {
         </>
       )}
 
-      {/* Modal de detalle */}
+      {/* Modal de detalle premium */}
       <Dialog open={showDetail} onClose={() => setShowDetail(false)} maxWidth="md" fullWidth>
         <DialogTitle>Detalles de la Reserva</DialogTitle>
         <DialogContent>
           {selectedReserva && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Información del Cliente
-              </Typography>
-              <Typography>
-                <strong>Nombre:</strong> {selectedReserva.usuario?.nombre} {selectedReserva.usuario?.apellido}
-              </Typography>
-              <Typography>
-                <strong>Email:</strong> {selectedReserva.usuario?.email}
-              </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mt: 1 }}>
+              {/* Cliente */}
+              <Card variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Cliente
+                </Typography>
+                <Divider sx={{ mb: 1 }} />
+                <Typography><strong>Nombre:</strong> {selectedReserva.usuario?.nombre} {selectedReserva.usuario?.apellido}</Typography>
+                <Typography><strong>Email:</strong> {selectedReserva.usuario?.email}</Typography>
+              </Card>
 
-              <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-                Información del Viaje
-              </Typography>
-              <Typography>
-                <strong>Viaje:</strong> {selectedReserva.viaje?.titulo}
-              </Typography>
-              <Typography>
-                <strong>Duración:</strong> {selectedReserva.viaje?.duracion_dias} días
-              </Typography>
-              <Typography>
-                <strong>Fecha:</strong> {formatDate(selectedReserva.fecha_viaje)}
-              </Typography>
+              {/* Viaje */}
+              <Card variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Viaje
+                </Typography>
+                <Divider sx={{ mb: 1 }} />
+                <Typography><strong>Título:</strong> {selectedReserva.viaje?.titulo}</Typography>
+                <Typography><strong>Duración:</strong> {selectedReserva.viaje?.duracion_dias} días</Typography>
+                <Typography><strong>Fecha:</strong> {formatDate(selectedReserva.fecha_viaje)}</Typography>
+              </Card>
 
-              <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-                Detalles de la Reserva
-              </Typography>
-              <Typography>
-                <strong>Estado:</strong>{" "}
-                <Chip
-                  label={selectedReserva.estado}
-                  color={getEstadoColor(selectedReserva.estado)}
-                  size="small"
-                  sx={{ textTransform: "capitalize" }}
-                />
-              </Typography>
-              <Typography>
-                <strong>Cantidad de personas:</strong> {selectedReserva.cantidad_personas}
-              </Typography>
-              <Typography>
-                <strong>Precio total:</strong> {formatCurrency(selectedReserva.precio_total)}
-              </Typography>
-              <Typography>
-                <strong>Fecha de reserva:</strong> {formatDate(selectedReserva.fecha_reserva)}
-              </Typography>
+              {/* Reserva */}
+              <Card variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Reserva
+                </Typography>
+                <Divider sx={{ mb: 1 }} />
+                <Box display="flex" justifyContent="space-between" mb={1}>
+                  <Typography><strong>Estado:</strong></Typography>
+                  <Chip label={selectedReserva.estado} color={getEstadoColor(selectedReserva.estado)} size="small" sx={{ textTransform: "capitalize" }} />
+                </Box>
+                <Box display="flex" justifyContent="space-between" mb={1}>
+                  <Typography><strong>Personas:</strong></Typography>
+                  <Typography>{selectedReserva.cantidad_personas}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between" mb={1}>
+                  <Typography><strong>Precio:</strong></Typography>
+                  <Typography>{formatCurrency(selectedReserva.precio_total)}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography><strong>Fecha de reserva:</strong></Typography>
+                  <Typography>{formatDate(selectedReserva.fecha_reserva)}</Typography>
+                </Box>
+              </Card>
             </Box>
           )}
         </DialogContent>
@@ -449,6 +453,7 @@ export default function ReservasManager() {
                     </Select>
                   </FormControl>
                 </Grid2>
+
                 <Grid2 item xs={12}>
                   <TextField
                     fullWidth
@@ -456,28 +461,22 @@ export default function ReservasManager() {
                     type="number"
                     value={selectedReserva.cantidad_personas}
                     onChange={(e) =>
-                      setSelectedReserva((prev) => ({
-                        ...prev,
-                        cantidad_personas: Number.parseInt(e.target.value),
-                      }))
+                      setSelectedReserva((prev) => ({ ...prev, cantidad_personas: Number.parseInt(e.target.value) }))
                     }
                   />
                 </Grid2>
+
                 <Grid2 item xs={12}>
                   <TextField
                     fullWidth
                     label="Fecha del viaje"
                     type="date"
                     value={selectedReserva.fecha_viaje?.split("T")[0] || selectedReserva.fecha_viaje}
-                    onChange={(e) =>
-                      setSelectedReserva((prev) => ({
-                        ...prev,
-                        fecha_viaje: e.target.value,
-                      }))
-                    }
+                    onChange={(e) => setSelectedReserva((prev) => ({ ...prev, fecha_viaje: e.target.value }))}
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid2>
+
                 <Grid2 item xs={12}>
                   <TextField
                     fullWidth
@@ -485,10 +484,7 @@ export default function ReservasManager() {
                     type="number"
                     value={selectedReserva.precio_total}
                     onChange={(e) =>
-                      setSelectedReserva((prev) => ({
-                        ...prev,
-                        precio_total: Number.parseFloat(e.target.value),
-                      }))
+                      setSelectedReserva((prev) => ({ ...prev, precio_total: Number.parseFloat(e.target.value) }))
                     }
                     InputProps={{
                       startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
