@@ -69,7 +69,7 @@ npm run dev
 npm start
 ```
 
-El servidor estará disponible en `http://localhost:3000`
+El servidor estará disponible en `http://localhost:3003`
 
 ## 🔧 Configuración Detallada
 
@@ -97,12 +97,12 @@ JWT_EXPIRES_IN=7d
 4. Crear credenciales OAuth 2.0
 5. Configurar URLs autorizadas:
    - Origen: `http://localhost:5173`
-   - Redirección: `http://localhost:3000/api/auth/google/callback`
+   - Redirección: `http://localhost:3003/api/auth/google/callback`
 
 ```env
 GOOGLE_CLIENT_ID=tu_client_id
 GOOGLE_CLIENT_SECRET=tu_client_secret
-GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
+GOOGLE_CALLBACK_URL=http://localhost:3003/api/auth/google/callback
 ```
 
 #### Gmail SMTP
@@ -160,7 +160,7 @@ PUT    /api/viajes/:id/images/order    # Actualizar orden (admin)
 
 ### 1. Registro de Usuario
 ```bash
-curl -X POST http://localhost:3000/api/auth/register \
+curl -X POST http://localhost:3003/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "usuario@example.com",
@@ -173,7 +173,7 @@ curl -X POST http://localhost:3000/api/auth/register \
 
 ### 2. Login
 ```bash
-curl -X POST http://localhost:3000/api/auth/login \
+curl -X POST http://localhost:3003/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "usuario@example.com",
@@ -183,7 +183,7 @@ curl -X POST http://localhost:3000/api/auth/login \
 
 ### 3. Agregar Item al Carrito
 ```bash
-curl -X POST http://localhost:3000/api/carrito/items \
+curl -X POST http://localhost:3003/api/carrito/items \
   -H "Content-Type: application/json" \
   -H "Cookie: token=tu_jwt_token" \
   -d '{
@@ -194,7 +194,7 @@ curl -X POST http://localhost:3000/api/carrito/items \
 
 ### 4. Enviar Mensaje de Contacto
 ```bash
-curl -X POST http://localhost:3000/api/contact \
+curl -X POST http://localhost:3003/api/contact \
   -H "Content-Type: application/json" \
   -d '{
     "nombre": "María García",
@@ -206,7 +206,7 @@ curl -X POST http://localhost:3000/api/contact \
 
 ### 5. Subir Imágenes (Admin)
 ```bash
-curl -X POST http://localhost:3000/api/viajes/1/images \
+curl -X POST http://localhost:3003/api/viajes/1/images \
   -H "Cookie: token=admin_jwt_token" \
   -F "imagenes=@imagen1.jpg" \
   -F "imagenes=@imagen2.jpg"
@@ -218,14 +218,14 @@ curl -X POST http://localhost:3000/api/viajes/1/images \
 ```javascript
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:3000', {
+const socket = io('http://localhost:3003', {
   auth: {
     token: 'tu_jwt_token'
   }
 });
 
 // Para administradores
-const adminSocket = io('http://localhost:3000/admin', {
+const adminSocket = io('http://localhost:3003/admin', {
   auth: {
     token: 'admin_jwt_token'
   }
