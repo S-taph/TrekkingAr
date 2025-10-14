@@ -4,6 +4,9 @@ import helmet from "helmet"
 import rateLimit from "express-rate-limit"
 import dotenv from "dotenv"
 import cookieParser from "cookie-parser"
+import { createServer } from "http"
+import { Server } from "socket.io"
+import jwt from "jsonwebtoken"
 
 // Importar rutas
 import authRoutes from "./routes/authRoutes.js"
@@ -26,7 +29,66 @@ import { configurePassportGoogle } from "./config/passport.js"
 dotenv.config()
 
 const app = express()
+const server = createServer(app)
 const PORT = process.env.PORT || 3000
+
+// Configurar Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true
+  },
+  path: process.env.SOCKET_IO_PATH || "/socket.io"
+})
+
+// Middleware de autenticación para Socket.IO
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token || socket.handshake.headers.cookie?.split('token=')[1]?.split(';')[0];
+    
+    if (!token) {
+      return next(new Error('Token de autenticación requerido'));
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Importar Usuario aquí para evitar dependencias circulares
+    const { Usuario } = await import('./models/associations.js');
+    const user = await Usuario.findByPk(decoded.id, {
+      attributes: { exclude: ['password_hash'] }
+    });
+
+    if (!user || !user.activo) {
+      return next(new Error('Usuario inválido o inactivo'));
+    }
+
+    socket.user = user;
+    next();
+  } catch (error) {
+    console.error('Error autenticando socket:', error);
+    next(new Error('Token inválido'));
+  }
+});
+
+// Configurar namespaces de Socket.IO
+const adminNamespace = io.of('/admin');
+
+adminNamespace.on('connection', (socket) => {
+  console.log(`Admin conectado: ${socket.user.email} (${socket.id})`);
+  
+  // Unir al usuario al room de administradores
+  socket.join('admin');
+  
+  socket.on('disconnect', () => {
+    console.log(`Admin desconectado: ${socket.user.email}`);
+  });
+});
+
+// Hacer io disponible en las rutas
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 // Configure Passport Google
 configurePassportGoogle(app)
@@ -133,9 +195,10 @@ const startServer = async () => {
     await seedDatabase()
 
     // Iniciar servidor
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`🚀 Servidor corriendo en puerto ${PORT}`)
       console.log(`📡 API disponible en http://localhost:${PORT}`)
+      console.log(`🔌 Socket.IO disponible en http://localhost:${PORT}/socket.io`)
       console.log(`🏥 Health check: http://localhost:${PORT}/api/health`)
       console.log(`🌍 Entorno: ${process.env.NODE_ENV || "development"}`)
     })

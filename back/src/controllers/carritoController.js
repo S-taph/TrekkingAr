@@ -1,114 +1,418 @@
-// Carrito Controller: handles persistent cart operations per user
-import { validationResult } from "express-validator"
-import Carrito from "../models/Carrito.js"
-import CarritoItem from "../models/CarritoItem.js"
-import FechaViaje from "../models/FechaViaje.js"
-import Viaje from "../models/Viaje.js"
+/**
+ * Carrito Controller
+ * 
+ * Controlador para manejo del carrito de compras.
+ * Permite agregar, actualizar, eliminar items y hacer checkout.
+ */
 
+import { validationResult } from "express-validator";
+import { Carrito, CarritoItem, FechaViaje, Viaje, Categoria } from "../models/associations.js";
+
+/**
+ * Obtiene el carrito activo del usuario autenticado
+ */
 export const getCarrito = async (req, res) => {
   try {
-    let carrito = await Carrito.findOne({
-      where: { id_usuario: req.user.id_usuarios, activo: true },
-      include: [{
-        model: CarritoItem,
-        as: "items",
-        include: [{ model: FechaViaje, as: "fechaViaje", include: [{ model: Viaje, as: "viaje" }] }],
-      }],
-    })
+    const userId = req.user.id_usuarios;
 
+    // Buscar carrito activo del usuario
+    let carrito = await Carrito.findOne({
+      where: {
+        id_usuario: userId,
+        activo: true
+      },
+      include: [
+        {
+          model: CarritoItem,
+          as: 'items',
+          include: [
+            {
+              model: FechaViaje,
+              as: 'fechaViaje',
+              include: [
+                {
+                  model: Viaje,
+                  as: 'viaje',
+                  include: [
+                    {
+                      model: Categoria,
+                      as: 'categoria'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+
+    // Si no existe carrito activo, crear uno nuevo
     if (!carrito) {
-      carrito = await Carrito.create({ id_usuario: req.user.id_usuarios, activo: true, cantidad_personas: 1 })
+      carrito = await Carrito.create({
+        id_usuario: userId,
+        activo: true,
+        cantidad_personas: 1
+      });
     }
 
-    return res.json({ success: true, data: { carrito } })
-  } catch (error) {
-    console.error("Error getCarrito:", error)
-    return res.status(500).json({ success: false, message: "Error interno del servidor" })
-  }
-}
+    // Calcular totales
+    const items = carrito.items || [];
+    const subtotal = items.reduce((sum, item) => sum + parseFloat(item.subtotal), 0);
+    const totalItems = items.reduce((sum, item) => sum + item.cantidad, 0);
 
+    res.json({
+      success: true,
+      data: {
+        carrito: {
+          id: carrito.id_carrito,
+          items: items,
+          subtotal: subtotal,
+          totalItems: totalItems,
+          createdAt: carrito.fecha_creacion,
+          updatedAt: carrito.fecha_actualizacion
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error obteniendo carrito:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+/**
+ * Agrega un item al carrito
+ */
 export const addItem = async (req, res) => {
   try {
-    const errors = validationResult(req)
+    const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: "Datos inválidos", errors: errors.array() })
+      return res.status(400).json({
+        success: false,
+        message: 'Datos inválidos',
+        errors: errors.array()
+      });
     }
 
-    const { id_fecha_viaje, cantidad } = req.body
+    const { fechaViajeId, cantidad } = req.body;
+    const userId = req.user.id_usuarios;
 
-    // Ensure cart exists
-    let carrito = await Carrito.findOne({ where: { id_usuario: req.user.id_usuarios, activo: true } })
-    if (!carrito) carrito = await Carrito.create({ id_usuario: req.user.id_usuarios, activo: true })
+    // Verificar que la fecha de viaje existe y está disponible
+    const fechaViaje = await FechaViaje.findByPk(fechaViajeId, {
+      include: [
+        {
+          model: Viaje,
+          as: 'viaje'
+        }
+      ]
+    });
 
-    // Validate fecha
-    const fecha = await FechaViaje.findByPk(id_fecha_viaje, { include: [{ model: Viaje, as: "viaje" }] })
-    if (!fecha) return res.status(404).json({ success: false, message: "Fecha de viaje no encontrada" })
-
-    // Determine unit price (fecha.precio_fecha or viaje.precio_base)
-    const precio_unitario = Number.parseFloat(fecha.precio_fecha ?? fecha.viaje?.precio_base ?? 0)
-
-    // Upsert: if existing item for same fecha
-    const existing = await CarritoItem.findOne({ where: { id_carrito: carrito.id_carrito, id_fecha_viaje } })
-    if (existing) {
-      await existing.update({ cantidad: existing.cantidad + cantidad })
-      return res.status(200).json({ success: true, message: "Cantidad actualizada", data: { item: existing } })
+    if (!fechaViaje) {
+      return res.status(404).json({
+        success: false,
+        message: 'Fecha de viaje no encontrada'
+      });
     }
 
-    const item = await CarritoItem.create({ id_carrito: carrito.id_carrito, id_fecha_viaje, cantidad, precio_unitario })
+    if (fechaViaje.estado_fecha !== 'disponible') {
+      return res.status(400).json({
+        success: false,
+        message: 'Esta fecha de viaje no está disponible'
+      });
+    }
 
-    return res.status(201).json({ success: true, message: "Ítem agregado al carrito", data: { item } })
+    // Verificar cupos disponibles
+    if (fechaViaje.cupos_disponibles < cantidad) {
+      return res.status(400).json({
+        success: false,
+        message: `Solo hay ${fechaViaje.cupos_disponibles} cupos disponibles`
+      });
+    }
+
+    // Buscar o crear carrito activo
+    let carrito = await Carrito.findOne({
+      where: {
+        id_usuario: userId,
+        activo: true
+      }
+    });
+
+    if (!carrito) {
+      carrito = await Carrito.create({
+        id_usuario: userId,
+        activo: true,
+        cantidad_personas: 1
+      });
+    }
+
+    // Verificar si ya existe un item para esta fecha de viaje
+    let carritoItem = await CarritoItem.findOne({
+      where: {
+        carritoId: carrito.id_carrito,
+        fechaViajeId: fechaViajeId
+      }
+    });
+
+    const precioUnitario = fechaViaje.precio_fecha || fechaViaje.viaje.precio_base;
+
+    if (carritoItem) {
+      // Actualizar cantidad existente
+      const nuevaCantidad = carritoItem.cantidad + cantidad;
+      
+      // Verificar cupos nuevamente
+      if (fechaViaje.cupos_disponibles < nuevaCantidad) {
+        return res.status(400).json({
+          success: false,
+          message: `No hay suficientes cupos. Disponibles: ${fechaViaje.cupos_disponibles}, solicitados: ${nuevaCantidad}`
+        });
+      }
+
+      carritoItem.cantidad = nuevaCantidad;
+      carritoItem.subtotal = nuevaCantidad * precioUnitario;
+      await carritoItem.save();
+    } else {
+      // Crear nuevo item
+      carritoItem = await CarritoItem.create({
+        carritoId: carrito.id_carrito,
+        fechaViajeId: fechaViajeId,
+        cantidad: cantidad,
+        precio_unitario: precioUnitario,
+        subtotal: cantidad * precioUnitario
+      });
+    }
+
+    // Obtener el item completo con relaciones
+    const itemCompleto = await CarritoItem.findByPk(carritoItem.id, {
+      include: [
+        {
+          model: FechaViaje,
+          as: 'fechaViaje',
+          include: [
+            {
+              model: Viaje,
+              as: 'viaje',
+              include: [
+                {
+                  model: Categoria,
+                  as: 'categoria'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Item agregado al carrito',
+      data: {
+        item: itemCompleto
+      }
+    });
+
   } catch (error) {
-    console.error("Error addItem:", error)
-    return res.status(500).json({ success: false, message: "Error interno del servidor" })
+    console.error('Error agregando item al carrito:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
   }
-}
+};
 
+/**
+ * Actualiza la cantidad de un item en el carrito
+ */
 export const updateItem = async (req, res) => {
   try {
-    const { id } = req.params
-    const { cantidad } = req.body
-
-    const item = await CarritoItem.findByPk(id)
-    if (!item) return res.status(404).json({ success: false, message: "Ítem no encontrado" })
-
-    await item.update({ cantidad })
-    return res.json({ success: true, message: "Ítem actualizado", data: { item } })
-  } catch (error) {
-    console.error("Error updateItem:", error)
-    return res.status(500).json({ success: false, message: "Error interno del servidor" })
-  }
-}
-
-export const deleteItem = async (req, res) => {
-  try {
-    const { id } = req.params
-    const item = await CarritoItem.findByPk(id)
-    if (!item) return res.status(404).json({ success: false, message: "Ítem no encontrado" })
-
-    await item.destroy()
-    return res.json({ success: true, message: "Ítem eliminado" })
-  } catch (error) {
-    console.error("Error deleteItem:", error)
-    return res.status(500).json({ success: false, message: "Error interno del servidor" })
-  }
-}
-
-export const checkout = async (req, res) => {
-  try {
-    const carrito = await Carrito.findOne({ where: { id_usuario: req.user.id_usuarios, activo: true }, include: [{ model: CarritoItem, as: "items" }] })
-    if (!carrito || !carrito.items || carrito.items.length === 0) {
-      return res.status(400).json({ success: false, message: "El carrito está vacío" })
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Datos inválidos',
+        errors: errors.array()
+      });
     }
 
-    // Placeholder: compute total
-    const total = carrito.items.reduce((acc, it) => acc + Number(it.precio_unitario) * it.cantidad, 0)
+    const { id } = req.params;
+    const { cantidad } = req.body;
+    const userId = req.user.id_usuarios;
 
-    // Mark cart inactive to simulate checkout
-    await carrito.update({ activo: false })
+    // Buscar el item del carrito
+    const carritoItem = await CarritoItem.findByPk(id, {
+      include: [
+        {
+          model: Carrito,
+          as: 'carrito',
+          where: {
+            id_usuario: userId,
+            activo: true
+          }
+        },
+        {
+          model: FechaViaje,
+          as: 'fechaViaje'
+        }
+      ]
+    });
 
-    return res.json({ success: true, message: "Checkout realizado (placeholder)", data: { total, carritoId: carrito.id_carrito } })
+    if (!carritoItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'Item no encontrado en el carrito'
+      });
+    }
+
+    // Verificar cupos disponibles
+    if (carritoItem.fechaViaje.cupos_disponibles < cantidad) {
+      return res.status(400).json({
+        success: false,
+        message: `Solo hay ${carritoItem.fechaViaje.cupos_disponibles} cupos disponibles`
+      });
+    }
+
+    // Actualizar item
+    carritoItem.cantidad = cantidad;
+    carritoItem.subtotal = cantidad * carritoItem.precio_unitario;
+    await carritoItem.save();
+
+    res.json({
+      success: true,
+      message: 'Item actualizado',
+      data: {
+        item: carritoItem
+      }
+    });
+
   } catch (error) {
-    console.error("Error checkout:", error)
-    return res.status(500).json({ success: false, message: "Error interno del servidor" })
+    console.error('Error actualizando item del carrito:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
   }
-}
+};
+
+/**
+ * Elimina un item del carrito
+ */
+export const removeItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id_usuarios;
+
+    // Buscar el item del carrito
+    const carritoItem = await CarritoItem.findByPk(id, {
+      include: [
+        {
+          model: Carrito,
+          as: 'carrito',
+          where: {
+            id_usuario: userId,
+            activo: true
+          }
+        }
+      ]
+    });
+
+    if (!carritoItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'Item no encontrado en el carrito'
+      });
+    }
+
+    // Eliminar item
+    await carritoItem.destroy();
+
+    res.json({
+      success: true,
+      message: 'Item eliminado del carrito'
+    });
+
+  } catch (error) {
+    console.error('Error eliminando item del carrito:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+/**
+ * Procesa el checkout del carrito (placeholder)
+ */
+export const checkout = async (req, res) => {
+  try {
+    const userId = req.user.id_usuarios;
+
+    // Buscar carrito activo
+    const carrito = await Carrito.findOne({
+      where: {
+        id_usuario: userId,
+        activo: true
+      },
+      include: [
+        {
+          model: CarritoItem,
+          as: 'items',
+          include: [
+            {
+              model: FechaViaje,
+              as: 'fechaViaje',
+              include: [
+                {
+                  model: Viaje,
+                  as: 'viaje'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+
+    if (!carrito || !carrito.items || carrito.items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'El carrito está vacío'
+      });
+    }
+
+    // Calcular totales
+    const subtotal = carrito.items.reduce((sum, item) => sum + parseFloat(item.subtotal), 0);
+    const totalItems = carrito.items.reduce((sum, item) => sum + item.cantidad, 0);
+
+    // TODO: Aquí se implementaría la lógica de checkout real:
+    // - Crear orden/reserva
+    // - Procesar pago
+    // - Actualizar cupos
+    // - Enviar confirmación por email
+
+    // Por ahora, solo desactivamos el carrito
+    carrito.activo = false;
+    await carrito.save();
+
+    res.json({
+      success: true,
+      message: 'Checkout procesado exitosamente',
+      data: {
+        orderId: `ORDER-${Date.now()}`, // Placeholder
+        subtotal: subtotal,
+        totalItems: totalItems,
+        items: carrito.items
+      }
+    });
+
+  } catch (error) {
+    console.error('Error procesando checkout:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};

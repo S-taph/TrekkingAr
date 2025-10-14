@@ -1,292 +1,354 @@
-import { validationResult } from "express-validator"
-import { Op } from "sequelize"
-import Viaje from "../models/Viaje.js"
-import Categoria from "../models/Categoria.js"
+/**
+ * Viaje Controller
+ * 
+ * Controlador para manejo de viajes y sus imágenes.
+ * Incluye endpoints para CRUD de viajes y upload de imágenes.
+ */
 
-export const getAllViajes = async (req, res) => {
+import { validationResult } from "express-validator";
+import { Op } from "sequelize";
+import { Viaje, FechaViaje, Categoria, ImagenViaje } from "../models/associations.js";
+import { upload, handleMulterError, getFileUrl } from "../config/multer.js";
+
+/**
+ * Obtiene todos los viajes con filtros y paginación
+ */
+export const getViajes = async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      categoria,
-      dificultad,
-      precio_min,
-      precio_max,
-      duracion_min,
-      duracion_max,
-      search,
-      activo = true,
-    } = req.query
+    const { 
+      categoria, 
+      dificultad, 
+      search, 
+      page = 1, 
+      limit = 12,
+      activo = true 
+    } = req.query;
+    
+    const offset = (page - 1) * limit;
 
-    const offset = (page - 1) * limit
-    const whereClause = {}
-
-    // Filtros básicos
-    if (activo !== undefined) whereClause.activo = activo === "true"
-    if (categoria) whereClause.id_categoria = categoria
-    if (dificultad) whereClause.dificultad = dificultad
-
-    // Filtros de precio
-    if (precio_min || precio_max) {
-      whereClause.precio_base = {}
-      if (precio_min) whereClause.precio_base[Op.gte] = precio_min
-      if (precio_max) whereClause.precio_base[Op.lte] = precio_max
+    // Construir filtros
+    const where = {};
+    if (activo !== undefined) {
+      where.activo = activo === 'true';
     }
 
-    // Filtros de duración
-    if (duracion_min || duracion_max) {
-      whereClause.duracion_dias = {}
-      if (duracion_min) whereClause.duracion_dias[Op.gte] = duracion_min
-      if (duracion_max) whereClause.duracion_dias[Op.lte] = duracion_max
+    if (dificultad) {
+      where.dificultad = dificultad;
     }
 
-    // Búsqueda por texto - busca en título y descripción
     if (search) {
-      whereClause[Op.or] = [
+      where[Op.or] = [
         { titulo: { [Op.like]: `%${search}%` } },
-        { descripcion_corta: { [Op.like]: `%${search}%` } },
-      ]
+        { descripcion_corta: { [Op.like]: `%${search}%` } }
+      ];
     }
 
+    // Construir include para categoría
+    const include = [
+      {
+        model: Categoria,
+        as: 'categoria'
+      },
+      {
+        model: FechaViaje,
+        as: 'fechas',
+        where: { estado_fecha: 'disponible' },
+        required: false
+      },
+      {
+        model: ImagenViaje,
+        as: 'imagenes',
+        required: false
+      }
+    ];
+
+    // Filtrar por categoría si se especifica
+    if (categoria) {
+      include[0].where = { id_categoria: categoria };
+    }
+
+    // Obtener viajes con paginación
     const { count, rows: viajes } = await Viaje.findAndCountAll({
-      where: whereClause,
-      include: [
-        {
-          model: Categoria,
-          as: "categoria",
-          attributes: ["id_categoria", "nombre"],
-        },
-      ],
-      limit: Number.parseInt(limit),
-      offset: Number.parseInt(offset),
-      order: [["fecha_creacion", "DESC"]], // los más nuevos primero
-    })
+      where,
+      include,
+      order: [['fecha_creacion', 'DESC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      distinct: true
+    });
+
+    // Procesar URLs de imágenes
+    const viajesConImagenes = viajes.map(viaje => {
+      const viajeData = viaje.toJSON();
+      
+      // Agregar URL completa a las imágenes
+      if (viajeData.imagenes) {
+        viajeData.imagenes = viajeData.imagenes.map(img => ({
+          ...img,
+          url: getFileUrl(req, img.url_local, viaje.id_viaje)
+        }));
+      }
+
+      // Agregar imagen principal si existe
+      if (viajeData.imagen_principal_url) {
+        viajeData.imagen_principal_url = getFileUrl(req, viajeData.imagen_principal_url, viaje.id_viaje);
+      }
+
+      return viajeData;
+    });
 
     res.json({
       success: true,
       data: {
-        viajes,
+        viajes: viajesConImagenes,
         pagination: {
-          currentPage: Number.parseInt(page),
-          totalPages: Math.ceil(count / limit),
-          totalItems: count,
-          itemsPerPage: Number.parseInt(limit),
-        },
-      },
-    })
+          total: count,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(count / limit)
+        }
+      }
+    });
+
   } catch (error) {
-    console.error("Error al obtener viajes:", error)
+    console.error('Error obteniendo viajes:', error);
     res.status(500).json({
       success: false,
-      message: "Error interno del servidor",
-    })
+      message: 'Error interno del servidor'
+    });
   }
-}
+};
 
+/**
+ * Obtiene un viaje por ID con todas sus relaciones
+ */
 export const getViajeById = async (req, res) => {
   try {
-    const { id } = req.params
+    const { id } = req.params;
 
     const viaje = await Viaje.findByPk(id, {
       include: [
         {
           model: Categoria,
-          as: "categoria",
-          attributes: ["id_categoria", "nombre", "descripcion"],
+          as: 'categoria'
         },
-      ],
-    })
+        {
+          model: FechaViaje,
+          as: 'fechas',
+          order: [['fecha_inicio', 'ASC']]
+        },
+        {
+          model: ImagenViaje,
+          as: 'imagenes',
+          order: [['orden', 'ASC']]
+        }
+      ]
+    });
 
     if (!viaje) {
       return res.status(404).json({
         success: false,
-        message: "Viaje no encontrado",
-      })
+        message: 'Viaje no encontrado'
+      });
+    }
+
+    // Procesar URLs de imágenes
+    const viajeData = viaje.toJSON();
+    
+    if (viajeData.imagenes) {
+      viajeData.imagenes = viajeData.imagenes.map(img => ({
+        ...img,
+        url: getFileUrl(req, img.url_local, viaje.id_viaje)
+      }));
+    }
+
+    if (viajeData.imagen_principal_url) {
+      viajeData.imagen_principal_url = getFileUrl(req, viajeData.imagen_principal_url, viaje.id_viaje);
     }
 
     res.json({
       success: true,
-      data: { viaje },
-    })
+      data: {
+        viaje: viajeData
+      }
+    });
+
   } catch (error) {
-    console.error("Error al obtener viaje:", error)
+    console.error('Error obteniendo viaje:', error);
     res.status(500).json({
       success: false,
-      message: "Error interno del servidor",
-    })
+      message: 'Error interno del servidor'
+    });
   }
-}
+};
 
-export const createViaje = async (req, res) => {
+/**
+ * Sube imágenes para un viaje específico
+ */
+export const uploadImagenes = async (req, res) => {
   try {
-    const errors = validationResult(req)
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
+    const { id } = req.params;
+
+    // Verificar que el viaje existe
+    const viaje = await Viaje.findByPk(id);
+    if (!viaje) {
+      return res.status(404).json({
         success: false,
-        message: "Datos inválidos",
-        errors: errors.array(),
-      })
+        message: 'Viaje no encontrado'
+      });
     }
 
-    const viajeData = req.body
-
-    // Verificar que la categoría existe
-    const categoria = await Categoria.findByPk(viajeData.id_categoria)
-    if (!categoria) {
+    // Verificar que hay archivos
+    if (!req.files || req.files.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Categoría no encontrada",
-      })
+        message: 'No se subieron archivos'
+      });
     }
 
-    const viaje = await Viaje.create(viajeData)
+    // Procesar archivos subidos
+    const imagenesSubidas = [];
+    
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
+      
+      // Crear registro en la base de datos
+      const imagenViaje = await ImagenViaje.create({
+        id_viaje: parseInt(id),
+        url_local: file.filename,
+        orden: i + 1,
+        descripcion: `Imagen ${i + 1} de ${viaje.titulo}`
+      });
 
-    // Obtener el viaje completo con la categoría
-    const viajeCompleto = await Viaje.findByPk(viaje.id_viaje, {
-      include: [
-        {
-          model: Categoria,
-          as: "categoria",
-          attributes: ["id_categoria", "nombre"],
-        },
-      ],
-    })
+      imagenesSubidas.push({
+        id: imagenViaje.id,
+        url: getFileUrl(req, file.filename, id),
+        orden: imagenViaje.orden,
+        descripcion: imagenViaje.descripcion
+      });
+    }
 
     res.status(201).json({
       success: true,
-      message: "Viaje creado exitosamente",
-      data: { viaje: viajeCompleto },
-    })
+      message: `${req.files.length} imagen(es) subida(s) exitosamente`,
+      data: {
+        imagenes: imagenesSubidas
+      }
+    });
+
   } catch (error) {
-    console.error("Error al crear viaje:", error)
+    console.error('Error subiendo imágenes:', error);
     res.status(500).json({
       success: false,
-      message: "Error interno del servidor",
-    })
+      message: 'Error interno del servidor'
+    });
   }
-}
+};
 
-export const updateViaje = async (req, res) => {
+/**
+ * Elimina una imagen de un viaje
+ */
+export const deleteImagen = async (req, res) => {
   try {
-    const errors = validationResult(req)
-    if (!errors.isEmpty()) {
+    const { id, imagenId } = req.params;
+
+    // Verificar que el viaje existe
+    const viaje = await Viaje.findByPk(id);
+    if (!viaje) {
+      return res.status(404).json({
+        success: false,
+        message: 'Viaje no encontrado'
+      });
+    }
+
+    // Buscar la imagen
+    const imagen = await ImagenViaje.findOne({
+      where: {
+        id: imagenId,
+        id_viaje: id
+      }
+    });
+
+    if (!imagen) {
+      return res.status(404).json({
+        success: false,
+        message: 'Imagen no encontrada'
+      });
+    }
+
+    // Eliminar archivo físico
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), 'uploads', 'viajes', id, imagen.url_local);
+    
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    // Eliminar registro de la base de datos
+    await imagen.destroy();
+
+    res.json({
+      success: true,
+      message: 'Imagen eliminada exitosamente'
+    });
+
+  } catch (error) {
+    console.error('Error eliminando imagen:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+/**
+ * Actualiza el orden de las imágenes
+ */
+export const updateImagenOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { imagenes } = req.body;
+
+    if (!Array.isArray(imagenes)) {
       return res.status(400).json({
         success: false,
-        message: "Datos inválidos",
-        errors: errors.array(),
-      })
+        message: 'Las imágenes deben ser un array'
+      });
     }
 
-    const { id } = req.params
-    const updateData = req.body
-
-    const viaje = await Viaje.findByPk(id)
+    // Verificar que el viaje existe
+    const viaje = await Viaje.findByPk(id);
     if (!viaje) {
       return res.status(404).json({
         success: false,
-        message: "Viaje no encontrado",
-      })
+        message: 'Viaje no encontrado'
+      });
     }
 
-    // Si se actualiza la categoría, verificar que existe
-    if (updateData.id_categoria) {
-      const categoria = await Categoria.findByPk(updateData.id_categoria)
-      if (!categoria) {
-        return res.status(400).json({
-          success: false,
-          message: "Categoría no encontrada",
-        })
-      }
-    }
-
-    await viaje.update(updateData)
-
-    const viajeActualizado = await Viaje.findByPk(id, {
-      include: [
+    // Actualizar orden de cada imagen
+    for (const img of imagenes) {
+      await ImagenViaje.update(
+        { orden: img.orden },
         {
-          model: Categoria,
-          as: "categoria",
-          attributes: ["id_categoria", "nombre"],
-        },
-      ],
-    })
-
-    res.json({
-      success: true,
-      message: "Viaje actualizado exitosamente",
-      data: { viaje: viajeActualizado },
-    })
-  } catch (error) {
-    console.error("Error al actualizar viaje:", error)
-    res.status(500).json({
-      success: false,
-      message: "Error interno del servidor",
-    })
-  }
-}
-
-export const deleteViaje = async (req, res) => {
-  try {
-    const { id } = req.params
-
-    const viaje = await Viaje.findByPk(id)
-    if (!viaje) {
-      return res.status(404).json({
-        success: false,
-        message: "Viaje no encontrado",
-      })
+          where: {
+            id: img.id,
+            id_viaje: id
+          }
+        }
+      );
     }
 
-    // Soft delete - solo marcamos como inactivo
-    await viaje.update({ activo: false })
-
     res.json({
       success: true,
-      message: "Viaje desactivado exitosamente",
-    })
+      message: 'Orden de imágenes actualizado'
+    });
+
   } catch (error) {
-    console.error("Error al eliminar viaje:", error)
+    console.error('Error actualizando orden de imágenes:', error);
     res.status(500).json({
       success: false,
-      message: "Error interno del servidor",
-    })
+      message: 'Error interno del servidor'
+    });
   }
-}
-
-export const getViajesByCategoria = async (req, res) => {
-  try {
-    const { categoriaId } = req.params
-    const { limit = 10 } = req.query
-
-    const viajes = await Viaje.findAll({
-      where: {
-        id_categoria: categoriaId,
-        activo: true,
-      },
-      include: [
-        {
-          model: Categoria,
-          as: "categoria",
-          attributes: ["id_categoria", "nombre"],
-        },
-      ],
-      limit: Number.parseInt(limit),
-      order: [["fecha_creacion", "DESC"]],
-    })
-
-    res.json({
-      success: true,
-      data: { viajes },
-    })
-  } catch (error) {
-    console.error("Error al obtener viajes por categoría:", error)
-    res.status(500).json({
-      success: false,
-      message: "Error interno del servidor",
-    })
-  }
-}
-
-// TODO: agregar endpoint para obtener viajes populares
-// TODO: implementar sistema de ratings
-// TODO: agregar filtro por fechas disponibles
+};

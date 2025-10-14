@@ -1,5 +1,11 @@
-// CarritoItem model: Items within a user's persistent cart, referencing a specific FechaViaje.
-// Purpose: Persist items per user cart so checkout can create Reservas/Compras later.
+/**
+ * CarritoItem Model
+ * 
+ * Modelo para los items individuales del carrito de compras.
+ * Cada item referencia una FechaViaje específica para permitir
+ * reservas de fechas concretas de viajes.
+ */
+
 import { DataTypes } from "sequelize"
 import sequelize from "../config/database.js"
 
@@ -11,46 +17,69 @@ const CarritoItem = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
-    id_carrito: {
+    carritoId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: "carrito",
         key: "id_carrito",
       },
+      field: "id_carrito"
     },
-    id_fecha_viaje: {
+    fechaViajeId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: "fechas_viaje",
         key: "id_fechas_viaje",
       },
+      field: "id_fecha_viaje"
     },
     cantidad: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 1,
-      validate: { min: 1 },
+      validate: {
+        min: 1,
+        max: 20 // Límite razonable por item
+      }
     },
     precio_unitario: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
+      validate: {
+        min: 0
+      }
+    },
+    subtotal: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      validate: {
+        min: 0
+      }
     },
     createdAt: {
       type: DataTypes.DATE,
-      field: "createdAt",
       defaultValue: DataTypes.NOW,
+      field: "fecha_creacion"
     },
     updatedAt: {
       type: DataTypes.DATE,
-      field: "updatedAt",
       defaultValue: DataTypes.NOW,
+      field: "fecha_actualizacion"
     },
   },
   {
     timestamps: true,
-    freezeTableName: true,
+    createdAt: "fecha_creacion",
+    updatedAt: "fecha_actualizacion",
+    indexes: [
+      {
+        unique: true,
+        fields: ['id_carrito', 'id_fecha_viaje'],
+        name: 'unique_carrito_fecha'
+      }
+    ]
   },
 )
 

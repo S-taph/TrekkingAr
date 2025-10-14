@@ -1,19 +1,50 @@
-import express from "express"
-import { body, param } from "express-validator"
-import { authenticateToken } from "../middleware/auth.js"
-import { getCarrito, addItem, updateItem, deleteItem, checkout } from "../controllers/carritoController.js"
+/**
+ * Carrito Routes
+ * 
+ * Rutas para el manejo del carrito de compras.
+ * Todas las rutas requieren autenticación.
+ */
 
-const router = express.Router()
+import express from "express";
+import { body, param } from "express-validator";
+import { getCarrito, addItem, updateItem, removeItem, checkout } from "../controllers/carritoController.js";
+import { authenticateToken } from "../middleware/auth.js";
 
-router.get("/", authenticateToken, getCarrito)
-router.post(
-  "/items",
-  authenticateToken,
-  [body("id_fecha_viaje").isInt({ min: 1 }), body("cantidad").isInt({ min: 1 })],
-  addItem,
-)
-router.put("/items/:id", authenticateToken, [param("id").isInt({ min: 1 }), body("cantidad").isInt({ min: 1 })], updateItem)
-router.delete("/items/:id", authenticateToken, [param("id").isInt({ min: 1 })], deleteItem)
-router.post("/checkout", authenticateToken, checkout)
+const router = express.Router();
 
-export default router
+// Middleware de autenticación para todas las rutas
+router.use(authenticateToken);
+
+// Validaciones
+const addItemValidation = [
+  body("fechaViajeId")
+    .isInt({ min: 1 })
+    .withMessage("ID de fecha de viaje debe ser un número entero positivo"),
+  body("cantidad")
+    .isInt({ min: 1, max: 20 })
+    .withMessage("La cantidad debe ser entre 1 y 20")
+];
+
+const updateItemValidation = [
+  param("id")
+    .isInt({ min: 1 })
+    .withMessage("ID de item debe ser un número entero positivo"),
+  body("cantidad")
+    .isInt({ min: 1, max: 20 })
+    .withMessage("La cantidad debe ser entre 1 y 20")
+];
+
+const removeItemValidation = [
+  param("id")
+    .isInt({ min: 1 })
+    .withMessage("ID de item debe ser un número entero positivo")
+];
+
+// Rutas
+router.get("/", getCarrito);
+router.post("/items", addItemValidation, addItem);
+router.put("/items/:id", updateItemValidation, updateItem);
+router.delete("/items/:id", removeItemValidation, removeItem);
+router.post("/checkout", checkout);
+
+export default router;

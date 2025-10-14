@@ -1,41 +1,148 @@
-// Multer local storage for Viaje images
-import multer from 'multer'
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
+/**
+ * Multer Configuration
+ * 
+ * Configuración para manejo de uploads de imágenes
+ * con validaciones de tipo y tamaño.
+ */
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
-const uploadsRoot = path.join(__dirname, '../../uploads')
-if (!fs.existsSync(uploadsRoot)) fs.mkdirSync(uploadsRoot, { recursive: true })
+// Crear directorio de uploads si no existe
+const uploadsDir = path.join(process.cwd(), 'uploads');
+const viajesDir = path.join(uploadsDir, 'viajes');
+const tempDir = path.join(uploadsDir, 'temp');
 
+[uploadsDir, viajesDir, tempDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
+
+// Configuración de almacenamiento
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const viajeId = req.params.id || req.params.viajeId
-    let dest = uploadsRoot
+  destination: (req, file, cb) => {
+    const viajeId = req.params.id || req.params.viajeId;
+    
     if (viajeId) {
-      dest = path.join(uploadsRoot, 'viajes', String(viajeId))
+      // Si hay viajeId, guardar en directorio específico del viaje
+      const viajeDir = path.join(viajesDir, viajeId);
+      if (!fs.existsSync(viajeDir)) {
+        fs.mkdirSync(viajeDir, { recursive: true });
+      }
+      cb(null, viajeDir);
     } else {
-      dest = path.join(uploadsRoot, 'temp')
+      // Si no hay viajeId, guardar en temp
+      cb(null, tempDir);
     }
-    fs.mkdirSync(dest, { recursive: true })
-    cb(null, dest)
   },
-  filename: function (req, file, cb) {
-    const timestamp = Date.now()
-    const ext = path.extname(file.originalname)
-    cb(null, `${timestamp}-${Math.random().toString(36).slice(2)}${ext}`)
+  filename: (req, file, cb) => {
+    // Generar nombre único: timestamp + random + extensión
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `img-${uniqueSuffix}${ext}`);
   }
-})
+});
 
-function fileFilter(req, file, cb) {
-  const allowed = ['image/jpeg', 'image/png']
-  if (!allowed.includes(file.mimetype)) {
-    return cb(new Error('Tipo de archivo no permitido'), false)
+// Filtro de archivos
+const fileFilter = (req, file, cb) => {
+  // Verificar tipo MIME
+  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Tipo de archivo no permitido. Solo se permiten imágenes JPEG, PNG y WebP.'), false);
   }
-  cb(null, true)
-}
+};
 
-export const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } })
-export const uploadsRootPath = uploadsRoot
+// Configuración de multer
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB máximo
+    files: 10 // Máximo 10 archivos por request
+  }
+});
+
+// Middleware para manejo de errores de multer
+const handleMulterError = (error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        message: 'El archivo es demasiado grande. Máximo 5MB permitido.'
+      });
+    }
+    if (error.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({
+        success: false,
+        message: 'Demasiados archivos. Máximo 10 archivos por request.'
+      });
+    }
+    if (error.code === 'LIMIT_UNEXPECTED_FILE') {
+      return res.status(400).json({
+        success: false,
+        message: 'Campo de archivo inesperado.'
+      });
+    }
+  }
+  
+  if (error.message.includes('Tipo de archivo no permitido')) {
+    return res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+  
+  next(error);
+};
+
+// Función para generar URL pública del archivo
+const getFileUrl = (req, filename, viajeId = null) => {
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  
+  if (viajeId) {
+    return `${baseUrl}/uploads/viajes/${viajeId}/${filename}`;
+  } else {
+    return `${baseUrl}/uploads/temp/${filename}`;
+  }
+};
+
+// Función para mover archivo de temp a directorio final
+const moveFileToViaje = (tempFilename, viajeId) => {
+  const tempPath = path.join(tempDir, tempFilename);
+  const viajeDir = path.join(viajesDir, viajeId);
+  const finalPath = path.join(viajeDir, tempFilename);
+  
+  if (!fs.existsSync(viajeDir)) {
+    fs.mkdirSync(viajeDir, { recursive: true });
+  }
+  
+  fs.renameSync(tempPath, finalPath);
+  return finalPath;
+};
+
+// Función para eliminar archivo
+const deleteFile = (filePath) => {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error eliminando archivo:', error);
+    return false;
+  }
+};
+
+export {
+  upload,
+  handleMulterError,
+  getFileUrl,
+  moveFileToViaje,
+  deleteFile
+};

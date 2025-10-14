@@ -66,3 +66,5 @@ export const requireRole = (roles) => {
     next()
   }
 }
+
+export const requireAdmin = requireRole(['admin'])

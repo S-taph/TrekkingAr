@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 import { validationResult } from "express-validator"
+import passport from "passport"
 import Usuario from "../models/Usuario.js"
 
 // TODO: mover esto a un archivo de utils
@@ -196,6 +197,54 @@ export const logout = async (req, res) => {
     })
   }
 }
+
+/**
+ * Inicia el flujo de autenticación con Google OAuth
+ */
+export const googleAuth = (req, res, next) => {
+  passport.authenticate('google', {
+    scope: ['profile', 'email']
+  })(req, res, next);
+};
+
+/**
+ * Callback de Google OAuth
+ */
+export const googleCallback = async (req, res, next) => {
+  passport.authenticate('google', async (err, user, info) => {
+    if (err) {
+      console.error('Error en Google OAuth:', err);
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_error`);
+    }
+
+    if (!user) {
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`);
+    }
+
+    try {
+      const token = generateToken(user.id_usuarios);
+
+      // Configurar cookie
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
+      });
+
+      // Redirigir al frontend con éxito
+      res.redirect(`${process.env.FRONTEND_URL}/dashboard?login=success`);
+    } catch (error) {
+      console.error('Error generando token:', error);
+      res.redirect(`${process.env.FRONTEND_URL}/login?error=token_error`);
+    }
+  })(req, res, next);
+};
+
+/**
+ * Obtiene el perfil del usuario autenticado (alias de getProfile)
+ */
+export const getMe = getProfile;
 
 // TODO: agregar endpoint para cambiar password
 // TODO: agregar endpoint para actualizar perfil

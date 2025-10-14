@@ -107,15 +107,21 @@ MetodoPago.hasMany(Pago, { foreignKey: "id_metodo_pago", as: "pagos" })
 
 // ===== RELACIONES CARRITO =====
 Carrito.belongsTo(Usuario, { foreignKey: "id_usuario", as: "usuario" })
+Usuario.hasMany(Carrito, { foreignKey: "id_usuario", as: "carritos" })
 
-// New: Carrito has many CarritoItem, and CarritoItem belongs to FechaViaje
-import CarritoItem from "./CarritoItem.js"
+// ===== RELACIONES CARRITO ITEM =====
 Carrito.hasMany(CarritoItem, { foreignKey: "id_carrito", as: "items" })
 CarritoItem.belongsTo(Carrito, { foreignKey: "id_carrito", as: "carrito" })
 CarritoItem.belongsTo(FechaViaje, { foreignKey: "id_fecha_viaje", as: "fechaViaje" })
 FechaViaje.hasMany(CarritoItem, { foreignKey: "id_fecha_viaje", as: "carritoItems" })
 
-Usuario.hasMany(Carrito, { foreignKey: "id_usuario", as: "carritos" })
+// ===== RELACIONES MENSAJE CONTACTO =====
+MensajeContacto.belongsTo(Usuario, { foreignKey: "id_admin_respondio", as: "adminRespondio" })
+Usuario.hasMany(MensajeContacto, { foreignKey: "id_admin_respondio", as: "mensajesRespondidos" })
+
+// ===== RELACIONES NOTIFICACION (ADMIN) =====
+Notificacion.belongsTo(Usuario, { foreignKey: "id_admin_leido", as: "adminLeido" })
+Usuario.hasMany(Notificacion, { foreignKey: "id_admin_leido", as: "notificacionesLeidas" })
 
 // ===== RELACIONES VIAJE-SERVICIO =====
 Viaje.belongsToMany(Servicio, {
@@ -179,6 +185,8 @@ export {
   Pago,
   MetodoPago,
   Carrito,
+  CarritoItem,
+  MensajeContacto,
   Servicio,
   ViajeServicio,
   Equipamiento,
