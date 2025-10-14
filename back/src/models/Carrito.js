@@ -2,7 +2,7 @@ import { DataTypes } from "sequelize"
 import sequelize from "../config/database.js"
 
 const Carrito = sequelize.define(
-  "carritos",
+  "carrito",
   {
     id_carrito: {
       type: DataTypes.INTEGER,

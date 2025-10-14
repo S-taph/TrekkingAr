@@ -12,17 +12,24 @@ import viajeRoutes from "./routes/viajeRoutes.js"
 import reservaRoutes from "./routes/reservaRoutes.js"
 import guiaRoutes from "./routes/guiaRoutes.js"
 import usuarioRoutes from "./routes/usuarioRoutes.js"
+import carritoRoutes from "./routes/carritoRoutes.js"
+import contactoRoutes from "./routes/contactoRoutes.js"
+import uploadRoutes from "./routes/uploadRoutes.js"
 
 // Importar configuración de BD y modelos
 import sequelize from "./config/database.js"
 import "./models/associations.js"
 import seedDatabase from "../scripts/seedDatabase.js"
+import { configurePassportGoogle } from "./config/passport.js"
 
 // Cargar variables de entorno
 dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 3000
+
+// Configure Passport Google
+configurePassportGoogle(app)
 
 // Configurar rate limiting
 const limiter = rateLimit({
@@ -47,6 +54,13 @@ app.use(cookieParser()) // Agregando middleware de cookie-parser
 app.use(express.json({ limit: "10mb" })) // Parse JSON
 app.use(express.urlencoded({ extended: true })) // Parse URL-encoded
 
+// Serve static uploads
+import path from "path"
+import { fileURLToPath } from "url"
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
+
 // Middleware de logging simple
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`)
@@ -60,6 +74,9 @@ app.use("/api/viajes", viajeRoutes)
 app.use("/api/reservas", reservaRoutes)
 app.use("/api/guias", guiaRoutes)
 app.use("/api/usuarios", usuarioRoutes)
+app.use("/api/carrito", carritoRoutes)
+app.use("/api", contactoRoutes)
+app.use("/api", uploadRoutes)
 
 // Ruta de health check
 app.get("/api/health", (req, res) => {
