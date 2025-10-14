@@ -31,7 +31,7 @@ const Usuario = sequelize.define(
     },
     dni: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true, // Allow null for Google OAuth users
       unique: true,
       validate: {
         isInt: true,

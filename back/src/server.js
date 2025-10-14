@@ -17,7 +17,7 @@ import reservaRoutes from "./routes/reservaRoutes.js"
 import guiaRoutes from "./routes/guiaRoutes.js"
 import usuarioRoutes from "./routes/usuarioRoutes.js"
 import carritoRoutes from "./routes/carritoRoutes.js"
-import contactoRoutes from "./routes/contactoRoutes.js"
+import contactRoutes from "./routes/contactRoutes.js"
 import uploadRoutes from "./routes/uploadRoutes.js"
 
 // Importar configuración de BD y modelos
@@ -148,7 +148,7 @@ app.use("/api/reservas", reservaRoutes)
 app.use("/api/guias", guiaRoutes)
 app.use("/api/usuarios", usuarioRoutes)
 app.use("/api/carrito", carritoRoutes)
-app.use("/api", contactoRoutes)
+app.use("/api", contactRoutes)
 app.use("/api", uploadRoutes)
 
 // Configure Passport Google (después de las rutas para evitar conflictos)

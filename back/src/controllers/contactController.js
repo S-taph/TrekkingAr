@@ -1,12 +1,15 @@
 /**
  * Contact Controller
- * 
- * Controlador para manejo de mensajes de contacto y notificaciones.
- * Incluye envío de emails y notificaciones en tiempo real.
+ *
+ * Controlador consolidado para manejo de mensajes de contacto y notificaciones.
+ * Incluye envío de emails y notificaciones en tiempo real vía Socket.IO.
+ *
+ * Usa AdminNotificacion para notificaciones y emailService para emails.
  */
 
 import { validationResult } from "express-validator";
-import { MensajeContacto, Notificacion, Usuario } from "../models/associations.js";
+import { MensajeContacto, Usuario } from "../models/associations.js";
+import AdminNotificacion from "../models/AdminNotificacion.js";
 import emailService from "../services/emailService.js";
 
 /**
@@ -34,17 +37,15 @@ export const sendContactMessage = async (req, res) => {
       estado: 'nuevo'
     });
 
-    // Crear notificación para administradores
-    const notificacion = await Notificacion.create({
+    // Crear notificación para administradores usando AdminNotificacion
+    const notificacion = await AdminNotificacion.create({
       tipo: 'contact_form',
-      titulo: `Nuevo mensaje de contacto: ${asunto}`,
-      mensaje: `${nombre} (${email}) envió un mensaje de contacto.`,
+      mensaje: `${nombre} (${email}): ${asunto}`,
       leido: false,
       from_email: email,
       to_admin: true,
-      prioridad: 'media',
       meta: {
-        mensajeId: mensajeContacto.id,
+        contactoId: mensajeContacto.id,
         nombre: nombre,
         asunto: asunto
       }
@@ -60,13 +61,13 @@ export const sendContactMessage = async (req, res) => {
 
     // Emitir evento Socket.IO para notificaciones en tiempo real
     if (req.io) {
-      req.io.to('admin').emit('new:notification', {
+      const adminNamespace = req.io.of('/admin');
+      adminNamespace.to('admin').emit('new:notification', {
         id: notificacion.id,
         tipo: notificacion.tipo,
-        titulo: notificacion.titulo,
         mensaje: notificacion.mensaje,
-        prioridad: notificacion.prioridad,
-        createdAt: notificacion.fecha_creacion,
+        from_email: notificacion.from_email,
+        createdAt: notificacion.createdAt,
         meta: notificacion.meta
       });
     }
@@ -93,13 +94,11 @@ export const sendContactMessage = async (req, res) => {
  */
 export const getNotificaciones = async (req, res) => {
   try {
-    const { leido, tipo, prioridad, page = 1, limit = 20 } = req.query;
+    const { leido, tipo, page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
 
     // Construir filtros
-    const where = {
-      to_admin: true
-    };
+    const where = {};
 
     if (leido !== undefined) {
       where.leido = leido === 'true';
@@ -109,29 +108,17 @@ export const getNotificaciones = async (req, res) => {
       where.tipo = tipo;
     }
 
-    if (prioridad) {
-      where.prioridad = prioridad;
-    }
-
     // Obtener notificaciones con paginación
-    const { count, rows: notificaciones } = await Notificacion.findAndCountAll({
+    const { count, rows: notificaciones } = await AdminNotificacion.findAndCountAll({
       where,
-      order: [['fecha_creacion', 'DESC']],
+      order: [['createdAt', 'DESC']],
       limit: parseInt(limit),
-      offset: parseInt(offset),
-      include: [
-        {
-          model: Usuario,
-          as: 'adminLeido',
-          attributes: ['id_usuarios', 'nombre', 'apellido', 'email']
-        }
-      ]
+      offset: parseInt(offset)
     });
 
     // Contar notificaciones no leídas
-    const notificacionesNoLeidas = await Notificacion.count({
+    const notificacionesNoLeidas = await AdminNotificacion.count({
       where: {
-        to_admin: true,
         leido: false
       }
     });
@@ -165,9 +152,8 @@ export const getNotificaciones = async (req, res) => {
 export const markNotificationAsRead = async (req, res) => {
   try {
     const { id } = req.params;
-    const adminId = req.user.id_usuarios;
 
-    const notificacion = await Notificacion.findByPk(id);
+    const notificacion = await AdminNotificacion.findByPk(id);
 
     if (!notificacion) {
       return res.status(404).json({
@@ -178,18 +164,15 @@ export const markNotificationAsRead = async (req, res) => {
 
     // Actualizar notificación
     await notificacion.update({
-      leido: true,
-      fecha_leido: new Date(),
-      id_admin_leido: adminId
+      leido: true
     });
 
     // Emitir evento Socket.IO
     if (req.io) {
-      req.io.to('admin').emit('notification:read', {
+      const adminNamespace = req.io.of('/admin');
+      adminNamespace.to('admin').emit('notification:read', {
         id: notificacion.id,
-        leido: true,
-        fecha_leido: notificacion.fecha_leido,
-        adminId: adminId
+        leido: true
       });
     }
 
@@ -229,15 +212,7 @@ export const replyToContact = async (req, res) => {
     const adminId = req.user.id_usuarios;
 
     // Buscar la notificación
-    const notificacion = await Notificacion.findByPk(id, {
-      include: [
-        {
-          model: Usuario,
-          as: 'adminLeido',
-          attributes: ['nombre', 'apellido']
-        }
-      ]
-    });
+    const notificacion = await AdminNotificacion.findByPk(id);
 
     if (!notificacion) {
       return res.status(404).json({
@@ -254,7 +229,7 @@ export const replyToContact = async (req, res) => {
     }
 
     // Buscar el mensaje de contacto original
-    const mensajeId = notificacion.meta?.mensajeId;
+    const mensajeId = notificacion.meta?.contactoId;
     if (!mensajeId) {
       return res.status(400).json({
         success: false,
@@ -271,6 +246,12 @@ export const replyToContact = async (req, res) => {
       });
     }
 
+    // Obtener nombre del admin
+    const admin = await Usuario.findByPk(adminId, {
+      attributes: ['nombre', 'apellido']
+    });
+    const adminName = admin ? `${admin.nombre} ${admin.apellido}`.trim() : 'Admin';
+
     // Actualizar mensaje de contacto
     await mensajeContacto.update({
       estado: 'respondido',
@@ -279,16 +260,13 @@ export const replyToContact = async (req, res) => {
       fecha_respuesta: new Date()
     });
 
-    // Marcar notificación como respondida
+    // Marcar notificación como leída
     await notificacion.update({
-      leido: true,
-      fecha_leido: new Date(),
-      id_admin_leido: adminId
+      leido: true
     });
 
     // Enviar email de respuesta al usuario
     try {
-      const adminName = `${notificacion.adminLeido?.nombre || 'Admin'} ${notificacion.adminLeido?.apellido || ''}`.trim();
       await emailService.sendContactReplyToUser(mensajeContacto, respuesta, adminName);
     } catch (emailError) {
       console.error('Error enviando email de respuesta:', emailError);
@@ -297,7 +275,8 @@ export const replyToContact = async (req, res) => {
 
     // Emitir evento Socket.IO
     if (req.io) {
-      req.io.to('admin').emit('notification:replied', {
+      const adminNamespace = req.io.of('/admin');
+      adminNamespace.to('admin').emit('notification:replied', {
         id: notificacion.id,
         mensajeId: mensajeContacto.id,
         estado: 'respondido'

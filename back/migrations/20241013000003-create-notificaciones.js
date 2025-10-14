@@ -1,7 +1,7 @@
 /**
- * Migration: Create Notificaciones table
- * 
- * Creates the notificaciones table to store system notifications
+ * Migration: Create Admin Notificaciones table
+ *
+ * Creates the admin_notificaciones table to store system notifications
  * for administrators (contact forms, orders, system events).
  */
 
@@ -9,7 +9,7 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('notificaciones', {
+    await queryInterface.createTable('admin_notificaciones', {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -79,28 +79,28 @@ module.exports = {
     });
 
     // Add indexes for better query performance
-    await queryInterface.addIndex('notificaciones', {
+    await queryInterface.addIndex('admin_notificaciones', {
       fields: ['leido'],
-      name: 'idx_notificaciones_leido'
+      name: 'idx_admin_notificaciones_leido'
     });
 
-    await queryInterface.addIndex('notificaciones', {
+    await queryInterface.addIndex('admin_notificaciones', {
       fields: ['tipo'],
-      name: 'idx_notificaciones_tipo'
+      name: 'idx_admin_notificaciones_tipo'
     });
 
-    await queryInterface.addIndex('notificaciones', {
+    await queryInterface.addIndex('admin_notificaciones', {
       fields: ['prioridad'],
-      name: 'idx_notificaciones_prioridad'
+      name: 'idx_admin_notificaciones_prioridad'
     });
 
-    await queryInterface.addIndex('notificaciones', {
+    await queryInterface.addIndex('admin_notificaciones', {
       fields: ['to_admin'],
-      name: 'idx_notificaciones_to_admin'
+      name: 'idx_admin_notificaciones_to_admin'
     });
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('notificaciones');
+    await queryInterface.dropTable('admin_notificaciones');
   }
 };

@@ -8,7 +8,7 @@ import Guia from "./Guia.js"
 import Contenido from "./Contenido.js"
 import Sugerencia from "./Sugerencia.js"
 import Campania from "./Campania.js"
-import Notificacion from "./Notificacion.js"
+// import Notificacion from "./Notificacion.js" // TODO: Implementar modelo Notificacion para campañas
 import AdminNotificacion from "./AdminNotificacion.js"
 import MensajeContacto from "./MensajeContacto.js"
 import GuiaViaje from "./GuiaViaje.js"
@@ -30,7 +30,7 @@ import Configuracion from "./Configuracion.js"
 Usuario.hasMany(Reserva, { foreignKey: "id_usuario", as: "reservas" })
 Usuario.hasMany(Compra, { foreignKey: "id_usuario", as: "compras" })
 Usuario.hasMany(Sugerencia, { foreignKey: "id_usuario", as: "sugerencias" })
-Usuario.hasMany(Notificacion, { foreignKey: "id_usuario", as: "notificaciones" })
+// Usuario.hasMany(Notificacion, { foreignKey: "id_usuario", as: "notificaciones" }) // TODO: Implementar Notificacion
 Usuario.hasOne(Guia, { foreignKey: "id_usuario", as: "perfilGuia" })
 
 // ===== RELACIONES CATEGORÍA =====
@@ -70,11 +70,11 @@ Contenido.belongsTo(Viaje, { foreignKey: "id_viaje", as: "viaje" })
 Sugerencia.belongsTo(Usuario, { foreignKey: "id_usuario", as: "usuario" })
 
 // ===== RELACIONES CAMPAÑA =====
-Campania.hasMany(Notificacion, { foreignKey: "id_campania", as: "notificaciones" })
+// Campania.hasMany(Notificacion, { foreignKey: "id_campania", as: "notificaciones" }) // TODO: Implementar Notificacion
 
 // ===== RELACIONES NOTIFICACIÓN =====
-Notificacion.belongsTo(Usuario, { foreignKey: "id_usuario", as: "usuario" })
-Notificacion.belongsTo(Campania, { foreignKey: "id_campania", as: "campania" })
+// Notificacion.belongsTo(Usuario, { foreignKey: "id_usuario", as: "usuario" }) // TODO: Implementar Notificacion
+// Notificacion.belongsTo(Campania, { foreignKey: "id_campania", as: "campania" }) // TODO: Implementar Notificacion
 
 // Admin notifications and contact messages
 AdminNotificacion.hasOne(MensajeContacto, { foreignKey: "id_notificacion", as: "mensajeContacto" })
@@ -120,8 +120,8 @@ MensajeContacto.belongsTo(Usuario, { foreignKey: "id_admin_respondio", as: "admi
 Usuario.hasMany(MensajeContacto, { foreignKey: "id_admin_respondio", as: "mensajesRespondidos" })
 
 // ===== RELACIONES NOTIFICACION (ADMIN) =====
-Notificacion.belongsTo(Usuario, { foreignKey: "id_admin_leido", as: "adminLeido" })
-Usuario.hasMany(Notificacion, { foreignKey: "id_admin_leido", as: "notificacionesLeidas" })
+// Notificacion.belongsTo(Usuario, { foreignKey: "id_admin_leido", as: "adminLeido" }) // TODO: Implementar Notificacion
+// Usuario.hasMany(Notificacion, { foreignKey: "id_admin_leido", as: "notificacionesLeidas" }) // TODO: Implementar Notificacion
 
 // ===== RELACIONES VIAJE-SERVICIO =====
 Viaje.belongsToMany(Servicio, {
@@ -178,7 +178,7 @@ export {
   Contenido,
   Sugerencia,
   Campania,
-  Notificacion,
+  // Notificacion, // TODO: Implementar Notificacion para campañas
   GuiaViaje,
   Suscriptor,
   CampaniaSuscriptor,
@@ -194,4 +194,5 @@ export {
   ImagenViaje,
   Administrador,
   Configuracion,
+  AdminNotificacion,
 }
