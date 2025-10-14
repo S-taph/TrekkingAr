@@ -9,12 +9,15 @@ import Contenido from "./Contenido.js"
 import Sugerencia from "./Sugerencia.js"
 import Campania from "./Campania.js"
 import Notificacion from "./Notificacion.js"
+import AdminNotificacion from "./AdminNotificacion.js"
+import MensajeContacto from "./MensajeContacto.js"
 import GuiaViaje from "./GuiaViaje.js"
 import Suscriptor from "./Suscriptor.js"
 import CampaniaSuscriptor from "./CampaniaSuscriptor.js"
 import Pago from "./Pago.js"
 import MetodoPago from "./MetodoPago.js"
 import Carrito from "./Carrito.js"
+import CarritoItem from "./CarritoItem.js"
 import Servicio from "./Servicio.js"
 import ViajeServicio from "./ViajeServicio.js"
 import Equipamiento from "./Equipamiento.js"
@@ -73,6 +76,9 @@ Campania.hasMany(Notificacion, { foreignKey: "id_campania", as: "notificaciones"
 Notificacion.belongsTo(Usuario, { foreignKey: "id_usuario", as: "usuario" })
 Notificacion.belongsTo(Campania, { foreignKey: "id_campania", as: "campania" })
 
+// Admin notifications and contact messages
+AdminNotificacion.hasOne(MensajeContacto, { foreignKey: "id_notificacion", as: "mensajeContacto" })
+
 // ===== RELACIONES SUSCRIPTOR =====
 Suscriptor.belongsToMany(Campania, {
   through: CampaniaSuscriptor,
@@ -101,10 +107,15 @@ MetodoPago.hasMany(Pago, { foreignKey: "id_metodo_pago", as: "pagos" })
 
 // ===== RELACIONES CARRITO =====
 Carrito.belongsTo(Usuario, { foreignKey: "id_usuario", as: "usuario" })
-Carrito.belongsTo(FechaViaje, { foreignKey: "id_fecha_viaje", as: "fechaViaje" })
 
-Usuario.hasMany(Carrito, { foreignKey: "id_usuario", as: "carrito" })
-FechaViaje.hasMany(Carrito, { foreignKey: "id_fecha_viaje", as: "itemsCarrito" })
+// New: Carrito has many CarritoItem, and CarritoItem belongs to FechaViaje
+import CarritoItem from "./CarritoItem.js"
+Carrito.hasMany(CarritoItem, { foreignKey: "id_carrito", as: "items" })
+CarritoItem.belongsTo(Carrito, { foreignKey: "id_carrito", as: "carrito" })
+CarritoItem.belongsTo(FechaViaje, { foreignKey: "id_fecha_viaje", as: "fechaViaje" })
+FechaViaje.hasMany(CarritoItem, { foreignKey: "id_fecha_viaje", as: "carritoItems" })
+
+Usuario.hasMany(Carrito, { foreignKey: "id_usuario", as: "carritos" })
 
 // ===== RELACIONES VIAJE-SERVICIO =====
 Viaje.belongsToMany(Servicio, {

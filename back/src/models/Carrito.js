@@ -2,7 +2,7 @@ import { DataTypes } from "sequelize"
 import sequelize from "../config/database.js"
 
 const Carrito = sequelize.define(
-  "carrito",
+  "carritos",
   {
     id_carrito: {
       type: DataTypes.INTEGER,
@@ -17,13 +17,9 @@ const Carrito = sequelize.define(
         key: "id_usuarios",
       },
     },
-    id_fecha_viaje: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: "fechas_viaje",
-        key: "id_fechas_viaje",
-      },
+    activo: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
     },
     cantidad_personas: {
       type: DataTypes.INTEGER,
@@ -32,11 +28,11 @@ const Carrito = sequelize.define(
     },
     precio_unitario: {
       type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
+      allowNull: true,
     },
     subtotal: {
       type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
+      allowNull: true,
     },
     fecha_creacion: {
       type: DataTypes.DATE,
@@ -46,6 +42,19 @@ const Carrito = sequelize.define(
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
+    // deprecated legacy fields kept for compatibility may be null
+    id_fecha_viaje: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    precio_unitario: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+    },
+    subtotal: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+    }
   },
   {
     timestamps: true,

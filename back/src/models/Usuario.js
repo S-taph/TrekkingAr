@@ -19,7 +19,7 @@ const Usuario = sequelize.define(
     },
     password_hash: {
       type: DataTypes.STRING(255),
-      allowNull: false,
+      allowNull: true, // allow null for social login
     },
     nombre: {
       type: DataTypes.STRING(100),
@@ -72,6 +72,15 @@ const Usuario = sequelize.define(
     updated_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
+    },
+    googleId: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      unique: true,
+    },
+    avatar: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
     },
   },
   {
