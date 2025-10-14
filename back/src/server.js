@@ -4,6 +4,7 @@ import helmet from "helmet"
 import rateLimit from "express-rate-limit"
 import dotenv from "dotenv"
 import cookieParser from "cookie-parser"
+import session from "express-session"
 import { createServer } from "http"
 import { Server } from "socket.io"
 import jwt from "jsonwebtoken"
@@ -90,9 +91,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Configure Passport Google
-configurePassportGoogle(app)
-
 // Configurar rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
@@ -113,6 +111,19 @@ app.use(
 ) // CORS
 app.use(limiter) // Rate limiting
 app.use(cookieParser()) // Agregando middleware de cookie-parser
+
+// Configurar express-session para Passport
+app.use(session({
+  secret: process.env.JWT_SECRET || 'fallback-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+  }
+}))
+
 app.use(express.json({ limit: "10mb" })) // Parse JSON
 app.use(express.urlencoded({ extended: true })) // Parse URL-encoded
 
@@ -139,6 +150,9 @@ app.use("/api/usuarios", usuarioRoutes)
 app.use("/api/carrito", carritoRoutes)
 app.use("/api", contactoRoutes)
 app.use("/api", uploadRoutes)
+
+// Configure Passport Google (después de las rutas para evitar conflictos)
+configurePassportGoogle(app)
 
 // Ruta de health check
 app.get("/api/health", (req, res) => {
@@ -188,8 +202,13 @@ const startServer = async () => {
 
     // Sincronizar modelos (solo en desarrollo)
     if (process.env.NODE_ENV === "development") {
-      await sequelize.sync({ alter: false }) // No forzar recreación
-      console.log("✅ Modelos sincronizados")
+      try {
+        await sequelize.sync({ alter: false }) // No forzar recreación
+        console.log("✅ Modelos sincronizados")
+      } catch (error) {
+        console.warn("⚠️  Advertencia: No se pudieron sincronizar todos los modelos:", error.message)
+        console.log("💡 Ejecuta las migraciones manualmente: npx sequelize-cli db:migrate")
+      }
     }
 
     await seedDatabase()
