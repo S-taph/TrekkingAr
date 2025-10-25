@@ -10,7 +10,7 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     // Add Google OAuth fields
-    await queryInterface.addColumn('usuarios', 'googleId', {
+    await queryInterface.addColumn('usuarios', 'googleid', {
       type: Sequelize.STRING(255),
       allowNull: true,
       unique: true,

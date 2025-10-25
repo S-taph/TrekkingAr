@@ -64,7 +64,52 @@ export default function GuiasManager() {
   const [selectedGuia, setSelectedGuia] = useState(null)
   const [formMode, setFormMode] = useState("create")
 
-  const loadGuias = useCallback(async () => {
+  // Cargar guías cuando cambian los filtros o la paginación
+  useEffect(() => {
+    const loadGuias = async () => {
+      try {
+        setLoading(true)
+        const params = {
+          page: pagination.currentPage,
+          limit: pagination.itemsPerPage,
+          ...filters,
+        }
+
+        if (params.disponible !== undefined && params.disponible !== "") {
+          params.activo = params.disponible === "true"
+          delete params.disponible
+        }
+
+        // Limpiar parámetros vacíos
+        Object.keys(params).forEach((key) => {
+          if (params[key] === "" || params[key] === null || params[key] === undefined) {
+            delete params[key]
+          }
+        })
+
+        console.log("[GuiasManager] Cargando guías con parámetros:", params)
+        const response = await guiasAPI.getGuias(params)
+        console.log("[GuiasManager] Respuesta del servidor:", response)
+
+        if (response.success) {
+          setGuias(response.data.guias)
+          setPagination(response.data.pagination)
+        } else {
+          setError(response.message || "Error al cargar guías")
+        }
+      } catch (error) {
+        console.error("[GuiasManager] Error en loadGuias:", error)
+        setError(error.message || "Error al cargar guías")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadGuias()
+  }, [pagination.currentPage, pagination.itemsPerPage, filters.search, filters.especialidad, filters.disponible])
+
+  // Función para recargar guías manualmente
+  const reloadGuias = useCallback(async () => {
     try {
       setLoading(true)
       const params = {
@@ -78,45 +123,27 @@ export default function GuiasManager() {
         delete params.disponible
       }
 
-      // Limpiar parámetros vacíos
       Object.keys(params).forEach((key) => {
         if (params[key] === "" || params[key] === null || params[key] === undefined) {
           delete params[key]
         }
       })
 
-      console.log("[v0] Cargando guías con parámetros:", params)
       const response = await guiasAPI.getGuias(params)
-      console.log("[v0] Respuesta del servidor para guías:", response)
 
       if (response.success) {
         setGuias(response.data.guias)
         setPagination(response.data.pagination)
-        console.log("[v0] Guías cargados:", response.data.guias.length)
-
-        if (response.data.guias.length === 0) {
-          console.log("[v0] No se encontraron guías, verificando usuarios con rol guía...")
-          try {
-            const debugResponse = await guiasAPI.debugAllGuias()
-            console.log("[v0] Debug response:", debugResponse)
-          } catch (debugError) {
-            console.error("[v0] Error en debug:", debugError)
-          }
-        }
       } else {
         setError(response.message || "Error al cargar guías")
       }
     } catch (error) {
-      console.error("[v0] Error en loadGuias:", error)
+      console.error("[GuiasManager] Error en reloadGuias:", error)
       setError(error.message || "Error al cargar guías")
     } finally {
       setLoading(false)
     }
   }, [pagination.currentPage, pagination.itemsPerPage, filters])
-
-  useEffect(() => {
-    loadGuias()
-  }, [loadGuias])
 
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({
@@ -150,7 +177,7 @@ export default function GuiasManager() {
   const handleToggleStatus = async (guia) => {
     try {
       await guiasAPI.updateGuia(guia.id_guia, { activo: !guia.activo })
-      await loadGuias()
+      await reloadGuias()
     } catch (error) {
       setError(error.message || "Error al cambiar estado del guía")
     }
@@ -158,7 +185,7 @@ export default function GuiasManager() {
 
   const handleFormSuccess = () => {
     setShowForm(false)
-    loadGuias()
+    reloadGuias()
   }
 
   const getInitials = (nombre, apellido) => {
@@ -213,6 +240,7 @@ export default function GuiasManager() {
             <Grid2 item xs={12} md={4}>
               <TextField
                 fullWidth
+                size="medium"
                 label="Buscar guías"
                 value={filters.search}
                 onChange={(e) => handleFilterChange("search", e.target.value)}
@@ -224,6 +252,7 @@ export default function GuiasManager() {
             <Grid2 item xs={12} md={4}>
               <TextField
                 fullWidth
+                size="medium"
                 label="Especialidad"
                 value={filters.especialidad}
                 onChange={(e) => handleFilterChange("especialidad", e.target.value)}
@@ -231,12 +260,16 @@ export default function GuiasManager() {
               />
             </Grid2>
             <Grid2 item xs={12} md={4}>
-              <FormControl fullWidth>
-                <InputLabel>Estado</InputLabel>
+              <FormControl fullWidth size="medium">
+                <InputLabel sx={{ fontSize: "1rem" }}>Estado</InputLabel>
                 <Select
                   value={filters.disponible}
                   label="Estado"
                   onChange={(e) => handleFilterChange("disponible", e.target.value)}
+                  sx={{
+                    minHeight: "56px",
+                    fontSize: "1rem",
+                  }}
                 >
                   <MenuItem value="">Todos</MenuItem>
                   <MenuItem value="true">Activos</MenuItem>

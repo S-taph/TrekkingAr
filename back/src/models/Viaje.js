@@ -61,6 +61,10 @@ const Viaje = sequelize.define(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
+    destacado: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
     fecha_creacion: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,

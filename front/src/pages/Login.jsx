@@ -14,13 +14,17 @@ import {
   Link,
   Stack,
   Snackbar,
+  Divider,
 } from "@mui/material"
 import LoginIcon from "@mui/icons-material/Login"
 import PersonAddIcon from "@mui/icons-material/PersonAdd"
+import GoogleIcon from "@mui/icons-material/Google"
+import HomeIcon from "@mui/icons-material/Home"
+import IconButton from "@mui/material/IconButton"
 
 export default function Login() {
   const navigate = useNavigate()
-  const { login, register } = useAuth()
+  const { login, register, user } = useAuth()
   const [isRegister, setIsRegister] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -71,7 +75,15 @@ export default function Login() {
           password: formData.password,
         })
         if (result.success) {
-          navigate("/")
+          // Esperar un momento para que el estado se actualice
+          setTimeout(() => {
+            // Redirigir según el rol del usuario
+            if (result.user?.rol === "admin") {
+              navigate("/admin")
+            } else {
+              navigate("/")
+            }
+          }, 100)
         } else {
           setError(result.error || "Credenciales incorrectas")
         }
@@ -83,6 +95,12 @@ export default function Login() {
     }
   }
 
+  const handleGoogleLogin = () => {
+    // Redirigir al endpoint de autenticación de Google en el backend
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3003/api"
+    window.location.href = `${API_BASE_URL.replace('/api', '')}/api/auth/google`
+  }
+
   return (
     <Box
       sx={{
@@ -91,8 +109,27 @@ export default function Login() {
         alignItems: "center",
         background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
         py: 4,
+        position: "relative",
       }}
     >
+      {/* Botón Volver a Home */}
+      <IconButton
+        onClick={() => navigate("/")}
+        sx={{
+          position: "absolute",
+          top: 16,
+          left: 16,
+          color: "white",
+          bgcolor: "rgba(255, 255, 255, 0.2)",
+          "&:hover": {
+            bgcolor: "rgba(255, 255, 255, 0.3)",
+          },
+        }}
+        aria-label="Volver al inicio"
+      >
+        <HomeIcon />
+      </IconButton>
+
       <Container maxWidth="sm">
         <Paper elevation={6} sx={{ p: 4, borderRadius: 2 }}>
           <Box sx={{ textAlign: "center", mb: 3 }}>
@@ -199,6 +236,38 @@ export default function Login() {
               </Button>
             </Stack>
           </form>
+
+          {/* Divisor con texto "O" */}
+          {!isRegister && (
+            <>
+              <Divider sx={{ my: 3 }}>
+                <Typography variant="body2" color="text.secondary">
+                  O
+                </Typography>
+              </Divider>
+
+              {/* Botón de Google */}
+              <Button
+                variant="outlined"
+                size="large"
+                fullWidth
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                startIcon={<GoogleIcon />}
+                sx={{
+                  borderColor: "#4285f4",
+                  color: "#4285f4",
+                  textTransform: "none",
+                  "&:hover": {
+                    borderColor: "#357ae8",
+                    backgroundColor: "rgba(66, 133, 244, 0.04)",
+                  },
+                }}
+              >
+                Continuar con Google
+              </Button>
+            </>
+          )}
 
           <Box sx={{ mt: 3, textAlign: "center" }}>
             <Typography variant="body2" color="text.secondary">

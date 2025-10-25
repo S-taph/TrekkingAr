@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import { useCart } from "../context/CartContext"
+import { useTheme } from "../context/ThemeContext"
 import {
   AppBar,
   Toolbar,
@@ -20,6 +22,8 @@ import {
   Stack,
   Menu,
   MenuItem,
+  Avatar,
+  Tooltip,
 } from "@mui/material"
 import { alpha } from "@mui/material/styles"
 import MenuIcon from "@mui/icons-material/Menu"
@@ -35,13 +39,24 @@ import LoginIcon from "@mui/icons-material/Login"
 import AccountCircleIcon from "@mui/icons-material/AccountCircle"
 import LogoutIcon from "@mui/icons-material/Logout"
 import ContactMailIcon from "@mui/icons-material/ContactMail"
+import Brightness4Icon from "@mui/icons-material/Brightness4"
+import Brightness7Icon from "@mui/icons-material/Brightness7"
+import NotificationsIcon from "@mui/icons-material/Notifications"
+import DashboardIcon from "@mui/icons-material/Dashboard"
+import { CartDrawer } from "./CartDrawer"
+import { NotificationCenter } from "./NotificationCenter"
 
 export default function Header() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const { itemCount } = useCart()
+  const { mode, toggleTheme } = useTheme()
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [cartCount] = useState(3)
+  const [cartOpen, setCartOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState(null)
+
+  const isAdmin = user?.rol === "admin"
 
   const toggleDrawer = (open) => () => {
     setDrawerOpen(open)
@@ -157,40 +172,109 @@ export default function Header() {
               ))}
             </Stack>
 
-            <IconButton
-              sx={{
-                ml: 2,
-                color: "white",
-                "&:hover": {
-                  bgcolor: "rgba(255, 255, 255, 0.2)",
-                },
-              }}
-            >
-              <Badge badgeContent={cartCount} color="error">
-                <ShoppingCartIcon />
-              </Badge>
-            </IconButton>
+            {/* Toggle tema */}
+            <Tooltip title={`Modo ${mode === "light" ? "oscuro" : "claro"}`}>
+              <IconButton
+                onClick={toggleTheme}
+                sx={{
+                  ml: 2,
+                  color: "white",
+                  "&:hover": {
+                    bgcolor: "rgba(255, 255, 255, 0.2)",
+                  },
+                }}
+              >
+                {mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
+              </IconButton>
+            </Tooltip>
+
+            {user && (
+              <>
+                {/* Carrito */}
+                <Tooltip title="Carrito">
+                  <IconButton
+                    onClick={() => setCartOpen(true)}
+                    sx={{
+                      color: "white",
+                      "&:hover": {
+                        bgcolor: "rgba(255, 255, 255, 0.2)",
+                      },
+                    }}
+                  >
+                    <Badge badgeContent={itemCount} color="error">
+                      <ShoppingCartIcon />
+                    </Badge>
+                  </IconButton>
+                </Tooltip>
+
+                {/* Notificaciones (solo admin) */}
+                {isAdmin && (
+                  <Tooltip title="Notificaciones">
+                    <IconButton
+                      onClick={() => setNotificationsOpen(true)}
+                      sx={{
+                        color: "white",
+                        "&:hover": {
+                          bgcolor: "rgba(255, 255, 255, 0.2)",
+                        },
+                      }}
+                    >
+                      <NotificationsIcon />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </>
+            )}
 
             {user ? (
               <>
-                <IconButton
-                  onClick={handleMenuOpen}
-                  sx={{
-                    ml: 1,
-                    color: "white",
-                    "&:hover": {
-                      bgcolor: "rgba(255, 255, 255, 0.2)",
-                    },
-                  }}
-                >
-                  <AccountCircleIcon />
-                </IconButton>
+                <Tooltip title="Cuenta">
+                  <IconButton
+                    onClick={handleMenuOpen}
+                    sx={{
+                      ml: 1,
+                    }}
+                  >
+                    <Avatar
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        bgcolor: "secondary.main",
+                        color: "text.primary",
+                      }}
+                    >
+                      {user.nombre?.charAt(0).toUpperCase() || "U"}
+                    </Avatar>
+                  </IconButton>
+                </Tooltip>
                 <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
                   <MenuItem disabled>
-                    <Typography variant="body2" color="text.secondary">
-                      {user.nombre} {user.apellido}
-                    </Typography>
+                    <Box>
+                      <Typography variant="body2" fontWeight={600}>
+                        {user.nombre} {user.apellido}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {user.email}
+                      </Typography>
+                    </Box>
                   </MenuItem>
+                  <Divider />
+                  <MenuItem onClick={() => { handleMenuClose(); navigate("/profile"); }}>
+                    <AccountCircleIcon sx={{ mr: 1 }} fontSize="small" />
+                    Mi Perfil
+                  </MenuItem>
+                  <MenuItem onClick={() => { handleMenuClose(); navigate("/my-reservations"); }}>
+                    Mis Reservas
+                  </MenuItem>
+                  {isAdmin && (
+                    <>
+                      <Divider />
+                      <MenuItem onClick={() => { handleMenuClose(); navigate("/admin"); }}>
+                        <DashboardIcon sx={{ mr: 1 }} fontSize="small" />
+                        Panel de Admin
+                      </MenuItem>
+                    </>
+                  )}
                   <Divider />
                   <MenuItem onClick={handleLogout}>
                     <LogoutIcon sx={{ mr: 1 }} fontSize="small" />
@@ -277,6 +361,14 @@ export default function Header() {
           </Box>
         </Box>
       </Drawer>
+
+      {/* Cart Drawer */}
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
+
+      {/* Notification Center (solo para admins) */}
+      {isAdmin && (
+        <NotificationCenter open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+      )}
     </>
   )
 }

@@ -62,6 +62,7 @@ export const register = async (req, res) => {
       success: true,
       message: "Usuario registrado exitosamente",
       data: {
+        token, // Incluir token en respuesta para uso del frontend
         user: {
           id: usuario.id_usuarios,
           email: usuario.email,
@@ -132,6 +133,7 @@ export const login = async (req, res) => {
       success: true,
       message: "Login exitoso",
       data: {
+        token, // Incluir token en respuesta para uso del frontend
         user: {
           id: usuario.id_usuarios,
           email: usuario.email,
@@ -232,8 +234,12 @@ export const googleCallback = async (req, res, next) => {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
       });
 
-      // Redirigir al frontend con éxito
-      res.redirect(`${process.env.FRONTEND_URL}/dashboard?login=success`);
+      // Redirigir al frontend según el rol del usuario
+      const redirectUrl = user.rol === 'admin'
+        ? `${process.env.FRONTEND_URL}/admin?login=success`
+        : `${process.env.FRONTEND_URL}/?login=success`;
+
+      res.redirect(redirectUrl);
     } catch (error) {
       console.error('Error generando token:', error);
       res.redirect(`${process.env.FRONTEND_URL}/login?error=token_error`);

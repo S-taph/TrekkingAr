@@ -17,23 +17,6 @@ const Carrito = sequelize.define(
         key: "id_usuarios",
       },
     },
-    activo: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-    },
-    cantidad_personas: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 1,
-    },
-    precio_unitario: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: true,
-    },
-    subtotal: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: true,
-    },
     fecha_creacion: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
@@ -42,19 +25,6 @@ const Carrito = sequelize.define(
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
-    // deprecated legacy fields kept for compatibility may be null
-    id_fecha_viaje: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-    },
-    precio_unitario: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: true,
-    },
-    subtotal: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: true,
-    }
   },
   {
     timestamps: true,

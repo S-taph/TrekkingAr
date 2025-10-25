@@ -66,4 +66,98 @@ const getUsuarioById = async (req, res) => {
   }
 }
 
-export { getUsuarios, getUsuarioById }
+/**
+ * Actualiza un usuario
+ * ✅ Conectado con frontend
+ */
+const updateUsuario = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { nombre, apellido, email, telefono, dni, rol, activo } = req.body
+
+    const usuario = await Usuario.findByPk(id)
+
+    if (!usuario) {
+      return res.status(404).json({
+        success: false,
+        message: "Usuario no encontrado"
+      })
+    }
+
+    // Actualizar solo los campos proporcionados
+    await usuario.update({
+      nombre: nombre || usuario.nombre,
+      apellido: apellido || usuario.apellido,
+      email: email || usuario.email,
+      telefono: telefono !== undefined ? telefono : usuario.telefono,
+      dni: dni !== undefined ? dni : usuario.dni,
+      rol: rol || usuario.rol,
+      activo: activo !== undefined ? activo : usuario.activo
+    })
+
+    res.json({
+      success: true,
+      message: "Usuario actualizado exitosamente",
+      data: { usuario }
+    })
+
+  } catch (error) {
+    console.error("Error actualizando usuario:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error interno del servidor",
+      error: error.message
+    })
+  }
+}
+
+/**
+ * Sube avatar de usuario
+ * ✅ Conectado con frontend
+ */
+const uploadAvatar = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No se subió ningún archivo"
+      })
+    }
+
+    const usuario = await Usuario.findByPk(id)
+
+    if (!usuario) {
+      return res.status(404).json({
+        success: false,
+        message: "Usuario no encontrado"
+      })
+    }
+
+    // Construir URL del avatar
+    const avatarUrl = `${req.protocol}://${req.get('host')}/uploads/avatars/${req.file.filename}`
+
+    await usuario.update({
+      avatar_url: avatarUrl
+    })
+
+    res.json({
+      success: true,
+      message: "Avatar actualizado exitosamente",
+      data: {
+        avatarUrl
+      }
+    })
+
+  } catch (error) {
+    console.error("Error subiendo avatar:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error interno del servidor",
+      error: error.message
+    })
+  }
+}
+
+export { getUsuarios, getUsuarioById, updateUsuario, uploadAvatar }

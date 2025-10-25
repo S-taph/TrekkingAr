@@ -1,30 +1,10 @@
-import { Grid, Typography, Container } from "@mui/material";
-import EventCard from "./EventCard";
+import { Grid, Typography, Container, Box, CircularProgress, Alert } from "@mui/material";
+import { TripCard } from "./TripCard";
+import { useViajes } from "../hooks/useViajes";
 
 const ProximosViajes = () => {
-  const viajes = [
-    {
-      id: 1,
-      title: "Ascenso al Cerro Tres Picos (Sierra de la Ventana) - por Funke",
-      description:
-        "Una aventura completa en solo un fin de semana en Sierra de la Ventana",
-      date: "20/09/2025",
-      category: "trekking",
-      location: "Sierra de la Ventana",
-      available: 10,
-      image: "/src/assets/images/trekkings/tres-picos/trespicos1.jpg",
-    },
-    {
-      id: 2,
-      title: "Trekking en el Aconcagua",
-      description: "Una experiencia única en la montaña más alta de América.",
-      date: "10/10/2025",
-      category: "trekking",
-      location: "Mendoza",
-      available: 5,
-      image: "/src/assets/images/trekkings/aconcagua/aconcagua1.jpg",
-    },
-  ];
+  // Obtener solo los primeros 6 viajes activos
+  const { viajes, loading, error } = useViajes({ limit: 6, activo: true });
 
   return (
     <Container sx={{ py: 6 }}>
@@ -37,17 +17,42 @@ const ProximosViajes = () => {
         Próximos Viajes
       </Typography>
 
-      <Grid
-        container
-        spacing={3}
-        justifyContent="center"
-      >
-        {viajes.map((viaje) => (
-          <Grid item key={viaje.id} xs={12} sm={6} md={4}>
-            <EventCard event={viaje} />
-          </Grid>
-        ))}
-      </Grid>
+      {/* Loading */}
+      {loading && (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
+      {/* Error */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Grid de viajes */}
+      {!loading && !error && (
+        <Grid
+          container
+          spacing={3}
+          justifyContent="center"
+        >
+          {viajes.length === 0 ? (
+            <Grid item xs={12}>
+              <Typography variant="body1" color="text.secondary" align="center">
+                No hay viajes disponibles en este momento
+              </Typography>
+            </Grid>
+          ) : (
+            viajes.map((viaje) => (
+              <Grid item key={viaje.id_viaje} xs={12} sm={6} md={4}>
+                <TripCard trip={viaje} />
+              </Grid>
+            ))
+          )}
+        </Grid>
+      )}
     </Container>
   );
 };

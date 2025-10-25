@@ -18,7 +18,7 @@ import guiaRoutes from "./routes/guiaRoutes.js"
 import usuarioRoutes from "./routes/usuarioRoutes.js"
 import carritoRoutes from "./routes/carritoRoutes.js"
 import contactRoutes from "./routes/contactRoutes.js"
-import uploadRoutes from "./routes/uploadRoutes.js"
+import reviewRoutes from "./routes/reviewRoutes.js"
 
 // Importar configuración de BD y modelos
 import sequelize from "./config/database.js"
@@ -74,14 +74,47 @@ io.use(async (socket, next) => {
 // Configurar namespaces de Socket.IO
 const adminNamespace = io.of('/admin');
 
+// Aplicar middleware de autenticación también al namespace admin
+adminNamespace.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token || socket.handshake.headers.cookie?.split('token=')[1]?.split(';')[0];
+
+    if (!token) {
+      return next(new Error('Token de autenticación requerido'));
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const { Usuario } = await import('./models/associations.js');
+    const user = await Usuario.findByPk(decoded.id, {
+      attributes: { exclude: ['password_hash'] }
+    });
+
+    if (!user || !user.activo) {
+      return next(new Error('Usuario inválido o inactivo'));
+    }
+
+    // Verificar que el usuario sea admin
+    if (user.rol !== 'admin') {
+      return next(new Error('Acceso denegado: se requiere rol de administrador'));
+    }
+
+    socket.user = user;
+    next();
+  } catch (error) {
+    console.error('Error autenticando socket admin:', error);
+    next(new Error('Token inválido'));
+  }
+});
+
 adminNamespace.on('connection', (socket) => {
-  console.log(`Admin conectado: ${socket.user.email} (${socket.id})`);
-  
+  console.log(`Admin conectado: ${socket.user?.email || 'desconocido'} (${socket.id})`);
+
   // Unir al usuario al room de administradores
   socket.join('admin');
-  
+
   socket.on('disconnect', () => {
-    console.log(`Admin desconectado: ${socket.user.email}`);
+    console.log(`Admin desconectado: ${socket.user?.email || 'desconocido'}`);
   });
 });
 
@@ -132,6 +165,15 @@ import path from "path"
 import { fileURLToPath } from "url"
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+// Servir uploads con headers que permitan cross-origin
+app.use('/uploads', (req, res, next) => {
+  // Permitir uso cruzado de imágenes
+  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:5173');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  next();
+});
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
 
 // Middleware de logging simple
@@ -148,8 +190,8 @@ app.use("/api/reservas", reservaRoutes)
 app.use("/api/guias", guiaRoutes)
 app.use("/api/usuarios", usuarioRoutes)
 app.use("/api/carrito", carritoRoutes)
-app.use("/api", contactRoutes)
-app.use("/api", uploadRoutes)
+app.use("/api/reviews", reviewRoutes) // IMPORTANTE: Debe ir ANTES de contactRoutes
+app.use("/api", contactRoutes) // Este aplica middleware global, debe ir al final
 
 // Configure Passport Google (después de las rutas para evitar conflictos)
 configurePassportGoogle(app)

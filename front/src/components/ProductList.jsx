@@ -1,55 +1,69 @@
 "use client"
 
-import { useMemo } from "react"
-import Box from "@mui/material/Box"
-import Typography from "@mui/material/Typography"
-import products from "../data/productsWithTags.js"
-import ProductCard from "./ProductCard"
+import { useEffect, useMemo } from "react"
+import { Box, Typography, CircularProgress, Alert } from "@mui/material"
+import { TripCard } from "./TripCard"
+import { useViajes } from "../hooks/useViajes"
 
 const ProductList = ({ searchFilters = {}, sidebarFilters = {} }) => {
-  console.log("[v0] ProductList recibió searchFilters:", searchFilters)
-  console.log("[v0] ProductList recibió sidebarFilters:", sidebarFilters)
+  console.log("[ProductList] searchFilters:", searchFilters)
+  console.log("[ProductList] sidebarFilters:", sidebarFilters)
 
-  const filteredProducts = useMemo(() => {
-    let filtered = [...products]
+  // Combinar todos los filtros para la API
+  const apiFilters = useMemo(() => {
+    const filters = { activo: true }
 
-    // Aplicar filtros de búsqueda
+    // Filtros de búsqueda
     if (searchFilters.lugar && searchFilters.lugar.trim() !== "") {
-      const lugarLower = searchFilters.lugar.toLowerCase()
-      filtered = filtered.filter(
-        (product) =>
-          product.title.toLowerCase().includes(lugarLower) || product.location.toLowerCase().includes(lugarLower),
-      )
+      filters.search = searchFilters.lugar
     }
-
     if (searchFilters.dificultad && searchFilters.dificultad !== "") {
-      filtered = filtered.filter((product) => product.difficulty?.toLowerCase() === searchFilters.dificultad)
+      filters.dificultad = searchFilters.dificultad
     }
-
     if (searchFilters.dias && searchFilters.dias !== "") {
-      const dias = Number.parseInt(searchFilters.dias)
-      filtered = filtered.filter((product) => product.duration === dias)
+      filters.duracion_dias = Number.parseInt(searchFilters.dias)
     }
 
-    // Aplicar filtros del sidebar
+    // Filtros del sidebar
     if (sidebarFilters.category && sidebarFilters.category.length > 0) {
-      filtered = filtered.filter((product) => sidebarFilters.category.includes(product.category))
+      filters.id_categoria = sidebarFilters.category[0] // API acepta un solo valor
     }
-
     if (sidebarFilters.difficulty && sidebarFilters.difficulty.length > 0) {
-      filtered = filtered.filter((product) => sidebarFilters.difficulty.includes(product.difficulty))
+      filters.dificultad = sidebarFilters.difficulty[0]
     }
-
     if (sidebarFilters.priceRange) {
       const [min, max] = sidebarFilters.priceRange
-      filtered = filtered.filter((product) => product.price >= min && product.price <= max)
+      filters.precio_min = min
+      filters.precio_max = max
     }
 
-    console.log("[v0] Productos filtrados:", filtered.length, "de", products.length)
-    return filtered
+    return filters
   }, [searchFilters, sidebarFilters])
 
-  if (filteredProducts.length === 0) {
+  const { viajes, loading, error, refetch } = useViajes(apiFilters)
+
+  // Refetch cuando cambien los filtros
+  useEffect(() => {
+    refetch(apiFilters)
+  }, [apiFilters, refetch])
+
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+        <CircularProgress />
+      </Box>
+    )
+  }
+
+  if (error) {
+    return (
+      <Alert severity="error" sx={{ my: 4 }}>
+        Error al cargar viajes: {error}
+      </Alert>
+    )
+  }
+
+  if (viajes.length === 0) {
     return (
       <Box sx={{ textAlign: "center", py: 8 }}>
         <Typography variant="h6" color="text.secondary">
@@ -71,14 +85,13 @@ const ProductList = ({ searchFilters = {}, sidebarFilters = {} }) => {
         gridTemplateColumns: {
           xs: "1fr",
           sm: "repeat(2, 1fr)",
-          md: "repeat(3, 1fr)",
-          lg: "repeat(4, 1fr)",
+          md: "repeat(2, 1fr)",
         },
         justifyContent: "center",
       }}
     >
-      {filteredProducts.map((prod) => (
-        <ProductCard key={prod.id} product={prod} />
+      {viajes.map((viaje) => (
+        <TripCard key={viaje.id_viaje} trip={viaje} />
       ))}
     </Box>
   )

@@ -77,6 +77,7 @@ const Usuario = sequelize.define(
       type: DataTypes.STRING(255),
       allowNull: true,
       unique: true,
+      field: "googleid",
     },
     avatar: {
       type: DataTypes.STRING(500),

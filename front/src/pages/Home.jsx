@@ -13,6 +13,8 @@ import Footer from "../components/Footer.jsx"
 import ProximosViajes from "../components/ProximosViajes.jsx"
 import MediosPago from "../components/MediosPago.jsx"
 import SearchBar from "../components/SearchBar.jsx"
+import ExperienciasDestacadas from "../components/ExperienciasDestacadas.jsx"
+import ReviewsList from "../components/ReviewsList.jsx"
 
 export default function Home() {
   const [filterOpen, setFilterOpen] = useState(false)
@@ -93,20 +95,20 @@ export default function Home() {
 
         {/* PRÓXIMOS VIAJES */}
         <Box sx={{ mt: 12 }}>
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 4 }}>
-            Próximos Viajes
-          </Typography>
           <ProximosViajes />
         </Box>
-
-        {/* MEDIOS DE PAGO */}
-        <Box sx={{ mt: 12 }}>
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
-            Medios de Pago
-          </Typography>
-          <MediosPago />
-        </Box>
       </Container>
+
+      {/* EXPERIENCIAS DESTACADAS */}
+      <ExperienciasDestacadas />
+
+      <Container maxWidth="lg">
+        {/* MEDIOS DE PAGO */}
+        <MediosPago />
+      </Container>
+
+      {/* REVIEWS & COMENTARIOS */}
+      <ReviewsList limit={6} />
 
       {/* FOOTER */}
       <Footer />

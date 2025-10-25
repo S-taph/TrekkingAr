@@ -102,7 +102,25 @@ export const createCategoria = async (req, res) => {
       })
     }
 
-    const categoria = await Categoria.create(req.body)
+    const { nombre, descripcion, activa = true, orden_visualizacion } = req.body
+
+    // Verificar si la categoría ya existe
+    const categoriaExistente = await Categoria.findOne({ where: { nombre } })
+    if (categoriaExistente) {
+      return res.status(400).json({
+        success: false,
+        message: `La categoría '${nombre}' ya existe`,
+      })
+    }
+
+    // Crear nueva categoría
+    const categoria = await Categoria.create({
+      nombre,
+      descripcion,
+      activa,
+      orden_visualizacion,
+      fecha_creacion: new Date()
+    })
 
     res.status(201).json({
       success: true,
@@ -117,6 +135,7 @@ export const createCategoria = async (req, res) => {
     })
   }
 }
+
 
 export const updateCategoria = async (req, res) => {
   try {

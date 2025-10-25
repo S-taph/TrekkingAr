@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.login(credentials)
       if (response.success) {
         setUser(response.data.user)
-        return { success: true }
+        return { success: true, user: response.data.user }
       }
     } catch (error) {
       return { success: false, error: error.message }
@@ -69,6 +69,10 @@ export const AuthProvider = ({ children }) => {
     }
   }, [])
 
+  const updateUser = useCallback((updatedUserData) => {
+    setUser((prev) => ({ ...prev, ...updatedUserData }))
+  }, [])
+
   const value = useCallback(
     () => ({
       user,
@@ -76,8 +80,9 @@ export const AuthProvider = ({ children }) => {
       login,
       register,
       logout,
+      updateUser,
     }),
-    [user, loading, login, register, logout],
+    [user, loading, login, register, logout, updateUser],
   )
 
   return <AuthContext.Provider value={value()}>{children}</AuthContext.Provider>

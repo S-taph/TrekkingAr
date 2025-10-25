@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import {
   Box,
   Drawer,
@@ -27,6 +29,7 @@ import {
   Logout as LogoutIcon,
 } from "@mui/icons-material";
 import { motion } from "framer-motion";
+import { ThemeToggle } from "../ThemeToggle";
 
 const drawerWidth = 240;
 
@@ -40,36 +43,58 @@ const menuItems = [
 
 export default function AdminLayout({ children, currentPath = "/admin", onNavigate }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
+
   const drawer = (
     <Box
-      sx={{
-        bgcolor: "#1E1E2F",
-        color: "#fff",
+      sx={(theme) => ({
+        bgcolor: theme.palette.mode === "light" ? "#f5f5f5" : "#1E1E2F",
+        color: theme.palette.mode === "light" ? "#333" : "#fff",
         height: "100%",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-      }}
+      })}
     >
       {/* HEADER DEL SIDEBAR */}
       <Box>
         <Toolbar>
-          <Box display="flex" alignItems="center" gap={1}>
+          <Box
+            display="flex"
+            alignItems="center"
+            gap={1}
+            onClick={() => navigate("/")}
+            sx={{
+              cursor: "pointer",
+              "&:hover": { opacity: 0.8 },
+              transition: "opacity 0.2s",
+            }}
+          >
             <HikingIcon sx={{ color: "#90CAF9" }} />
             <Typography
               variant="h6"
               noWrap
               component="div"
-              sx={{ fontWeight: "bold", color: "#fff" }}
+              sx={(theme) => ({
+                fontWeight: "bold",
+                color: theme.palette.mode === "light" ? "#333" : "#fff"
+              })}
             >
               TrekkingAR
             </Typography>
           </Box>
         </Toolbar>
-        <Divider sx={{ borderColor: "rgba(255,255,255,0.1)" }} />
+        <Divider sx={(theme) => ({
+          borderColor: theme.palette.mode === "light" ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.1)"
+        })} />
 
         {/* MENÚ DE NAVEGACIÓN */}
         <List sx={{ mt: 1 }}>
@@ -84,22 +109,34 @@ export default function AdminLayout({ children, currentPath = "/admin", onNaviga
                 <ListItem disablePadding>
                   <ListItemButton
                     onClick={() => onNavigate(item.path)}
-                    sx={{
+                    sx={(theme) => ({
                       borderRadius: 2,
                       mx: 1,
                       my: 0.5,
-                      color: selected ? "#fff" : "rgba(255,255,255,0.8)",
+                      color: selected
+                        ? "#fff"
+                        : theme.palette.mode === "light"
+                          ? "#333"
+                          : "rgba(255,255,255,0.8)",
                       backgroundColor: selected ? "#1976d2" : "transparent",
                       "&:hover": {
-                        backgroundColor: selected ? "#1565c0" : "rgba(255,255,255,0.1)",
+                        backgroundColor: selected
+                          ? "#1565c0"
+                          : theme.palette.mode === "light"
+                            ? "rgba(0,0,0,0.05)"
+                            : "rgba(255,255,255,0.1)",
                       },
-                    }}
+                    })}
                   >
                     <ListItemIcon
-                      sx={{
-                        color: selected ? "#fff" : "rgba(255,255,255,0.7)",
+                      sx={(theme) => ({
+                        color: selected
+                          ? "#fff"
+                          : theme.palette.mode === "light"
+                            ? "#666"
+                            : "rgba(255,255,255,0.7)",
                         minWidth: 40,
-                      }}
+                      })}
                     >
                       {item.icon}
                     </ListItemIcon>
@@ -116,19 +153,34 @@ export default function AdminLayout({ children, currentPath = "/admin", onNaviga
       </Box>
 
       {/* PERFIL Y LOGOUT */}
-      <Box sx={{ p: 2, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+      <Box sx={(theme) => ({
+        p: 2,
+        borderTop: theme.palette.mode === "light"
+          ? "1px solid rgba(0,0,0,0.1)"
+          : "1px solid rgba(255,255,255,0.1)"
+      })}>
         <Box display="flex" alignItems="center" gap={2}>
-          <Avatar sx={{ bgcolor: "#1976d2" }}>A</Avatar>
+          <Avatar sx={{ bgcolor: "#1976d2" }}>
+            {user?.nombre?.charAt(0).toUpperCase() || "A"}
+          </Avatar>
           <Box>
             <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-              Admin
+              {user?.nombre} {user?.apellido}
             </Typography>
-            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.6)" }}>
-              admin@trekkingar.com
+            <Typography
+              variant="caption"
+              sx={(theme) => ({
+                color: theme.palette.mode === "light"
+                  ? "rgba(0,0,0,0.6)"
+                  : "rgba(255,255,255,0.6)"
+              })}
+            >
+              {user?.email}
             </Typography>
           </Box>
         </Box>
         <ListItemButton
+          onClick={handleLogout}
           sx={{
             mt: 2,
             borderRadius: 2,
@@ -146,17 +198,23 @@ export default function AdminLayout({ children, currentPath = "/admin", onNaviga
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#F5F6FA" }}>
+    <Box
+      sx={(theme) => ({
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: theme.palette.mode === "light" ? "#F5F6FA" : "#121212",
+      })}
+    >
       {/* AppBar superior */}
       <AppBar
         position="fixed"
-        sx={{
+        sx={(theme) => ({
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
-          backgroundColor: "#fff",
-          color: "#333",
+          backgroundColor: theme.palette.mode === "light" ? "#fff" : "#1E1E2F",
+          color: theme.palette.mode === "light" ? "#333" : "#fff",
           boxShadow: "0px 2px 4px rgba(0,0,0,0.05)",
-        }}
+        })}
       >
         <Toolbar>
           <IconButton
@@ -167,9 +225,10 @@ export default function AdminLayout({ children, currentPath = "/admin", onNaviga
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap sx={{ fontWeight: "bold" }}>
+          <Typography variant="h6" noWrap sx={{ fontWeight: "bold", flexGrow: 1 }}>
             Panel de Administración
           </Typography>
+          <ThemeToggle />
         </Toolbar>
       </AppBar>
 

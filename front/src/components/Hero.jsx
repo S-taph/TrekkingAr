@@ -119,7 +119,8 @@ export default function Hero() {
             fontFamily: "'Russo One', sans-serif",
             fontWeight: "bold",
             fontSize: { xs: "2.5rem", md: "4rem" },
-            textShadow: "0 4px 8px rgba(0,0,0,0.7)",
+            color: "#FFFFFF !important", // Forzar blanco puro
+            textShadow: "0 4px 12px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.7)",
             mb: 1,
             lineHeight: 1.1,
           }}
@@ -134,7 +135,8 @@ export default function Hero() {
             fontFamily: "'Russo One', sans-serif",
             fontWeight: "bold",
             fontSize: { xs: "1.8rem", md: "2.5rem" },
-            textShadow: "0 4px 8px rgba(0,0,0,0.7)",
+            color: "#FFFFFF !important", // Forzar blanco puro
+            textShadow: "0 4px 12px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.7)",
             mb: 3,
             lineHeight: 1.1,
           }}
@@ -146,7 +148,8 @@ export default function Hero() {
           variant="h6"
           sx={{
             fontSize: { xs: "1rem", md: "1.2rem" },
-            textShadow: "0 2px 4px rgba(0,0,0,0.7)",
+            color: "#FFFFFF !important", // Forzar blanco puro
+            textShadow: "0 3px 8px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.7)",
             mb: 4,
             fontWeight: 400,
           }}

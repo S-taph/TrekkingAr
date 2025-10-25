@@ -30,6 +30,8 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Avatar,
+  Badge,
 } from "@mui/material"
 import {
   Add as AddIcon,
@@ -39,6 +41,7 @@ import {
   Search as SearchIcon,
   FilterList as FilterIcon,
   Info as InfoIcon,
+  Image as ImageIcon,
 } from "@mui/icons-material"
 import { viajesAPI } from "../../services/api"
 import ViajeForm from "./ViajeForm"
@@ -108,6 +111,9 @@ export default function ViajesManager() {
 
   const [deleteDialog, setDeleteDialog] = useState(false)
   const [viajeToDelete, setViajeToDelete] = useState(null)
+
+  const [imagePreviewDialog, setImagePreviewDialog] = useState(false)
+  const [selectedViajeImages, setSelectedViajeImages] = useState(null)
 
   const loadViajes = useCallback(async () => {
     try {
@@ -225,6 +231,15 @@ export default function ViajesManager() {
     loadViajes()
   }
 
+  const handleViewImages = (viaje) => {
+    if (viaje.isExample) {
+      setError("Los viajes de ejemplo no tienen imágenes reales.")
+      return
+    }
+    setSelectedViajeImages(viaje)
+    setImagePreviewDialog(true)
+  }
+
   if (loading && viajes.length === 0) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -237,7 +252,13 @@ export default function ViajesManager() {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
-          <Typography variant="h4" gutterBottom>
+          <Typography
+            variant="h4"
+            gutterBottom
+            sx={(theme) => ({
+              color: theme.palette.mode === "light" ? "#333" : "#fff",
+            })}
+          >
             Gestión de Viajes
           </Typography>
           <Typography variant="subtitle1" color="textSecondary">
@@ -273,6 +294,7 @@ export default function ViajesManager() {
             <Grid2 item xs={12} md={4}>
               <TextField
                 fullWidth
+                size="medium"
                 label="Buscar viajes"
                 value={filters.search}
                 onChange={(e) => handleFilterChange("search", e.target.value)}
@@ -282,12 +304,16 @@ export default function ViajesManager() {
               />
             </Grid2>
             <Grid2 item xs={12} md={2}>
-              <FormControl fullWidth>
-                <InputLabel>Dificultad</InputLabel>
+              <FormControl fullWidth size="medium">
+                <InputLabel sx={{ fontSize: "1rem" }}>Dificultad</InputLabel>
                 <Select
                   value={filters.dificultad}
                   label="Dificultad"
                   onChange={(e) => handleFilterChange("dificultad", e.target.value)}
+                  sx={{
+                    minHeight: "56px",
+                    fontSize: "1rem",
+                  }}
                 >
                   <MenuItem value="">Todas</MenuItem>
                   <MenuItem value="facil">Fácil</MenuItem>
@@ -298,12 +324,16 @@ export default function ViajesManager() {
               </FormControl>
             </Grid2>
             <Grid2 item xs={12} md={2}>
-              <FormControl fullWidth>
-                <InputLabel>Estado</InputLabel>
+              <FormControl fullWidth size="medium">
+                <InputLabel sx={{ fontSize: "1rem" }}>Estado</InputLabel>
                 <Select
                   value={filters.activo}
                   label="Estado"
                   onChange={(e) => handleFilterChange("activo", e.target.value)}
+                  sx={{
+                    minHeight: "56px",
+                    fontSize: "1rem",
+                  }}
                 >
                   <MenuItem value="">Todos</MenuItem>
                   <MenuItem value="true">Activos</MenuItem>
@@ -314,6 +344,7 @@ export default function ViajesManager() {
             <Grid2 item xs={12} md={2}>
               <TextField
                 fullWidth
+                size="medium"
                 label="Precio mínimo"
                 type="number"
                 value={filters.precio_min}
@@ -323,6 +354,7 @@ export default function ViajesManager() {
             <Grid2 item xs={12} md={2}>
               <TextField
                 fullWidth
+                size="medium"
                 label="Precio máximo"
                 type="number"
                 value={filters.precio_max}
@@ -343,6 +375,7 @@ export default function ViajesManager() {
             <Table>
               <TableHead>
                 <TableRow>
+                  <TableCell>Imagen</TableCell>
                   <TableCell>Título</TableCell>
                   <TableCell>Categoría</TableCell>
                   <TableCell>Dificultad</TableCell>
@@ -353,26 +386,50 @@ export default function ViajesManager() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {viajes.map((viaje) => (
-                  <TableRow
-                    key={viaje.id_viaje}
-                    hover
-                    sx={viaje.isExample ? { backgroundColor: "rgba(255, 235, 59, 0.1)" } : {}}
-                  >
-                    <TableCell>
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight="medium">
-                          {viaje.titulo}
-                          {viaje.isExample && (
-                            <Chip label="Ejemplo" size="small" color="warning" sx={{ ml: 1, fontSize: "0.7rem" }} />
-                          )}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary" noWrap sx={{ maxWidth: 300 }}>
-                          {viaje.descripcion_corta?.substring(0, 80)}
-                          {viaje.descripcion_corta?.length > 80 && "..."}
-                        </Typography>
-                      </Box>
-                    </TableCell>
+                {viajes.map((viaje) => {
+                  const imageCount = viaje.imagenes?.length || 0
+                  const mainImage = viaje.imagenes?.find((img) => img.es_principal) || viaje.imagenes?.[0]
+
+                  return (
+                    <TableRow
+                      key={viaje.id_viaje}
+                      hover
+                      sx={viaje.isExample ? { backgroundColor: "rgba(255, 235, 59, 0.1)" } : {}}
+                    >
+                      <TableCell>
+                        <Tooltip title={imageCount > 0 ? `Clic para ver ${imageCount} imagen${imageCount > 1 ? "es" : ""}` : "Sin imágenes"}>
+                          <Badge badgeContent={imageCount} color="primary">
+                            <Avatar
+                              src={mainImage?.url}
+                              variant="rounded"
+                              onClick={() => imageCount > 0 && handleViewImages(viaje)}
+                              sx={{
+                                width: 50,
+                                height: 50,
+                                bgcolor: imageCount === 0 ? "grey.300" : "transparent",
+                                cursor: imageCount > 0 ? "pointer" : "default",
+                                "&:hover": imageCount > 0 ? { opacity: 0.8 } : {},
+                              }}
+                            >
+                              {imageCount === 0 && <ImageIcon />}
+                            </Avatar>
+                          </Badge>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell>
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight="medium">
+                            {viaje.titulo}
+                            {viaje.isExample && (
+                              <Chip label="Ejemplo" size="small" color="warning" sx={{ ml: 1, fontSize: "0.7rem" }} />
+                            )}
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary" noWrap sx={{ maxWidth: 300 }}>
+                            {viaje.descripcion_corta?.substring(0, 80)}
+                            {viaje.descripcion_corta?.length > 80 && "..."}
+                          </Typography>
+                        </Box>
+                      </TableCell>
                     <TableCell>
                       <Typography variant="body2">{viaje.categoria?.nombre || "Sin categoría"}</Typography>
                     </TableCell>
@@ -427,8 +484,9 @@ export default function ViajesManager() {
                         </Tooltip>
                       </Box>
                     </TableCell>
-                  </TableRow>
-                ))}
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </TableContainer>
@@ -481,6 +539,63 @@ export default function ViajesManager() {
           <Button onClick={confirmDelete} color="error" variant="contained">
             Eliminar
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={imagePreviewDialog}
+        onClose={() => setImagePreviewDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <ImageIcon />
+            <Typography variant="h6">
+              Imágenes de "{selectedViajeImages?.titulo}"
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {selectedViajeImages?.imagenes && selectedViajeImages.imagenes.length > 0 ? (
+            <Grid2 container spacing={2} sx={{ mt: 1 }}>
+              {selectedViajeImages.imagenes.map((imagen, index) => (
+                <Grid2 item xs={12} sm={6} md={4} key={imagen.id_imagen_viaje || index}>
+                  <Card elevation={2}>
+                    <Box
+                      component="img"
+                      src={imagen.url}
+                      alt={imagen.descripcion || `Imagen ${index + 1}`}
+                      sx={{
+                        width: "100%",
+                        height: 200,
+                        objectFit: "cover",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => window.open(imagen.url, "_blank")}
+                    />
+                    <CardContent>
+                      <Typography variant="body2" color="textSecondary">
+                        Orden: {imagen.orden || index + 1}
+                      </Typography>
+                      {imagen.descripcion && (
+                        <Typography variant="body2" sx={{ mt: 1 }}>
+                          {imagen.descripcion}
+                        </Typography>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid2>
+              ))}
+            </Grid2>
+          ) : (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              Este viaje no tiene imágenes cargadas.
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setImagePreviewDialog(false)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
     </Box>

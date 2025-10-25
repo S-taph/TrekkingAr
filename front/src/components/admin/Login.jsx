@@ -26,26 +26,35 @@ export default function Login({ onLogin }) {
 
     try {
       const response = await authAPI.login(formData)
+      console.log("🔍 Login response:", response)
 
       if (response.success) {
-        localStorage.setItem("token", response.data.token)
-        localStorage.setItem("user", JSON.stringify(response.data.usuario))
+        const token = response.data?.token   // 🔹 verifica que tu backend devuelva el token aquí
+        const usuario = response.data?.usuario
 
-        // Verificar que el usuario sea admin
-        if (response.data.usuario.rol === "admin") {
-          onLogin(response.data.usuario)
+        if (!token) throw new Error("No se recibió token del servidor")
+
+        localStorage.setItem("token", token)
+        localStorage.setItem("user", JSON.stringify(usuario))
+
+        if (usuario.rol === "admin") {
+          onLogin(usuario)
         } else {
           setError("No tienes permisos de administrador")
           localStorage.removeItem("token")
           localStorage.removeItem("user")
         }
+      } else {
+        throw new Error(response.message || "Error al iniciar sesión")
       }
     } catch (error) {
+      console.error(error)
       setError(error.message || "Error al iniciar sesión")
     } finally {
       setLoading(false)
     }
   }
+
 
   return (
     <Container component="main" maxWidth="xs">

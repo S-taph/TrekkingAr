@@ -14,7 +14,15 @@ import {
   Alert,
   CircularProgress,
   InputAdornment,
+  Card,
+  CardMedia,
+  CardActions,
+  IconButton,
+  Chip,
 } from "@mui/material"
+import CloudUploadIcon from "@mui/icons-material/CloudUpload"
+import DeleteIcon from "@mui/icons-material/Delete"
+import ImageIcon from "@mui/icons-material/Image"
 import { viajesAPI, categoriasAPI } from "../../services/api"
 
 export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
@@ -40,6 +48,11 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
   // Datos para selects
   const [categorias, setCategorias] = useState([])
   const [loadingCategorias, setLoadingCategorias] = useState(true)
+
+  // Image management state
+  const [selectedImages, setSelectedImages] = useState([])
+  const [imagePreviews, setImagePreviews] = useState([])
+  const [existingImages, setExistingImages] = useState([])
 
   useEffect(() => {
     const loadCategorias = async () => {
@@ -69,9 +82,12 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
 
       const createdCategories = []
 
+      // ✅ Usar variable de entorno para la API
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3003/api"
+
       for (const category of defaultCategories) {
         try {
-          const response = await fetch("http://localhost:3000/api/categorias", {
+          const response = await fetch(`${API_BASE_URL}/categorias`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -123,6 +139,11 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
         recomendaciones: viaje.recomendaciones || "",
         activo: viaje.activo !== undefined ? viaje.activo : true,
       })
+
+      // Load existing images if in edit mode
+      if (viaje.imagenes && Array.isArray(viaje.imagenes)) {
+        setExistingImages(viaje.imagenes)
+      }
     }
   }, [viaje, mode])
 
@@ -134,51 +155,134 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
     }))
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError("")
+  // Image handling functions
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files)
+    if (files.length === 0) return
 
+    setSelectedImages((prev) => [...prev, ...files])
+
+    // Create preview URLs
+    const newPreviews = files.map((file) => ({
+      url: URL.createObjectURL(file),
+      name: file.name,
+      size: file.size,
+    }))
+    setImagePreviews((prev) => [...prev, ...newPreviews])
+  }
+
+  const removeNewImage = (index) => {
+    // Revoke the preview URL to free memory
+    URL.revokeObjectURL(imagePreviews[index].url)
+
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index))
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index))
+  }
+  // Usar el servicio de API centralizado para eliminar la imagen
+  const removeExistingImage = async (imageId) => {
     try {
-      const submitData = {
-        ...formData,
-        duracion_dias: Number.parseInt(formData.duracion_dias),
-        precio_base: Number.parseFloat(formData.precio_base),
-        minimo_participantes: formData.minimo_participantes ? Number.parseInt(formData.minimo_participantes) : null,
-        maximo_participantes: formData.maximo_participantes ? Number.parseInt(formData.maximo_participantes) : null,
-      }
+      // 1. Llamar al nuevo método de API DELETE
+      await viajesAPI.deleteImage(viaje.id_viaje, imageId)
 
-      console.log("[v0] Form data before processing:", formData)
-      console.log("[v0] Submit data after processing:", submitData)
-
-      if (!submitData.id_categoria || submitData.id_categoria === "") {
-        throw new Error("Debe seleccionar una categoría")
-      }
-
-      if (!submitData.titulo || submitData.titulo.trim() === "") {
-        throw new Error("El título es requerido")
-      }
-
-      if (!submitData.dificultad || submitData.dificultad === "") {
-        throw new Error("Debe seleccionar una dificultad")
-      }
-
-      console.log("[v0] Final submit data:", submitData)
-
-      if (mode === "create") {
-        await viajesAPI.createViaje(submitData)
-      } else {
-        await viajesAPI.updateViaje(viaje.id_viaje, submitData)
-      }
-
-      onSuccess()
+      // 2. Si la llamada fue exitosa, actualizar el estado
+      setExistingImages((prev) => prev.filter((img) => img.id_imagen_viaje !== imageId))
+      setError("")
     } catch (error) {
-      console.log("[v0] Error in handleSubmit:", error)
-      setError(error.message || "Error al guardar el viaje")
-    } finally {
-      setLoading(false)
+      console.error("Error deleting image:", error)
+      setError(error.message || "Error al eliminar la imagen")
     }
   }
+
+  const uploadImages = async (viajeId, files) => {
+    if (!files || files.length === 0) return []
+
+    try {
+      const result = await viajesAPI.uploadImages(viajeId, files)
+      return result.data?.urls || []
+    } catch (err) {
+      console.error("Error uploading images:", err)
+      throw err
+    }
+  }
+
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      // Prepara datos para el backend
+      const submitData = {
+        id_categoria: formData.id_categoria || null,
+        titulo: formData.titulo?.trim() || "",
+        descripcion_corta: formData.descripcion_corta || "",
+        descripcion_completa: formData.descripcion_completa || "",
+        dificultad: formData.dificultad || "",
+        duracion_dias: formData.duracion_dias ? parseInt(formData.duracion_dias, 10) : 0,
+        precio_base: formData.precio_base ? parseFloat(formData.precio_base) : 0,
+        minimo_participantes: formData.minimo_participantes ? parseInt(formData.minimo_participantes, 10) : 1,
+        maximo_participantes: formData.maximo_participantes ? parseInt(formData.maximo_participantes, 10) : null,
+        incluye: formData.incluye || "",
+        no_incluye: formData.no_incluye || "",
+        recomendaciones: formData.recomendaciones || "",
+        activo: formData.activo === true || formData.activo === "true",
+        equipamiento: formData.equipamiento || [],
+        servicios: formData.servicios || [],
+      };
+
+      // Validación de campos obligatorios
+      const requiredFields = ["id_categoria", "titulo", "dificultad", "duracion_dias", "precio_base"];
+      for (const field of requiredFields) {
+        const value = submitData[field];
+        if (
+          value === undefined ||
+          value === null ||
+          (typeof value === "string" && value.trim() === "") ||
+          (typeof value === "number" && isNaN(value)) ||
+          (["duracion_dias","precio_base"].includes(field) && Number(value) <= 0)
+        ) {
+          throw new Error(`El campo "${field}" es obligatorio y debe tener un valor válido.`);
+        }
+      }
+
+      // Llamada a API según modo
+      let viajeId;
+      if (mode === "create") {
+        const result = await viajesAPI.createViaje(submitData);
+        viajeId = result.data?.viaje?.id_viaje;
+      } else {
+        await viajesAPI.updateViaje(viaje.id_viaje, submitData);
+        viajeId = viaje.id_viaje;
+      }
+
+      // Subir imágenes si hay seleccionadas
+      if (viajeId && selectedImages.length > 0) {
+        const uploadedUrls = await uploadImages(viajeId, selectedImages);
+
+        // 🔹 Actualizar estado de imágenes existentes para edit mode
+        if (mode === "edit") {
+          setExistingImages(prev => [
+            ...prev,
+            ...uploadedUrls.map((url, index) => ({
+              id_imagen: Date.now() + index, // temporal, reemplazar por id real si el backend lo devuelve
+              url_imagen: url,
+            }))
+          ]);
+          setSelectedImages([]);
+          setImagePreviews([]);
+        }
+      }
+
+      onSuccess();
+    } catch (error) {
+      console.error("[v0] Error in handleSubmit:", error);
+      setError(error.message || "Error al guardar el viaje");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
@@ -197,14 +301,18 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
         </Grid2>
 
         <Grid2 item xs={12} md={6}>
-          <FormControl fullWidth required>
-            <InputLabel>Categoría</InputLabel>
+          <FormControl fullWidth required size="medium">
+            <InputLabel sx={{ fontSize: "1rem" }}>Categoría</InputLabel>
             <Select
               name="id_categoria"
               value={formData.id_categoria}
               label="Categoría"
               onChange={handleChange}
               disabled={loadingCategorias}
+              sx={{
+                minHeight: "56px",
+                fontSize: "1rem",
+              }}
             >
               {categorias.map((categoria) => (
                 <MenuItem key={categoria.id_categoria} value={categoria.id_categoria}>
@@ -216,9 +324,18 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
         </Grid2>
 
         <Grid2 item xs={12} md={6}>
-          <FormControl fullWidth required>
-            <InputLabel>Dificultad</InputLabel>
-            <Select name="dificultad" value={formData.dificultad} label="Dificultad" onChange={handleChange}>
+          <FormControl fullWidth required size="medium">
+            <InputLabel sx={{ fontSize: "1rem" }}>Dificultad</InputLabel>
+            <Select
+              name="dificultad"
+              value={formData.dificultad}
+              label="Dificultad"
+              onChange={handleChange}
+              sx={{
+                minHeight: "56px",
+                fontSize: "1rem",
+              }}
+            >
               <MenuItem value="facil">Fácil</MenuItem>
               <MenuItem value="moderado">Moderado</MenuItem>
               <MenuItem value="dificil">Difícil</MenuItem>
@@ -231,6 +348,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
           <TextField
             fullWidth
             required
+            size="medium"
             name="titulo"
             label="Título del Viaje"
             value={formData.titulo}
@@ -243,6 +361,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             fullWidth
             multiline
             rows={3}
+            size="medium"
             name="descripcion_corta"
             label="Descripción Corta"
             value={formData.descripcion_corta}
@@ -256,6 +375,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             fullWidth
             multiline
             rows={5}
+            size="medium"
             name="descripcion_completa"
             label="Descripción Completa"
             value={formData.descripcion_completa}
@@ -275,6 +395,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
           <TextField
             fullWidth
             required
+            size="medium"
             type="number"
             name="duracion_dias"
             label="Duración"
@@ -290,6 +411,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
           <TextField
             fullWidth
             required
+            size="medium"
             type="number"
             name="precio_base"
             label="Precio Base"
@@ -302,9 +424,18 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
         </Grid2>
 
         <Grid2 item xs={12} md={4}>
-          <FormControl fullWidth>
-            <InputLabel>Estado</InputLabel>
-            <Select name="activo" value={formData.activo} label="Estado" onChange={handleChange}>
+          <FormControl fullWidth size="medium">
+            <InputLabel sx={{ fontSize: "1rem" }}>Estado</InputLabel>
+            <Select
+              name="activo"
+              value={formData.activo}
+              label="Estado"
+              onChange={handleChange}
+              sx={{
+                minHeight: "56px",
+                fontSize: "1rem",
+              }}
+            >
               <MenuItem value={true}>Activo</MenuItem>
               <MenuItem value={false}>Inactivo</MenuItem>
             </Select>
@@ -314,6 +445,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
         <Grid2 item xs={12} md={6}>
           <TextField
             fullWidth
+            size="medium"
             type="number"
             name="minimo_participantes"
             label="Mínimo Participantes"
@@ -325,6 +457,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
         <Grid2 item xs={12} md={6}>
           <TextField
             fullWidth
+            size="medium"
             type="number"
             name="maximo_participantes"
             label="Máximo Participantes"
@@ -345,6 +478,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             fullWidth
             multiline
             rows={3}
+            size="medium"
             name="incluye"
             label="Qué Incluye"
             value={formData.incluye}
@@ -358,6 +492,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             fullWidth
             multiline
             rows={3}
+            size="medium"
             name="no_incluye"
             label="Qué NO Incluye"
             value={formData.no_incluye}
@@ -371,6 +506,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             fullWidth
             multiline
             rows={3}
+            size="medium"
             name="recomendaciones"
             label="Recomendaciones"
             value={formData.recomendaciones}
@@ -378,6 +514,129 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             helperText="Recomendaciones para los participantes"
           />
         </Grid2>
+
+        {/* Image Upload Section */}
+        <Grid2 item xs={12}>
+          <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+            Imágenes del Viaje
+          </Typography>
+        </Grid2>
+
+        <Grid2 item xs={12}>
+          <Button
+            component="label"
+            variant="outlined"
+            startIcon={<CloudUploadIcon />}
+            fullWidth
+            sx={{
+              minHeight: "56px",
+              fontSize: "1rem",
+              textTransform: "none",
+              borderStyle: "dashed",
+              borderWidth: 2,
+              "&:hover": {
+                borderWidth: 2,
+                borderStyle: "dashed",
+              },
+            }}
+          >
+            Seleccionar Imágenes (Múltiples)
+            <input type="file" hidden multiple accept="image/*" onChange={handleImageChange} />
+          </Button>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+            Formatos aceptados: JPG, PNG, WebP. Puede seleccionar múltiples imágenes.
+          </Typography>
+        </Grid2>
+
+        {/* Existing Images (Edit Mode) */}
+        {mode === "edit" && existingImages.length > 0 && (
+          <Grid2 item xs={12}>
+            <Typography variant="subtitle2" gutterBottom>
+              Imágenes Actuales ({existingImages.length})
+            </Typography>
+            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 1 }}>
+              {existingImages.map((image) => (
+                <Card key={image.id_imagen_viaje} sx={{ width: 150, position: "relative" }}>
+                  <CardMedia
+                    component="img"
+                    height="120"
+                    image={image.url}
+                    alt={image.descripcion || "Imagen del viaje"}
+                    sx={{ objectFit: "cover" }}
+                  />
+                  {image.es_principal && (
+                    <Chip
+                      label="Principal"
+                      color="primary"
+                      size="small"
+                      sx={{
+                        position: "absolute",
+                        top: 8,
+                        left: 8,
+                        fontWeight: 600,
+                      }}
+                    />
+                  )}
+                  <CardActions sx={{ justifyContent: "center", p: 0.5 }}>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => removeExistingImage(image.id_imagen_viaje)}
+                      aria-label="Eliminar imagen"
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </CardActions>
+                </Card>
+              ))}
+            </Box>
+          </Grid2>
+        )}
+
+        {/* New Images Preview */}
+        {imagePreviews.length > 0 && (
+          <Grid2 item xs={12}>
+            <Typography variant="subtitle2" gutterBottom>
+              Nuevas Imágenes a Subir ({imagePreviews.length})
+            </Typography>
+            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 1 }}>
+              {imagePreviews.map((preview, index) => (
+                <Card key={index} sx={{ width: 150, position: "relative" }}>
+                  <CardMedia
+                    component="img"
+                    height="120"
+                    image={preview.url}
+                    alt={preview.name}
+                    sx={{ objectFit: "cover" }}
+                  />
+                  <Chip
+                    icon={<ImageIcon />}
+                    label={`${(preview.size / 1024).toFixed(0)} KB`}
+                    size="small"
+                    sx={{
+                      position: "absolute",
+                      top: 8,
+                      left: 8,
+                      backgroundColor: "rgba(0, 0, 0, 0.7)",
+                      color: "white",
+                    }}
+                  />
+                  <CardActions sx={{ justifyContent: "center", p: 0.5 }}>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => removeNewImage(index)}
+                      aria-label="Quitar imagen"
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </CardActions>
+                </Card>
+              ))}
+            </Box>
+          </Grid2>
+        )}
+
       </Grid2>
 
       {/* Botones */}

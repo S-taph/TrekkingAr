@@ -25,6 +25,7 @@ import ViajeEquipamiento from "./ViajeEquipamiento.js"
 import ImagenViaje from "./ImagenViaje.js"
 import Administrador from "./Administrador.js"
 import Configuracion from "./Configuracion.js"
+import Review from "./Review.js"
 
 // ===== RELACIONES USUARIO =====
 Usuario.hasMany(Reserva, { foreignKey: "id_usuario", as: "reservas" })
@@ -167,6 +168,10 @@ Viaje.hasMany(ImagenViaje, { foreignKey: "id_viaje", as: "imagenes" })
 Administrador.belongsTo(Usuario, { foreignKey: "id_usuario", as: "usuario" })
 Usuario.hasOne(Administrador, { foreignKey: "id_usuario", as: "perfilAdmin" })
 
+// ===== RELACIONES REVIEW =====
+Review.belongsTo(Viaje, { foreignKey: "id_viaje", as: "viaje" })
+Viaje.hasMany(Review, { foreignKey: "id_viaje", as: "reviews" })
+
 export {
   Usuario,
   Viaje,
@@ -195,4 +200,5 @@ export {
   Administrador,
   Configuracion,
   AdminNotificacion,
+  Review,
 }

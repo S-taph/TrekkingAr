@@ -1,24 +1,67 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
-import { ThemeProvider } from "@mui/material/styles"
-import CssBaseline from "@mui/material/CssBaseline"
-import theme from "./theme"
+import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { AuthProvider } from "./context/AuthContext"
-import Home from "./pages/Home"
-import AdminApp from "./pages/AdminApp"
-import Login from "./pages/Login"
+import { ThemeProvider } from "./context/ThemeContext"
+import { CartProvider } from "./context/CartContext"
+import { ChatbotWidget } from "./components/ChatbotWidget"
+import { ProtectedRoute } from "./components/ProtectedRoute"
+import { routes } from "./routes"
 
 export default function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
+      <ThemeProvider>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/admin/*" element={<AdminApp />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <CartProvider>
+            <Routes>
+              {routes.map((route, index) => {
+                const { path, element, protected: isProtected, adminOnly, children } = route
+
+                // Rutas con children (como /admin/*)
+                if (children) {
+                  return (
+                    <Route
+                      key={index}
+                      path={path}
+                      element={
+                        isProtected ? (
+                          <ProtectedRoute adminOnly={adminOnly}>{element}</ProtectedRoute>
+                        ) : (
+                          element
+                        )
+                      }
+                    >
+                      {children.map((child, childIndex) => (
+                        <Route
+                          key={childIndex}
+                          path={child.path}
+                          index={child.index}
+                          element={child.element}
+                        />
+                      ))}
+                    </Route>
+                  )
+                }
+
+                // Rutas normales
+                return (
+                  <Route
+                    key={index}
+                    path={path}
+                    element={
+                      isProtected ? (
+                        <ProtectedRoute adminOnly={adminOnly}>{element}</ProtectedRoute>
+                      ) : (
+                        element
+                      )
+                    }
+                  />
+                )
+              })}
+            </Routes>
+
+            {/* Chatbot flotante global */}
+            <ChatbotWidget />
+          </CartProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

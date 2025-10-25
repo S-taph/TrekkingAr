@@ -1,148 +1,440 @@
+import { useState } from "react"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import Container from "@mui/material/Container"
 import Grid from "@mui/material/Grid"
 import Link from "@mui/material/Link"
 import IconButton from "@mui/material/IconButton"
+import TextField from "@mui/material/TextField"
+import Button from "@mui/material/Button"
 import FacebookIcon from "@mui/icons-material/Facebook"
 import InstagramIcon from "@mui/icons-material/Instagram"
-import WhatsAppIcon from "@mui/icons-material/WhatsApp"
+import TwitterIcon from "@mui/icons-material/Twitter"
+import YouTubeIcon from "@mui/icons-material/YouTube"
 import EmailIcon from "@mui/icons-material/Email"
 import PhoneIcon from "@mui/icons-material/Phone"
 import LocationOnIcon from "@mui/icons-material/LocationOn"
-import CreditCardIcon from "@mui/icons-material/CreditCard"
-import AccountBalanceIcon from "@mui/icons-material/AccountBalance"
+import HikingIcon from "@mui/icons-material/Hiking"
 
-const Footer = () => (
-  <Box sx={{ bgcolor: "#2c3e50", color: "white", py: 6, mt: 4 }}>
-    <Container maxWidth="lg">
-      <Grid container spacing={4}>
-        {/* Información de la empresa */}
-        <Grid item xs={12} md={3}>
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 2 }}>
-            TrekkingAR
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 2, lineHeight: 1.6 }}>
-            Tu aventura comienza aquí. Descubre los paisajes más increíbles de Argentina con nuestros tours de trekking
-            y turismo aventura.
-          </Typography>
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <IconButton sx={{ color: "#3b5998" }}>
-              <FacebookIcon />
-            </IconButton>
-            <IconButton sx={{ color: "#e4405f" }}>
-              <InstagramIcon />
-            </IconButton>
-            <IconButton sx={{ color: "#25d366" }}>
-              <WhatsAppIcon />
-            </IconButton>
-          </Box>
-        </Grid>
+/**
+ * Footer - Diseño moderno de 4 columnas con fondo negro
+ * Inspirado en la estética de hoynoduermoviajes.com.ar
+ */
+const Footer = () => {
+  const [email, setEmail] = useState("")
+  const [loading, setLoading] = useState(false)
 
-        {/* Enlaces rápidos */}
-        <Grid item xs={12} md={3}>
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 2 }}>
-            Enlaces Rápidos
-          </Typography>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            <Link href="#" color="inherit" underline="hover">
-              Inicio
-            </Link>
-            <Link href="#" color="inherit" underline="hover">
-              Trekkings
-            </Link>
-            <Link href="#" color="inherit" underline="hover">
-              Tours
-            </Link>
-            <Link href="#" color="inherit" underline="hover">
-              Equipamiento
-            </Link>
-            <Link href="#" color="inherit" underline="hover">
-              Galería
-            </Link>
-            <Link href="#" color="inherit" underline="hover">
-              Blog
-            </Link>
-          </Box>
-        </Grid>
+  const handleSubscribe = async () => {
+    if (!email) return
+    setLoading(true)
+    // TODO: Integrar con backend para suscripción
+    setTimeout(() => {
+      console.log("Suscrito:", email)
+      setEmail("")
+      setLoading(false)
+    }, 1000)
+  }
 
-        {/* Métodos de Pago */}
-        <Grid item xs={12} md={3}>
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 2 }}>
-            Métodos de Pago
-          </Typography>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Box
-                component="img"
-                src="https://http2.mlstatic.com/frontend-assets/ui-navigation/5.21.22/mercadopago/logo_mp_blue.svg"
-                alt="MercadoPago"
-                sx={{ height: 20, width: "auto" }}
-              />
-              <Typography variant="body2">MercadoPago</Typography>
+  return (
+    <Box
+      component="footer"
+      sx={{
+        bgcolor: "#000000", // Negro sólido
+        color: "#FFFFFF",
+        py: 6,
+        mt: "auto",
+        borderTop: "1px solid #1A1A1A",
+      }}
+    >
+      <Container maxWidth="lg">
+        <Grid container spacing={4}>
+          {/* Columna 1: Logo y Contacto */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Box sx={{ mb: 3 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+                <HikingIcon sx={{ fontSize: 32, color: "#A4D65E" }} />
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: 700,
+                    color: "#FFFFFF",
+                  }}
+                >
+                  TrekkingAR
+                </Typography>
+              </Box>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "#B0B0B0",
+                  lineHeight: 1.7,
+                  mb: 2,
+                }}
+              >
+                Explora los paisajes más increíbles de Argentina con nuestros tours de aventura.
+              </Typography>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <AccountBalanceIcon fontSize="small" />
-              <Typography variant="body2">Transferencia Bancaria</Typography>
-            </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <CreditCardIcon fontSize="small" />
-              <Typography variant="body2">Todas las Tarjetas</Typography>
-            </Box>
-            <Typography variant="body2" sx={{ fontSize: "0.75rem", color: "#bdc3c7", mt: 1 }}>
-              Visa • Mastercard • American Express
-            </Typography>
-          </Box>
-        </Grid>
 
-        {/* Información de contacto */}
-        <Grid item xs={12} md={3}>
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 2 }}>
-            Contacto
-          </Typography>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <LocationOnIcon fontSize="small" />
-              <Typography variant="body2">Av. San Martín 1234, Bariloche, Argentina</Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <LocationOnIcon sx={{ fontSize: 18, color: "#A4D65E" }} />
+                <Typography variant="body2" sx={{ color: "#B0B0B0", fontSize: "0.875rem" }}>
+                  Av. San Martín 1234, Bariloche
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <EmailIcon sx={{ fontSize: 18, color: "#A4D65E" }} />
+                <Typography variant="body2" sx={{ color: "#B0B0B0", fontSize: "0.875rem" }}>
+                  info@trekking-ar.com
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <PhoneIcon sx={{ fontSize: 18, color: "#A4D65E" }} />
+                <Typography variant="body2" sx={{ color: "#B0B0B0", fontSize: "0.875rem" }}>
+                  +54 294 442-8765
+                </Typography>
+              </Box>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <PhoneIcon fontSize="small" />
-              <Typography variant="body2">+54 294 442-8765</Typography>
-            </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <WhatsAppIcon fontSize="small" />
-              <Typography variant="body2">+54 9 294 456-7890</Typography>
-            </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <EmailIcon fontSize="small" />
-              <Typography variant="body2">info@trekking-ar.com</Typography>
-            </Box>
-          </Box>
-        </Grid>
-      </Grid>
 
-      {/* Línea divisoria y copyright */}
-      <Box sx={{ borderTop: "1px solid #34495e", mt: 4, pt: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={6}>
-            <Typography variant="body2" color="inherit">
-              © 2025 TrekkingAR. Todos los derechos reservados.
-            </Typography>
+            {/* Redes Sociales */}
+            <Box sx={{ display: "flex", gap: 1, mt: 3 }}>
+              <IconButton
+                size="small"
+                sx={{
+                  color: "#B0B0B0",
+                  border: "1px solid #2A2A2A",
+                  "&:hover": {
+                    color: "#A4D65E",
+                    borderColor: "#A4D65E",
+                    bgcolor: "rgba(164, 214, 94, 0.05)",
+                  },
+                }}
+              >
+                <FacebookIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                size="small"
+                sx={{
+                  color: "#B0B0B0",
+                  border: "1px solid #2A2A2A",
+                  "&:hover": {
+                    color: "#A4D65E",
+                    borderColor: "#A4D65E",
+                    bgcolor: "rgba(164, 214, 94, 0.05)",
+                  },
+                }}
+              >
+                <InstagramIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                size="small"
+                sx={{
+                  color: "#B0B0B0",
+                  border: "1px solid #2A2A2A",
+                  "&:hover": {
+                    color: "#A4D65E",
+                    borderColor: "#A4D65E",
+                    bgcolor: "rgba(164, 214, 94, 0.05)",
+                  },
+                }}
+              >
+                <TwitterIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                size="small"
+                sx={{
+                  color: "#B0B0B0",
+                  border: "1px solid #2A2A2A",
+                  "&:hover": {
+                    color: "#A4D65E",
+                    borderColor: "#A4D65E",
+                    bgcolor: "rgba(164, 214, 94, 0.05)",
+                  },
+                }}
+              >
+                <YouTubeIcon fontSize="small" />
+              </IconButton>
+            </Box>
           </Grid>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ display: "flex", justifyContent: { xs: "flex-start", md: "flex-end" }, gap: 2 }}>
-              <Link href="#" color="inherit" underline="hover" variant="body2">
+
+          {/* Columna 2: Información */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                mb: 2,
+                color: "#FFFFFF",
+                fontSize: "0.875rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+              }}
+            >
+              INFORMACIÓN
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <Link
+                href="#"
+                underline="none"
+                sx={{
+                  color: "#B0B0B0",
+                  fontSize: "0.875rem",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    color: "#A4D65E",
+                    paddingLeft: "8px",
+                  },
+                }}
+              >
+                Mi Cuenta
+              </Link>
+              <Link
+                href="#"
+                underline="none"
+                sx={{
+                  color: "#B0B0B0",
+                  fontSize: "0.875rem",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    color: "#A4D65E",
+                    paddingLeft: "8px",
+                  },
+                }}
+              >
+                Preguntas Frecuentes
+              </Link>
+              <Link
+                href="#"
+                underline="none"
+                sx={{
+                  color: "#B0B0B0",
+                  fontSize: "0.875rem",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    color: "#A4D65E",
+                    paddingLeft: "8px",
+                  },
+                }}
+              >
+                Quiénes Somos
+              </Link>
+              <Link
+                href="#"
+                underline="none"
+                sx={{
+                  color: "#B0B0B0",
+                  fontSize: "0.875rem",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    color: "#A4D65E",
+                    paddingLeft: "8px",
+                  },
+                }}
+              >
+                Nuestros Guías
+              </Link>
+              <Link
+                href="#"
+                underline="none"
+                sx={{
+                  color: "#B0B0B0",
+                  fontSize: "0.875rem",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    color: "#A4D65E",
+                    paddingLeft: "8px",
+                  },
+                }}
+              >
+                Galería
+              </Link>
+            </Box>
+          </Grid>
+
+          {/* Columna 3: Legal */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                mb: 2,
+                color: "#FFFFFF",
+                fontSize: "0.875rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+              }}
+            >
+              LEGAL
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <Link
+                href="#"
+                underline="none"
+                sx={{
+                  color: "#B0B0B0",
+                  fontSize: "0.875rem",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    color: "#A4D65E",
+                    paddingLeft: "8px",
+                  },
+                }}
+              >
                 Términos y Condiciones
               </Link>
-              <Link href="#" color="inherit" underline="hover" variant="body2">
+              <Link
+                href="#"
+                underline="none"
+                sx={{
+                  color: "#B0B0B0",
+                  fontSize: "0.875rem",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    color: "#A4D65E",
+                    paddingLeft: "8px",
+                  },
+                }}
+              >
                 Política de Privacidad
+              </Link>
+              <Link
+                href="#"
+                underline="none"
+                sx={{
+                  color: "#B0B0B0",
+                  fontSize: "0.875rem",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    color: "#A4D65E",
+                    paddingLeft: "8px",
+                  },
+                }}
+              >
+                Política de Cookies
+              </Link>
+              <Link
+                href="#"
+                underline="none"
+                sx={{
+                  color: "#B0B0B0",
+                  fontSize: "0.875rem",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    color: "#A4D65E",
+                    paddingLeft: "8px",
+                  },
+                }}
+              >
+                Política de Cancelación
               </Link>
             </Box>
           </Grid>
+
+          {/* Columna 4: Newsletter */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                mb: 2,
+                color: "#FFFFFF",
+                fontSize: "0.875rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+              }}
+            >
+              NEWSLETTER
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "#B0B0B0",
+                mb: 2,
+                fontSize: "0.875rem",
+                lineHeight: 1.6,
+              }}
+            >
+              Suscríbete para recibir ofertas exclusivas y novedades sobre nuestros tours.
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <TextField
+                placeholder="Tu email"
+                variant="outlined"
+                size="small"
+                fullWidth
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    bgcolor: "#1A1A1A",
+                    color: "#FFFFFF",
+                    borderRadius: 1,
+                    "& fieldset": {
+                      borderColor: "#2A2A2A",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "#A4D65E",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#A4D65E",
+                    },
+                  },
+                  "& .MuiInputBase-input::placeholder": {
+                    color: "#666666",
+                    opacity: 1,
+                  },
+                }}
+              />
+              <Button
+                variant="contained"
+                fullWidth
+                disabled={loading || !email}
+                onClick={handleSubscribe}
+                sx={{
+                  bgcolor: "#A4D65E",
+                  color: "#000000",
+                  fontWeight: 600,
+                  textTransform: "none",
+                  py: 1,
+                  borderRadius: 1,
+                  "&:hover": {
+                    bgcolor: "#C5E68F",
+                  },
+                  "&:disabled": {
+                    bgcolor: "#2A2A2A",
+                    color: "#666666",
+                  },
+                }}
+              >
+                {loading ? "Suscribiendo..." : "Suscribirme"}
+              </Button>
+            </Box>
+          </Grid>
         </Grid>
-      </Box>
-    </Container>
-  </Box>
-)
+
+        {/* Copyright */}
+        <Box
+          sx={{
+            borderTop: "1px solid #1A1A1A",
+            mt: 6,
+            pt: 3,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 2,
+          }}
+        >
+          <Typography variant="body2" sx={{ color: "#666666", fontSize: "0.875rem" }}>
+            © 2025 TrekkingAR. Todos los derechos reservados.
+          </Typography>
+          <Typography variant="body2" sx={{ color: "#666666", fontSize: "0.875rem" }}>
+            Hecho con 💚 en Argentina
+          </Typography>
+        </Box>
+      </Container>
+    </Box>
+  )
+}
 
 export default Footer

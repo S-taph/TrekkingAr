@@ -15,11 +15,10 @@ export const getCarrito = async (req, res) => {
   try {
     const userId = req.user.id_usuarios;
 
-    // Buscar carrito activo del usuario
+    // Buscar carrito del usuario (solo puede tener uno)
     let carrito = await Carrito.findOne({
       where: {
-        id_usuario: userId,
-        activo: true
+        id_usuario: userId
       },
       include: [
         {
@@ -47,12 +46,10 @@ export const getCarrito = async (req, res) => {
       ]
     });
 
-    // Si no existe carrito activo, crear uno nuevo
+    // Si no existe carrito, crear uno nuevo
     if (!carrito) {
       carrito = await Carrito.create({
-        id_usuario: userId,
-        activo: true,
-        cantidad_personas: 1
+        id_usuario: userId
       });
     }
 
@@ -133,19 +130,16 @@ export const addItem = async (req, res) => {
       });
     }
 
-    // Buscar o crear carrito activo
+    // Buscar o crear carrito del usuario
     let carrito = await Carrito.findOne({
       where: {
-        id_usuario: userId,
-        activo: true
+        id_usuario: userId
       }
     });
 
     if (!carrito) {
       carrito = await Carrito.create({
-        id_usuario: userId,
-        activo: true,
-        cantidad_personas: 1
+        id_usuario: userId
       });
     }
 
@@ -249,8 +243,7 @@ export const updateItem = async (req, res) => {
           model: Carrito,
           as: 'carrito',
           where: {
-            id_usuario: userId,
-            activo: true
+            id_usuario: userId
           }
         },
         {
@@ -312,8 +305,7 @@ export const removeItem = async (req, res) => {
           model: Carrito,
           as: 'carrito',
           where: {
-            id_usuario: userId,
-            activo: true
+            id_usuario: userId
           }
         }
       ]
@@ -350,11 +342,10 @@ export const checkout = async (req, res) => {
   try {
     const userId = req.user.id_usuarios;
 
-    // Buscar carrito activo
+    // Buscar carrito del usuario
     const carrito = await Carrito.findOne({
       where: {
-        id_usuario: userId,
-        activo: true
+        id_usuario: userId
       },
       include: [
         {
@@ -392,10 +383,12 @@ export const checkout = async (req, res) => {
     // - Procesar pago
     // - Actualizar cupos
     // - Enviar confirmación por email
+    // - Vaciar carrito o marcar items como procesados
 
-    // Por ahora, solo desactivamos el carrito
-    carrito.activo = false;
-    await carrito.save();
+    // Por ahora, eliminamos todos los items del carrito
+    await CarritoItem.destroy({
+      where: { carritoId: carrito.id_carrito }
+    });
 
     res.json({
       success: true,
