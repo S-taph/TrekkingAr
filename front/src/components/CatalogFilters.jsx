@@ -20,12 +20,14 @@ import {
   Clear as ClearIcon,
   ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material"
+import { viajesAPI } from "../services/api"
 
 /**
  * CatalogFilters - Filtros para el catálogo de viajes
  */
 export const CatalogFilters = ({ onFilterChange, onClear }) => {
   const [expanded, setExpanded] = useState(true)
+  const [maxPrice, setMaxPrice] = useState(500000)
   const [filters, setFilters] = useState({
     busqueda: "",
     destino: "",
@@ -38,6 +40,23 @@ export const CatalogFilters = ({ onFilterChange, onClear }) => {
 
   // Refs para debouncing
   const debounceTimer = useRef(null)
+
+  // Cargar precio máximo dinámicamente
+  useEffect(() => {
+    const fetchPriceStats = async () => {
+      try {
+        const response = await viajesAPI.getPreciosStats()
+        if (response.success) {
+          const max = Math.ceil(response.data.precio_maximo / 10000) * 10000
+          setMaxPrice(max)
+          setFilters(prev => ({ ...prev, precio_max: max }))
+        }
+      } catch (error) {
+        console.error("Error obteniendo estadísticas de precios:", error)
+      }
+    }
+    fetchPriceStats()
+  }, [])
 
   // Cleanup del timer al desmontar
   useEffect(() => {
@@ -74,7 +93,7 @@ export const CatalogFilters = ({ onFilterChange, onClear }) => {
       duracion_min: 1,
       duracion_max: 30,
       precio_min: 0,
-      precio_max: 500000,
+      precio_max: maxPrice,
     }
     setFilters(clearedFilters)
     onClear?.()
@@ -88,8 +107,11 @@ export const CatalogFilters = ({ onFilterChange, onClear }) => {
     if (key === "duracion_min" || key === "duracion_max") {
       return value !== 1 && value !== 30
     }
-    if (key === "precio_min" || key === "precio_max") {
-      return value !== 0 && value !== 500000
+    if (key === "precio_min") {
+      return value !== 0
+    }
+    if (key === "precio_max") {
+      return value !== maxPrice
     }
     return false
   }).length
@@ -230,12 +252,12 @@ export const CatalogFilters = ({ onFilterChange, onClear }) => {
                 valueLabelDisplay="auto"
                 valueLabelFormat={(value) => `$${value.toLocaleString()}`}
                 min={0}
-                max={500000}
+                max={maxPrice}
                 step={10000}
                 marks={[
                   { value: 0, label: "$0" },
-                  { value: 250000, label: "$250k" },
-                  { value: 500000, label: "$500k" },
+                  { value: Math.floor(maxPrice / 2), label: `$${Math.floor(maxPrice / 2 / 1000)}k` },
+                  { value: maxPrice, label: `$${Math.floor(maxPrice / 1000)}k` },
                 ]}
               />
             </Box>

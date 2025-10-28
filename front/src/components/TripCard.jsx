@@ -14,6 +14,10 @@ import {
   Skeleton,
   Snackbar,
   Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material"
 import {
   AccessTime as DurationIcon,
@@ -65,12 +69,26 @@ export const TripCard = ({ trip, loading = false }) => {
     duracion_dias,
     dificultad,
     precio_base,
+    precio_mas_bajo, // Calculado por el backend
     fechas_disponibles = [],
+    fechas = [], // Backend puede devolver "fechas" en lugar de "fechas_disponibles"
   } = trip
 
-  // Obtener próxima fecha disponible
-  const proximaFecha = fechas_disponibles[0]
-  const precioFinal = proximaFecha?.precio_fecha || precio_base
+  // Normalizar fechas: usar fechas_disponibles si existe, sino fechas
+  const fechasDisponibles = fechas_disponibles.length > 0 ? fechas_disponibles : fechas
+
+  // Estado para la fecha seleccionada en el dropdown
+  const [selectedFechaId, setSelectedFechaId] = useState(
+    fechasDisponibles[0]?.id_fechas_viaje || fechasDisponibles[0]?.id || null
+  )
+
+  // Obtener la fecha seleccionada
+  const fechaSeleccionada = fechasDisponibles.find(
+    f => (f.id_fechas_viaje || f.id) === selectedFechaId
+  )
+
+  // Mostrar el precio de la fecha seleccionada, o el más bajo, o el base
+  const precioFinal = fechaSeleccionada?.precio_fecha || fechaSeleccionada?.precio || precio_mas_bajo || precio_base
 
   // Mapa de colores para dificultad
   const dificultadColors = {
@@ -82,7 +100,12 @@ export const TripCard = ({ trip, loading = false }) => {
 
   const handleAddToCart = async (e) => {
     e.stopPropagation()
-    if (!proximaFecha) return
+
+    // Validar que haya una fecha seleccionada
+    if (!selectedFechaId) {
+      console.warn("No hay fecha seleccionada")
+      return
+    }
 
     // Verificar si el usuario está autenticado
     if (!user) {
@@ -98,7 +121,7 @@ export const TripCard = ({ trip, loading = false }) => {
     try {
       const result = await addItem({
         id_viaje,
-        id_fecha_viaje: proximaFecha.id_fechas_viaje,
+        id_fecha_viaje: selectedFechaId,
         cantidad: 1,
       })
 
@@ -125,7 +148,7 @@ export const TripCard = ({ trip, loading = false }) => {
   return (
     <Card
       sx={{
-        height: "580px", // Altura aumentada para evitar cortes
+        height: "640px", // Altura aumentada para dropdown de fechas
         display: "flex",
         flexDirection: "column",
         transition: "all 0.3s ease",
@@ -261,12 +284,54 @@ export const TripCard = ({ trip, loading = false }) => {
             </Typography>
           </Box>
 
-          {proximaFecha && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          {/* Selector de fecha */}
+          {fechasDisponibles.length > 0 ? (
+            <Box sx={{ mt: 1 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel id={`fecha-select-label-${id_viaje}`}>
+                  Fecha de salida
+                </InputLabel>
+                <Select
+                  labelId={`fecha-select-label-${id_viaje}`}
+                  value={selectedFechaId || ""}
+                  label="Fecha de salida"
+                  onChange={(e) => setSelectedFechaId(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  sx={{
+                    bgcolor: (theme) => theme.palette.mode === 'dark'
+                      ? 'rgba(255, 255, 255, 0.05)'
+                      : 'background.paper'
+                  }}
+                >
+                  {fechasDisponibles.map((fecha) => {
+                    const fechaId = fecha.id_fechas_viaje || fecha.id
+                    const cuposDisp = fecha.cupos_disponibles
+                    return (
+                      <MenuItem key={fechaId} value={fechaId}>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {new Date(fecha.fecha_inicio).toLocaleDateString()} - {new Date(fecha.fecha_fin).toLocaleDateString()}
+                          </Typography>
+                          {cuposDisp !== undefined && (
+                            <Typography variant="caption" color="text.secondary">
+                              {cuposDisp > 0
+                                ? `${cuposDisp} cupos disponibles`
+                                : 'Sin cupos'
+                              }
+                            </Typography>
+                          )}
+                        </Box>
+                      </MenuItem>
+                    )
+                  })}
+                </Select>
+              </FormControl>
+            </Box>
+          ) : (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 1 }}>
               <DateIcon fontSize="small" color="action" />
               <Typography variant="body2" color="text.secondary">
-                Próxima salida:{" "}
-                {new Date(proximaFecha.fecha_inicio).toLocaleDateString()}
+                Sin fechas disponibles
               </Typography>
             </Box>
           )}
@@ -308,7 +373,7 @@ export const TripCard = ({ trip, loading = false }) => {
             variant="contained"
             size="small"
             onClick={handleAddToCart}
-            disabled={!proximaFecha || adding}
+            disabled={!selectedFechaId || adding || (fechaSeleccionada?.cupos_disponibles === 0)}
             startIcon={<CartIcon />}
             sx={{
               flex: 1,

@@ -50,7 +50,7 @@ export default function TripDetailPage() {
   const { addItem } = useCart()
   const { user } = useAuth()
 
-  const [selectedFecha, setSelectedFecha] = useState("")
+  const [selectedFecha, setSelectedFecha] = useState(null)
   const [cantidad, setCantidad] = useState(1)
   const [addingToCart, setAddingToCart] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
@@ -59,9 +59,9 @@ export default function TripDetailPage() {
   useEffect(() => {
     if (trip) {
       document.title = `${trip.titulo} - TrekkingAR`
-      // Seleccionar automáticamente la primera fecha disponible
+      // Seleccionar automáticamente la primera fecha disponible - NORMALIZADO COMO NUMBER
       if (trip.fechas_disponibles?.length > 0) {
-        setSelectedFecha(trip.fechas_disponibles[0].id)
+        setSelectedFecha(Number(trip.fechas_disponibles[0].id))
       }
     }
   }, [trip])
@@ -133,8 +133,9 @@ export default function TripDetailPage() {
     )
   }
 
+  // Normalizar comparación: selectedFecha ya es Number, comparar con Number(f.id)
   const selectedFechaData = trip.fechas_disponibles?.find(
-    (f) => f.id === parseInt(selectedFecha),
+    (f) => Number(f.id) === selectedFecha,
   )
   const precioFinal = selectedFechaData?.precio || trip.precio_base
 
@@ -211,9 +212,9 @@ export default function TripDetailPage() {
 
               {/* Ubicación */}
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-                <Place fontSize="small" color="action" />
-                <Typography variant="body1" color="text.secondary">
-                  {trip.destino}
+                <Place fontSize="small" sx={{ color: "text.primary", opacity: 0.7 }} />
+                <Typography variant="body1" color="text.primary" sx={{ fontWeight: 500 }}>
+                  {trip.destino || "Destino por confirmar"}
                 </Typography>
               </Stack>
 
@@ -252,16 +253,15 @@ export default function TripDetailPage() {
               sx={{
                 p: 3,
                 bgcolor: "primary.main",
-                color: "white",
                 borderRadius: 2,
               }}
             >
               {/* Precio grande */}
               <Box sx={{ mb: 3 }}>
-                <Typography variant="h3" sx={{ fontWeight: 800, mb: 0.5 }}>
+                <Typography variant="h3" sx={{ fontWeight: 800, mb: 0.5, color: '#000' }}>
                   ${precioFinal?.toLocaleString()}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                <Typography variant="body2" sx={{ color: '#000', fontWeight: 500 }}>
                   Por persona
                 </Typography>
               </Box>
@@ -269,49 +269,70 @@ export default function TripDetailPage() {
               {/* Selector de fecha */}
               {trip.fechas_disponibles && trip.fechas_disponibles.length > 0 && (
                 <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: '#000' }}>
                     Fecha de salida
                   </Typography>
                   <Stack spacing={1}>
-                    {trip.fechas_disponibles.map((fecha) => (
-                      <Button
-                        key={fecha.id}
-                        variant={selectedFecha === fecha.id ? "contained" : "outlined"}
-                        onClick={() => setSelectedFecha(fecha.id)}
-                        sx={{
-                          justifyContent: "flex-start",
-                          textAlign: "left",
-                          bgcolor: selectedFecha === fecha.id ? "white" : "transparent",
-                          color: selectedFecha === fecha.id ? "primary.main" : "white",
-                          borderColor: "white",
-                          "&:hover": {
-                            bgcolor: selectedFecha === fecha.id ? "white" : "rgba(255,255,255,0.1)",
-                            borderColor: "white",
-                          }
-                        }}
-                      >
-                        <Box sx={{ flex: 1 }}>
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <CalendarToday fontSize="small" />
-                            <Typography variant="body2">
-                              {new Date(fecha.fecha_inicio).toLocaleDateString()} - {new Date(fecha.fecha_fin).toLocaleDateString()}
-                            </Typography>
-                          </Stack>
-                          {fecha.cupos_disponibles !== undefined && (
-                            <Typography variant="caption" sx={{ opacity: 0.8, display: "block", ml: 3.5 }}>
-                              {fecha.cupos_disponibles} cupos disponibles
-                            </Typography>
-                          )}
-                        </Box>
-                      </Button>
-                    ))}
+                    {trip.fechas_disponibles.map((fecha, index) => {
+                      const fechaIdNumber = Number(fecha.id)
+                      const isSelected = selectedFecha === fechaIdNumber
+
+                      return (
+                        <Button
+                          key={fecha.id || `fecha-${index}`}
+                          variant={isSelected ? "contained" : "outlined"}
+                          onClick={() => setSelectedFecha(fechaIdNumber)}
+                          aria-label={`Seleccionar fecha del ${new Date(fecha.fecha_inicio).toLocaleDateString()} al ${new Date(fecha.fecha_fin).toLocaleDateString()}`}
+                          sx={{
+                            justifyContent: "flex-start",
+                            textAlign: "left",
+                            bgcolor: isSelected ? "white" : "transparent",
+                            borderColor: isSelected ? "white" : "rgba(0,0,0,0.3)",
+                            "&:hover": {
+                              bgcolor: isSelected ? "white" : "rgba(255,255,255,0.1)",
+                              borderColor: isSelected ? "white" : "rgba(0,0,0,0.5)",
+                            }
+                          }}
+                        >
+                          <Box sx={{ flex: 1 }}>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <CalendarToday fontSize="small" sx={{ color: isSelected ? 'primary.main' : '#000' }} />
+                              <Typography
+                                variant="body1"
+                                sx={{
+                                  color: isSelected ? 'primary.main' : '#000',
+                                  fontWeight: 600,
+                                  fontSize: '1rem'
+                                }}
+                              >
+                                {new Date(fecha.fecha_inicio).toLocaleDateString()} - {new Date(fecha.fecha_fin).toLocaleDateString()}
+                              </Typography>
+                            </Stack>
+                            {fecha.cupos_disponibles !== undefined && (
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: isSelected ? 'primary.main' : '#000',
+                                  opacity: isSelected ? 0.8 : 0.9,
+                                  display: "block",
+                                  ml: 3.5,
+                                  fontSize: '0.9rem'
+                                }}
+                              >
+                                {fecha.cupos_disponibles} cupos disponibles
+                              </Typography>
+                            )}
+                          </Box>
+                        </Button>
+                      )
+                    })}
                   </Stack>
                 </Box>
               )}
 
               {/* Selector de cantidad */}
               <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: '#000' }}>
                   Cantidad de personas
                 </Typography>
                 <Stack direction="row" spacing={2} alignItems="center">
@@ -325,7 +346,7 @@ export default function TripDetailPage() {
                   >
                     <Remove />
                   </IconButton>
-                  <Typography variant="h5" sx={{ fontWeight: 700, minWidth: 40, textAlign: "center" }}>
+                  <Typography variant="h5" sx={{ fontWeight: 700, minWidth: 40, textAlign: "center", color: '#000' }}>
                     {cantidad}
                   </Typography>
                   <IconButton
@@ -344,10 +365,10 @@ export default function TripDetailPage() {
               {/* Total */}
               <Box sx={{ mb: 3, p: 2, bgcolor: "rgba(255,255,255,0.2)", borderRadius: 1 }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#000' }}>
                     Total
                   </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 800 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 800, color: '#000' }}>
                     ${(precioFinal * cantidad).toLocaleString()}
                   </Typography>
                 </Stack>
@@ -361,6 +382,16 @@ export default function TripDetailPage() {
                 startIcon={<ShoppingCart />}
                 onClick={handleAddToCart}
                 disabled={!selectedFecha || addingToCart}
+                aria-disabled={!selectedFecha || addingToCart}
+                title={
+                  !selectedFecha
+                    ? "Selecciona una fecha primero"
+                    : !user
+                      ? "Haz clic para iniciar sesión"
+                      : addingToCart
+                        ? "Agregando al carrito..."
+                        : "Agregar al carrito"
+                }
                 sx={{
                   bgcolor: "#9CCC65", // Verde Lima
                   color: "white",
@@ -371,7 +402,10 @@ export default function TripDetailPage() {
                     bgcolor: "#8BC34A",
                   },
                   "&:disabled": {
-                    bgcolor: "grey.400",
+                    bgcolor: (theme) => theme.palette.mode === "dark" ? "grey.700" : "grey.400",
+                    color: (theme) => theme.palette.mode === "dark" ? "grey.400" : "grey.600",
+                    cursor: "not-allowed",
+                    opacity: 0.7,
                   }
                 }}
               >
@@ -379,8 +413,8 @@ export default function TripDetailPage() {
               </Button>
 
               {!user && (
-                <Alert severity="info" sx={{ mt: 2, bgcolor: "white" }}>
-                  Inicia sesión para poder reservar
+                <Alert severity="info" sx={{ mt: 2, bgcolor: "white", color: "text.primary" }}>
+                  <strong>Nota:</strong> Inicia sesión para poder reservar este viaje
                 </Alert>
               )}
 
@@ -389,15 +423,21 @@ export default function TripDetailPage() {
                 <Stack spacing={1}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <CheckCircle fontSize="small" />
-                    <Typography variant="body2">Cancelación gratuita hasta 7 días antes</Typography>
+                    <Typography variant="body2" sx={{ color: '#000', fontWeight: 500 }}>
+                      Cancelación gratuita hasta 7 días antes
+                    </Typography>
                   </Stack>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <CheckCircle fontSize="small" />
-                    <Typography variant="body2">Confirmación inmediata</Typography>
+                    <Typography variant="body2" sx={{ color: '#000', fontWeight: 500 }}>
+                      Confirmación inmediata
+                    </Typography>
                   </Stack>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <CheckCircle fontSize="small" />
-                    <Typography variant="body2">Pago seguro</Typography>
+                    <Typography variant="body2" sx={{ color: '#000', fontWeight: 500 }}>
+                      Pago seguro
+                    </Typography>
                   </Stack>
                 </Stack>
               </Box>
@@ -426,11 +466,11 @@ export default function TripDetailPage() {
               {/* Tab 0: Información General */}
               {activeTab === 0 && (
                 <Box>
-                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>
+                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, color: "text.primary" }}>
                     Sobre este viaje
                   </Typography>
-                  <Typography variant="body1" paragraph>
-                    {trip.descripcion_completa || trip.descripcion_corta}
+                  <Typography variant="body1" paragraph color="text.primary" sx={{ lineHeight: 1.8 }}>
+                    {trip.descripcion_completa || trip.descripcion_corta || "No hay descripción disponible"}
                   </Typography>
                 </Box>
               )}
@@ -438,15 +478,25 @@ export default function TripDetailPage() {
               {/* Tab 1: Incluye */}
               {activeTab === 1 && (
                 <Box>
-                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>
+                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, color: "text.primary" }}>
                     ¿Qué incluye?
                   </Typography>
                   {trip.incluye ? (
-                    <Typography variant="body1" component="div" sx={{ whiteSpace: "pre-line" }}>
-                      {trip.incluye}
-                    </Typography>
+                    Array.isArray(trip.incluye) ? (
+                      <Box component="ul" sx={{ pl: 3, m: 0 }}>
+                        {trip.incluye.map((item, index) => (
+                          <Typography component="li" key={index} variant="body1" color="text.primary" sx={{ mb: 1, lineHeight: 1.8 }}>
+                            {item}
+                          </Typography>
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography variant="body1" component="div" color="text.primary" sx={{ whiteSpace: "pre-line", lineHeight: 1.8 }}>
+                        {trip.incluye}
+                      </Typography>
+                    )
                   ) : (
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
                       No hay información disponible
                     </Typography>
                   )}
@@ -456,15 +506,25 @@ export default function TripDetailPage() {
               {/* Tab 2: No Incluye */}
               {activeTab === 2 && (
                 <Box>
-                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>
+                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, color: "text.primary" }}>
                     ¿Qué NO incluye?
                   </Typography>
                   {trip.no_incluye ? (
-                    <Typography variant="body1" component="div" sx={{ whiteSpace: "pre-line" }}>
-                      {trip.no_incluye}
-                    </Typography>
+                    Array.isArray(trip.no_incluye) ? (
+                      <Box component="ul" sx={{ pl: 3, m: 0 }}>
+                        {trip.no_incluye.map((item, index) => (
+                          <Typography component="li" key={index} variant="body1" color="text.primary" sx={{ mb: 1, lineHeight: 1.8 }}>
+                            {item}
+                          </Typography>
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography variant="body1" component="div" color="text.primary" sx={{ whiteSpace: "pre-line", lineHeight: 1.8 }}>
+                        {trip.no_incluye}
+                      </Typography>
+                    )
                   ) : (
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
                       No hay información disponible
                     </Typography>
                   )}
@@ -474,15 +534,15 @@ export default function TripDetailPage() {
               {/* Tab 3: Itinerario */}
               {activeTab === 3 && (
                 <Box>
-                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>
+                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, color: "text.primary" }}>
                     Itinerario del viaje
                   </Typography>
                   {trip.itinerario ? (
-                    <Typography variant="body1" component="div" sx={{ whiteSpace: "pre-line" }}>
+                    <Typography variant="body1" component="div" color="text.primary" sx={{ whiteSpace: "pre-line", lineHeight: 1.8 }}>
                       {trip.itinerario}
                     </Typography>
                   ) : (
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
                       Itinerario próximamente
                     </Typography>
                   )}
@@ -492,15 +552,25 @@ export default function TripDetailPage() {
               {/* Tab 4: Recomendaciones */}
               {activeTab === 4 && (
                 <Box>
-                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>
+                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, color: "text.primary" }}>
                     Recomendaciones
                   </Typography>
                   {trip.recomendaciones ? (
-                    <Typography variant="body1" component="div" sx={{ whiteSpace: "pre-line" }}>
-                      {trip.recomendaciones}
-                    </Typography>
+                    Array.isArray(trip.recomendaciones) ? (
+                      <Box component="ul" sx={{ pl: 3, m: 0 }}>
+                        {trip.recomendaciones.map((item, index) => (
+                          <Typography component="li" key={index} variant="body1" color="text.primary" sx={{ mb: 1, lineHeight: 1.8 }}>
+                            {item}
+                          </Typography>
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography variant="body1" component="div" color="text.primary" sx={{ whiteSpace: "pre-line", lineHeight: 1.8 }}>
+                        {trip.recomendaciones}
+                      </Typography>
+                    )
                   ) : (
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
                       No hay recomendaciones disponibles
                     </Typography>
                   )}

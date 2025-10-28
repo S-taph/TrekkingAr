@@ -57,6 +57,22 @@ const Viaje = sequelize.define(
       type: DataTypes.INTEGER,
       defaultValue: 1,
     },
+    maximo_participantes: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    incluye: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    no_incluye: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    recomendaciones: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     activo: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,

@@ -37,8 +37,10 @@ const ProductList = ({ searchFilters = {}, sidebarFilters = {} }) => {
       const [min, max] = sidebarFilters.priceRange
       filters.precio_min = min
       filters.precio_max = max
+      console.log("[ProductList] Aplicando filtro de precio:", { min, max })
     }
 
+    console.log("[ProductList] Filtros finales para API:", filters)
     return filters
   }, [searchFilters, sidebarFilters])
 

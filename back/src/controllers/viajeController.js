@@ -7,9 +7,41 @@
 
 import { validationResult } from "express-validator";
 import { Op } from "sequelize";
+import sequelize from "../config/database.js";
 import { Viaje, FechaViaje, Categoria, ImagenViaje } from "../models/associations.js";
 import { upload, handleMulterError, getFileUrl } from "../config/multer.js";
 import { processViajeImages } from "../utils/imageUrlHelper.js";
+
+/**
+ * Obtiene estadísticas de precios de viajes activos
+ */
+export const getPreciosStats = async (req, res) => {
+  try {
+    const stats = await Viaje.findOne({
+      where: { activo: true },
+      attributes: [
+        [sequelize.fn('MAX', sequelize.col('precio_base')), 'precio_maximo'],
+        [sequelize.fn('MIN', sequelize.col('precio_base')), 'precio_minimo']
+      ],
+      raw: true
+    });
+
+    res.json({
+      success: true,
+      data: {
+        precio_maximo: parseFloat(stats.precio_maximo) || 1000000,
+        precio_minimo: parseFloat(stats.precio_minimo) || 0
+      }
+    });
+
+  } catch (error) {
+    console.error('Error obteniendo estadísticas de precios:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
 
 /**
  * Obtiene todos los viajes con filtros y paginación
@@ -23,9 +55,11 @@ export const getViajes = async (req, res) => {
       page = 1,
       limit = 12,
       activo = true,
-      destacado
+      destacado,
+      precio_min,
+      precio_max
     } = req.query;
-    
+
     const offset = (page - 1) * limit;
 
     // Construir filtros
@@ -47,6 +81,17 @@ export const getViajes = async (req, res) => {
         { titulo: { [Op.like]: `%${search}%` } },
         { descripcion_corta: { [Op.like]: `%${search}%` } }
       ];
+    }
+
+    // Filtro de precio
+    if (precio_min !== undefined || precio_max !== undefined) {
+      where.precio_base = {};
+      if (precio_min !== undefined) {
+        where.precio_base[Op.gte] = parseFloat(precio_min);
+      }
+      if (precio_max !== undefined) {
+        where.precio_base[Op.lte] = parseFloat(precio_max);
+      }
     }
 
     // Construir include para categoría
@@ -83,11 +128,48 @@ export const getViajes = async (req, res) => {
       distinct: true
     });
 
-    // Procesar URLs de imágenes
-    const viajesConImagenes = viajes.map(viaje => {
+    // Procesar URLs de imágenes, calcular precio más bajo y cupos disponibles
+    const viajesConImagenes = await Promise.all(viajes.map(async (viaje) => {
       const viajeData = viaje.toJSON();
-      return processViajeImages(viajeData, req);
-    });
+      const viajeConImagenes = processViajeImages(viajeData, req);
+
+      // Calcular precio más bajo de las fechas disponibles
+      if (viajeConImagenes.fechas && viajeConImagenes.fechas.length > 0) {
+        const precios = viajeConImagenes.fechas
+          .map(fecha => parseFloat(fecha.precio))
+          .filter(precio => !isNaN(precio) && precio > 0);
+
+        viajeConImagenes.precio_mas_bajo = precios.length > 0
+          ? Math.min(...precios)
+          : viajeConImagenes.precio_base;
+
+        // Calcular cupos disponibles reales para cada fecha (versión optimizada para listado)
+        const { Reserva } = await import('../models/associations.js');
+
+        for (let fecha of viajeConImagenes.fechas) {
+          const reservasConfirmadas = await Reserva.findAll({
+            where: {
+              id_fecha_viaje: fecha.id_fechas_viaje,
+              estado_reserva: 'confirmada'
+            },
+            attributes: [
+              [sequelize.fn('SUM', sequelize.col('cantidad_personas')), 'total_ocupados']
+            ],
+            raw: true
+          });
+
+          const totalOcupados = parseInt(reservasConfirmadas[0]?.total_ocupados) || 0;
+          const cuposDisponiblesReales = Math.max(0, fecha.cupos_disponibles - totalOcupados);
+
+          fecha.cupos_disponibles = cuposDisponiblesReales;
+          fecha.cupos_ocupados = totalOcupados;
+        }
+      } else {
+        viajeConImagenes.precio_mas_bajo = viajeConImagenes.precio_base;
+      }
+
+      return viajeConImagenes;
+    }));
 
     res.json({
       success: true,
@@ -113,6 +195,7 @@ export const getViajes = async (req, res) => {
 
 /**
  * Obtiene un viaje por ID con todas sus relaciones
+ * Calcula dinámicamente los cupos disponibles basándose en reservas confirmadas
  */
 export const getViajeById = async (req, res) => {
   try {
@@ -147,6 +230,39 @@ export const getViajeById = async (req, res) => {
     // Procesar URLs de imágenes
     const viajeData = viaje.toJSON();
     const viajeConImagenes = processViajeImages(viajeData, req);
+
+    // Calcular cupos disponibles reales para cada fecha
+    if (viajeConImagenes.fechas && viajeConImagenes.fechas.length > 0) {
+      // Importar modelo de Reserva dinámicamente para evitar dependencias circulares
+      const { Reserva } = await import('../models/associations.js');
+
+      for (let fecha of viajeConImagenes.fechas) {
+        // Sumar cantidad de personas de todas las reservas confirmadas para esta fecha
+        const reservasConfirmadas = await Reserva.findAll({
+          where: {
+            id_fecha_viaje: fecha.id_fechas_viaje,
+            estado_reserva: 'confirmada'
+          },
+          attributes: [
+            [sequelize.fn('SUM', sequelize.col('cantidad_personas')), 'total_ocupados']
+          ],
+          raw: true
+        });
+
+        const totalOcupados = parseInt(reservasConfirmadas[0]?.total_ocupados) || 0;
+
+        // Calcular cupos disponibles reales
+        // cupos_disponibles en el modelo representa el TOTAL de cupos
+        const cuposDisponiblesReales = Math.max(0, fecha.cupos_disponibles - totalOcupados);
+
+        // Actualizar el valor en el objeto
+        fecha.cupos_disponibles = cuposDisponiblesReales;
+        fecha.cupos_totales = fecha.cupos_disponibles + totalOcupados; // Agregar info de cupos totales
+        fecha.cupos_ocupados = totalOcupados;
+
+        console.log(`[getViajeById] Fecha ${fecha.id_fechas_viaje}: Total=${fecha.cupos_totales}, Ocupados=${totalOcupados}, Disponibles=${cuposDisponiblesReales}`);
+      }
+    }
 
     res.json({
       success: true,
@@ -386,29 +502,38 @@ export const createViaje = async (req, res) => {
       titulo,
       descripcion,
       descripcion_corta,
+      descripcion_completa,
       destino,
       duracion_dias,
       dificultad,
       precio_base,
+      minimo_participantes,
+      maximo_participantes,
       id_categoria,
       incluye,
       no_incluye,
-      itinerario
+      recomendaciones,
+      itinerario,
+      activo
     } = req.body;
 
+    // El frontend envía strings, no arrays. No hacer JSON.stringify si ya es string
     const nuevoViaje = await Viaje.create({
       titulo,
-      descripcion,
+      descripcion: descripcion_completa || descripcion, // Frontend envía descripcion_completa
       descripcion_corta,
       destino,
       duracion_dias: parseInt(duracion_dias),
       dificultad,
       precio_base: parseFloat(precio_base),
+      minimo_participantes: minimo_participantes ? parseInt(minimo_participantes) : 1,
+      maximo_participantes: maximo_participantes ? parseInt(maximo_participantes) : null,
       id_categoria: id_categoria ? parseInt(id_categoria) : null,
-      incluye: incluye ? JSON.stringify(incluye) : null,
-      no_incluye: no_incluye ? JSON.stringify(no_incluye) : null,
-      itinerario: itinerario ? JSON.stringify(itinerario) : null,
-      activo: true
+      incluye: incluye || null, // Guardar como string directo
+      no_incluye: no_incluye || null, // Guardar como string directo
+      recomendaciones: recomendaciones || null, // Campo nuevo
+      itinerario: itinerario || null,
+      activo: activo !== undefined ? activo : true
     });
 
     res.status(201).json({
@@ -421,7 +546,8 @@ export const createViaje = async (req, res) => {
     console.error('Error creando viaje:', error);
     res.status(500).json({
       success: false,
-      message: 'Error interno del servidor'
+      message: 'Error interno del servidor',
+      error: error.message
     });
   }
 };
@@ -455,31 +581,52 @@ export const updateViaje = async (req, res) => {
       titulo,
       descripcion,
       descripcion_corta,
+      descripcion_completa,
       destino,
       duracion_dias,
       dificultad,
       precio_base,
+      minimo_participantes,
+      maximo_participantes,
       id_categoria,
       incluye,
       no_incluye,
+      recomendaciones,
       itinerario,
       activo
     } = req.body;
 
-    await viaje.update({
-      titulo: titulo || viaje.titulo,
-      descripcion: descripcion || viaje.descripcion,
-      descripcion_corta: descripcion_corta || viaje.descripcion_corta,
-      destino: destino || viaje.destino,
-      duracion_dias: duracion_dias ? parseInt(duracion_dias) : viaje.duracion_dias,
-      dificultad: dificultad || viaje.dificultad,
-      precio_base: precio_base ? parseFloat(precio_base) : viaje.precio_base,
-      id_categoria: id_categoria !== undefined ? parseInt(id_categoria) : viaje.id_categoria,
-      incluye: incluye ? JSON.stringify(incluye) : viaje.incluye,
-      no_incluye: no_incluye ? JSON.stringify(no_incluye) : viaje.no_incluye,
-      itinerario: itinerario ? JSON.stringify(itinerario) : viaje.itinerario,
-      activo: activo !== undefined ? activo : viaje.activo
+    console.log('[updateViaje] Datos recibidos:', {
+      incluye: incluye ? `${incluye.substring(0, 50)}...` : 'null',
+      no_incluye: no_incluye ? `${no_incluye.substring(0, 50)}...` : 'null',
+      recomendaciones: recomendaciones ? `${recomendaciones.substring(0, 50)}...` : 'null'
     });
+
+    // Preparar objeto de actualización solo con campos que vengan definidos
+    const updateData = {};
+
+    if (titulo !== undefined) updateData.titulo = titulo;
+    if (descripcion_completa !== undefined) updateData.descripcion = descripcion_completa; // Frontend envía descripcion_completa
+    else if (descripcion !== undefined) updateData.descripcion = descripcion;
+    if (descripcion_corta !== undefined) updateData.descripcion_corta = descripcion_corta;
+    if (destino !== undefined) updateData.destino = destino;
+    if (duracion_dias !== undefined) updateData.duracion_dias = parseInt(duracion_dias);
+    if (dificultad !== undefined) updateData.dificultad = dificultad;
+    if (precio_base !== undefined) updateData.precio_base = parseFloat(precio_base);
+    if (minimo_participantes !== undefined) updateData.minimo_participantes = parseInt(minimo_participantes);
+    if (maximo_participantes !== undefined) updateData.maximo_participantes = parseInt(maximo_participantes);
+    if (id_categoria !== undefined) updateData.id_categoria = id_categoria ? parseInt(id_categoria) : null;
+    if (activo !== undefined) updateData.activo = activo;
+
+    // Campos de texto: guardar como string directo (no JSON.stringify)
+    if (incluye !== undefined) updateData.incluye = incluye;
+    if (no_incluye !== undefined) updateData.no_incluye = no_incluye;
+    if (recomendaciones !== undefined) updateData.recomendaciones = recomendaciones;
+    if (itinerario !== undefined) updateData.itinerario = itinerario;
+
+    await viaje.update(updateData);
+
+    console.log('[updateViaje] Viaje actualizado exitosamente con ID:', id);
 
     res.json({
       success: true,
@@ -491,7 +638,8 @@ export const updateViaje = async (req, res) => {
     console.error('Error actualizando viaje:', error);
     res.status(500).json({
       success: false,
-      message: 'Error interno del servidor'
+      message: 'Error interno del servidor',
+      error: error.message
     });
   }
 };

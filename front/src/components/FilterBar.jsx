@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Box, Chip, Slider, Typography, InputAdornment, TextField, Divider } from "@mui/material"
+import { viajesAPI } from "../services/api"
 
 const categories = ["Montaña", "Cultural", "Selva", "Desierto"]
 const difficulties = ["Fácil", "Moderado", "Difícil", "Extremo"]
@@ -9,8 +10,37 @@ const difficulties = ["Fácil", "Moderado", "Difícil", "Extremo"]
 const FilterBar = ({ onFilterChange }) => {
   const [selectedCategories, setSelectedCategories] = useState([])
   const [selectedDifficulties, setSelectedDifficulties] = useState([])
+  const [maxPrice, setMaxPrice] = useState(1000000)
   const [priceRange, setPriceRange] = useState([0, 1000000])
+  const debounceTimer = useRef(null)
 
+  // Cargar precio máximo dinámicamente
+  useEffect(() => {
+    const fetchPriceStats = async () => {
+      try {
+        const response = await viajesAPI.getPreciosStats()
+        if (response.success) {
+          const max = Math.ceil(response.data.precio_maximo / 10000) * 10000 // Redondear hacia arriba
+          setMaxPrice(max)
+          setPriceRange([0, max])
+        }
+      } catch (error) {
+        console.error("Error obteniendo estadísticas de precios:", error)
+      }
+    }
+    fetchPriceStats()
+  }, [])
+
+  // Cleanup del timer al desmontar
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current)
+      }
+    }
+  }, [])
+
+  // Effect para filtros que NO necesitan debounce (categoría y dificultad)
   useEffect(() => {
     if (onFilterChange) {
       onFilterChange({
@@ -19,7 +49,30 @@ const FilterBar = ({ onFilterChange }) => {
         priceRange: priceRange,
       })
     }
-  }, [selectedCategories, selectedDifficulties, priceRange, onFilterChange])
+  }, [selectedCategories, selectedDifficulties, onFilterChange])
+
+  // Effect separado para precio con debouncing
+  useEffect(() => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current)
+    }
+
+    debounceTimer.current = setTimeout(() => {
+      if (onFilterChange) {
+        onFilterChange({
+          category: selectedCategories,
+          difficulty: selectedDifficulties,
+          priceRange: priceRange,
+        })
+      }
+    }, 400) // 400ms de delay para evitar sobrecarga
+
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current)
+      }
+    }
+  }, [priceRange])
 
   const handleCategoryClick = (category) => {
     setSelectedCategories((prev) =>
@@ -43,7 +96,7 @@ const FilterBar = ({ onFilterChange }) => {
   }
 
   const handleMaxPriceChange = (event) => {
-    const value = Number.parseInt(event.target.value) || 1000000
+    const value = Number.parseInt(event.target.value) || maxPrice
     setPriceRange([priceRange[0], value])
   }
 
@@ -96,8 +149,9 @@ const FilterBar = ({ onFilterChange }) => {
         value={priceRange}
         onChange={handlePriceChange}
         valueLabelDisplay="auto"
+        valueLabelFormat={(value) => `$${value.toLocaleString()}`}
         min={0}
-        max={1000000}
+        max={maxPrice}
         step={10000}
         sx={{ width: "100%", mb: 2 }}
       />

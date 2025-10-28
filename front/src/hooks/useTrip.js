@@ -20,7 +20,19 @@ export const useTrip = (id) => {
 
       if (response.success) {
         // El backend devuelve { success: true, data: { viaje: {...} } }
-        setTrip(response.data.viaje)
+        const viajeData = response.data.viaje
+
+        // Normalizar nombres de campos para compatibilidad con frontend
+        if (viajeData.fechas && !viajeData.fechas_disponibles) {
+          viajeData.fechas_disponibles = viajeData.fechas.map(fecha => ({
+            ...fecha,
+            // Asegurar que id es el campo correcto (puede ser id_fechas_viaje)
+            id: fecha.id_fechas_viaje || fecha.id,
+            precio: fecha.precio_fecha || fecha.precio,
+          }))
+        }
+
+        setTrip(viajeData)
       } else {
         throw new Error(response.message || "Error cargando viaje")
       }

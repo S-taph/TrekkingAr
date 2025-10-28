@@ -8,10 +8,12 @@ import {
   deleteViaje,
   uploadImagenes,
   deleteImagen,
-  updateImagenOrder
+  updateImagenOrder,
+  getPreciosStats
 } from "../controllers/viajeController.js";
 import { authenticateToken, requireAdmin } from "../middleware/auth.js";
 import { upload, handleMulterError } from "../config/multer.js";
+import fechaViajeRoutes from "./fechaViajeRoutes.js";
 
 const router = express.Router();
 
@@ -41,6 +43,7 @@ const imagenIdValidation = [
 ];
 
 // Rutas públicas
+router.get("/stats/precios", getPreciosStats);
 router.get("/", getViajes);
 router.get("/:id", viajeIdValidation, getViajeById);
 
@@ -67,5 +70,8 @@ router.delete("/:id/images/:imagenId", imagenIdValidation, deleteImagen);
 
 // Actualizar orden de imágenes
 router.put("/:id/images/order", viajeIdValidation, updateImagenOrder);
+
+// Sub-rutas de fechas de viaje
+router.use("/:viajeId/fechas", fechaViajeRoutes);
 
 export default router;

@@ -94,7 +94,7 @@ export default function Header() {
           top: 0,
           left: 0,
           right: 0,
-          backgroundColor: alpha("#64b5f6", 0.95),
+          backgroundColor: "#344e41",
           boxShadow: theme.shadows[4],
           zIndex: theme.zIndex.appBar,
           padding: "0 1rem",

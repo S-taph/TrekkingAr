@@ -82,6 +82,8 @@ export const viajesAPI = {
     return apiRequest(`/viajes?${queryString}`)
   },
 
+  getPreciosStats: () => apiRequest("/viajes/stats/precios"),
+
   getViajeById: (id) => apiRequest(`/viajes/${id}`),
 
   createViaje: (viajeData) =>
@@ -122,7 +124,27 @@ export const viajesAPI = {
 
   // Eliminar imagen del viaje
   deleteImage: (viajeId, imageId) =>
-    apiDeleteRequest(`/viajes/${viajeId}/images/${imageId}`)
+    apiDeleteRequest(`/viajes/${viajeId}/images/${imageId}`),
+
+  // Gestión de fechas de viaje
+  getFechasViaje: (viajeId) => apiRequest(`/viajes/${viajeId}/fechas`),
+
+  createFechaViaje: (viajeId, fechaData) =>
+    apiRequest(`/viajes/${viajeId}/fechas`, {
+      method: "POST",
+      body: JSON.stringify(fechaData),
+    }),
+
+  updateFechaViaje: (viajeId, fechaId, fechaData) =>
+    apiRequest(`/viajes/${viajeId}/fechas/${fechaId}`, {
+      method: "PUT",
+      body: JSON.stringify(fechaData),
+    }),
+
+  deleteFechaViaje: (viajeId, fechaId) =>
+    apiRequest(`/viajes/${viajeId}/fechas/${fechaId}`, {
+      method: "DELETE",
+    }),
 }
 
 // ✅ Reservas API - conectado con backend real
