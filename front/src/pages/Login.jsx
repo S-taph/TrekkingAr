@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import {
   Box,
@@ -24,12 +24,18 @@ import IconButton from "@mui/material/IconButton"
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login, register, user } = useAuth()
   const [isRegister, setIsRegister] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
   const [openSnackbar, setOpenSnackbar] = useState(false)
+
+  // Obtener la URL desde donde se redirigió (si existe)
+  // Prioridad: 1. localStorage (desde carrito), 2. location.state (desde otras páginas), 3. home
+  const redirectUrl = localStorage.getItem("redirectAfterLogin")
+  const from = redirectUrl || location.state?.from || "/"
 
   const [formData, setFormData] = useState({
     email: "",
@@ -75,13 +81,17 @@ export default function Login() {
           password: formData.password,
         })
         if (result.success) {
+          // Limpiar el redirect guardado
+          localStorage.removeItem("redirectAfterLogin")
+
           // Esperar un momento para que el estado se actualice
           setTimeout(() => {
-            // Redirigir según el rol del usuario
-            if (result.user?.rol === "admin") {
+            // Redirigir según el rol del usuario o a la URL de origen
+            if (result.user?.rol === "admin" && from === "/") {
               navigate("/admin")
             } else {
-              navigate("/")
+              // Redirigir a la página de origen o al home
+              navigate(from, { replace: true })
             }
           }, 100)
         } else {

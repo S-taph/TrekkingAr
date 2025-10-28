@@ -21,9 +21,9 @@ import { useViajes } from "../hooks/useViajes"
  * CatalogPage - Página del catálogo de viajes
  */
 export default function CatalogPage() {
-  const [filters, setFilters] = useState({})
+  const [filters, setFilters] = useState({ activo: true })
   const [sortBy, setSortBy] = useState("fecha_creacion")
-  const { viajes, loading, error, pagination, refetch } = useViajes()
+  const { viajes, loading, error, pagination, refetch } = useViajes({ activo: true })
 
   // Actualizar título de la página
   useEffect(() => {
@@ -150,7 +150,7 @@ export default function CatalogPage() {
                 </Grid>
               : // Viajes
                 viajes.map((trip) => (
-                  <Grid item xs={12} sm={6} md={4} lg={3} key={trip.id}>
+                  <Grid item xs={12} sm={6} md={4} lg={3} key={trip.id_viaje}>
                     <TripCard trip={trip} />
                   </Grid>
                 ))}

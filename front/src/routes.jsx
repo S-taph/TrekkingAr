@@ -6,6 +6,10 @@ import TripDetailPage from "./pages/TripDetailPage"
 import CheckoutFlow from "./pages/CheckoutFlow"
 import ProfilePage from "./pages/ProfilePage"
 import MyReservationsPage from "./pages/MyReservationsPage"
+import VerifyEmailPage from "./pages/VerifyEmailPage"
+import GaleriaPage from "./pages/GaleriaPage"
+import NosotrosPage from "./pages/NosotrosPage"
+import ContactoPage from "./pages/ContactoPage"
 import AdminApp from "./pages/AdminApp"
 import AdminViajesPage from "./pages/admin/AdminViajesPage"
 import AdminUsuariosPage from "./pages/admin/AdminUsuariosPage"
@@ -24,12 +28,28 @@ export const routes = [
     element: <Login />,
   },
   {
+    path: "/verify-email",
+    element: <VerifyEmailPage />,
+  },
+  {
     path: "/catalogo",
     element: <CatalogPage />,
   },
   {
     path: "/viajes/:id",
     element: <TripDetailPage />,
+  },
+  {
+    path: "/galeria",
+    element: <GaleriaPage />,
+  },
+  {
+    path: "/nosotros",
+    element: <NosotrosPage />,
+  },
+  {
+    path: "/contacto",
+    element: <ContactoPage />,
   },
   {
     path: "/checkout",

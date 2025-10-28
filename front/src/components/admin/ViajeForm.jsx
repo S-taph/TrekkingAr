@@ -19,10 +19,14 @@ import {
   CardActions,
   IconButton,
   Chip,
+  Dialog,
+  DialogContent,
+  DialogTitle,
 } from "@mui/material"
 import CloudUploadIcon from "@mui/icons-material/CloudUpload"
 import DeleteIcon from "@mui/icons-material/Delete"
 import ImageIcon from "@mui/icons-material/Image"
+import CloseIcon from "@mui/icons-material/Close"
 import { viajesAPI, categoriasAPI } from "../../services/api"
 
 export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
@@ -53,6 +57,8 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
   const [selectedImages, setSelectedImages] = useState([])
   const [imagePreviews, setImagePreviews] = useState([])
   const [existingImages, setExistingImages] = useState([])
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxImage, setLightboxImage] = useState(null)
 
   useEffect(() => {
     const loadCategorias = async () => {
@@ -562,7 +568,18 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                     height="120"
                     image={image.url}
                     alt={image.descripcion || "Imagen del viaje"}
-                    sx={{ objectFit: "cover" }}
+                    sx={{
+                      objectFit: "cover",
+                      cursor: "pointer",
+                      transition: "transform 0.2s",
+                      "&:hover": {
+                        transform: "scale(1.05)",
+                      }
+                    }}
+                    onClick={() => {
+                      setLightboxImage(image)
+                      setLightboxOpen(true)
+                    }}
                   />
                   {image.es_principal && (
                     <Chip
@@ -648,6 +665,39 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
           {loading ? <CircularProgress size={24} /> : mode === "create" ? "Crear Viaje" : "Actualizar Viaje"}
         </Button>
       </Box>
+
+      {/* Lightbox Dialog */}
+      <Dialog
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">
+              {lightboxImage?.descripcion || "Vista previa de imagen"}
+            </Typography>
+            <IconButton onClick={() => setLightboxOpen(false)} edge="end">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ display: "flex", justifyContent: "center", alignItems: "center", p: 3 }}>
+          {lightboxImage && (
+            <Box
+              component="img"
+              src={lightboxImage.url}
+              alt={lightboxImage.descripcion || "Imagen del viaje"}
+              sx={{
+                maxWidth: "100%",
+                maxHeight: "70vh",
+                objectFit: "contain",
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   )
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { useCart } from "../context/CartContext"
 import { useTheme } from "../context/ThemeContext"
@@ -48,6 +48,7 @@ import { NotificationCenter } from "./NotificationCenter"
 
 export default function Header() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, logout } = useAuth()
   const { itemCount } = useCart()
   const { mode, toggleTheme } = useTheme()
@@ -57,6 +58,7 @@ export default function Header() {
   const [anchorEl, setAnchorEl] = useState(null)
 
   const isAdmin = user?.rol === "admin"
+  const isInAdminPanel = location.pathname.startsWith("/admin")
 
   const toggleDrawer = (open) => () => {
     setDrawerOpen(open)
@@ -77,14 +79,11 @@ export default function Header() {
   }
 
   const menuItems = [
-    { text: "Inicio", icon: <HomeIcon /> },
-    { text: "Trekkings", icon: <HikingIcon /> },
-    { text: "Tours", icon: <TourIcon /> },
-    { text: "Equipamiento", icon: <BackpackIcon /> },
-    { text: "Galería", icon: <PhotoLibraryIcon /> },
-    { text: "Blog", icon: <ArticleIcon /> },
-    { text: "Nosotros", icon: <InfoIcon /> },
-    { text: "Contacto", icon: <ContactMailIcon /> },
+    { text: "Inicio", icon: <HomeIcon />, path: "/" },
+    { text: "Trekkings", icon: <HikingIcon />, path: "/catalogo" },
+    { text: "Galería", icon: <PhotoLibraryIcon />, path: "/galeria" },
+    { text: "Nosotros", icon: <InfoIcon />, path: "/nosotros" },
+    { text: "Contacto", icon: <ContactMailIcon />, path: "/contacto" },
   ]
 
   return (
@@ -122,32 +121,44 @@ export default function Header() {
           </IconButton>
 
           <Box
-            component="img"
-            src="/mountain.png"
-            alt="Logo TrekkingAr"
             sx={{
-              height: 40,
-              width: "auto",
-              marginRight: 2,
-              userSelect: "none",
-              filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
-            }}
-          />
-
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{
-              fontFamily: "'Russo One', sans-serif",
-              fontWeight: "bold",
-              letterSpacing: 1,
+              display: "flex",
+              alignItems: "center",
+              cursor: "pointer",
               flexGrow: 1,
-              color: "white",
-              textShadow: "0 2px 4px rgba(0,0,0,0.5)",
+              "&:hover": {
+                opacity: 0.9,
+              },
             }}
+            onClick={() => navigate("/")}
           >
-            TrekkingAr
-          </Typography>
+            <Box
+              component="img"
+              src="/mountain.png"
+              alt="Logo TrekkingAr"
+              sx={{
+                height: 40,
+                width: "auto",
+                marginRight: 2,
+                userSelect: "none",
+                filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+              }}
+            />
+
+            <Typography
+              variant="h6"
+              component="div"
+              sx={{
+                fontFamily: "'Russo One', sans-serif",
+                fontWeight: "bold",
+                letterSpacing: 1,
+                color: "white",
+                textShadow: "0 2px 4px rgba(0,0,0,0.5)",
+              }}
+            >
+              TrekkingAr
+            </Typography>
+          </Box>
 
           <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 1 }}>
             <Stack direction="row" spacing={1}>
@@ -155,6 +166,7 @@ export default function Header() {
                 <Button
                   key={item.text}
                   startIcon={item.icon}
+                  onClick={() => navigate(item.path)}
                   sx={{
                     textTransform: "none",
                     fontSize: "0.9rem",
@@ -207,8 +219,8 @@ export default function Header() {
                   </IconButton>
                 </Tooltip>
 
-                {/* Notificaciones (solo admin) */}
-                {isAdmin && (
+                {/* Notificaciones (solo admin en panel de administración) */}
+                {isAdmin && isInAdminPanel && (
                   <Tooltip title="Notificaciones">
                     <IconButton
                       onClick={() => setNotificationsOpen(true)}
@@ -263,18 +275,9 @@ export default function Header() {
                     <AccountCircleIcon sx={{ mr: 1 }} fontSize="small" />
                     Mi Perfil
                   </MenuItem>
-                  <MenuItem onClick={() => { handleMenuClose(); navigate("/my-reservations"); }}>
+                  <MenuItem onClick={() => { handleMenuClose(); navigate("/mis-reservas"); }}>
                     Mis Reservas
                   </MenuItem>
-                  {isAdmin && (
-                    <>
-                      <Divider />
-                      <MenuItem onClick={() => { handleMenuClose(); navigate("/admin"); }}>
-                        <DashboardIcon sx={{ mr: 1 }} fontSize="small" />
-                        Panel de Admin
-                      </MenuItem>
-                    </>
-                  )}
                   <Divider />
                   <MenuItem onClick={handleLogout}>
                     <LogoutIcon sx={{ mr: 1 }} fontSize="small" />
@@ -328,7 +331,10 @@ export default function Header() {
             {menuItems.map((item) => (
               <ListItemButton
                 key={item.text}
-                onClick={toggleDrawer(false)}
+                onClick={() => {
+                  navigate(item.path)
+                  setDrawerOpen(false)
+                }}
                 sx={{
                   py: 1.5,
                   "&:hover": {
@@ -365,8 +371,8 @@ export default function Header() {
       {/* Cart Drawer */}
       <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
 
-      {/* Notification Center (solo para admins) */}
-      {isAdmin && (
+      {/* Notification Center (solo para admins en panel de administración) */}
+      {isAdmin && isInAdminPanel && (
         <NotificationCenter open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
       )}
     </>

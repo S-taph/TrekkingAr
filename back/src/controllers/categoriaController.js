@@ -5,14 +5,16 @@ import Viaje from "../models/Viaje.js"
 export const getAllCategorias = async (req, res) => {
   try {
     console.log("🔍 Obteniendo categorías...")
+    console.log("📥 Query params recibidos:", req.query)
 
-    const { activa = true, incluir_viajes = false } = req.query
+    const { activa, incluir_viajes } = req.query
 
     const whereClause = {}
 
     // Fix para MySQL - convierte boolean a número
-    if (activa !== undefined) {
-      whereClause.activa = activa === "true" ? 1 : 0
+    // Solo aplicar filtro si se proporciona explícitamente
+    if (activa !== undefined && activa !== null && activa !== '') {
+      whereClause.activa = activa === "true" || activa === true || activa === "1" || activa === 1 ? 1 : 0
     }
 
     console.log("📋 Filtros aplicados:", whereClause)
@@ -20,7 +22,7 @@ export const getAllCategorias = async (req, res) => {
     const includeOptions = []
 
     // Si se solicita incluir viajes
-    if (incluir_viajes === "true") {
+    if (incluir_viajes === "true" || incluir_viajes === true) {
       includeOptions.push({
         model: Viaje,
         as: "viajes",
@@ -32,7 +34,7 @@ export const getAllCategorias = async (req, res) => {
 
     const categorias = await Categoria.findAll({
       where: whereClause,
-      include: includeOptions,
+      include: includeOptions.length > 0 ? includeOptions : undefined,
       order: [
         ["orden_visualizacion", "ASC"],
         ["nombre", "ASC"],

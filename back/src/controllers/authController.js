@@ -2,7 +2,9 @@ import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 import { validationResult } from "express-validator"
 import passport from "passport"
+import { v4 as uuidv4 } from "uuid"
 import Usuario from "../models/Usuario.js"
+import { sendVerificationEmail } from "../config/nodemailer.js"
 
 // TODO: mover esto a un archivo de utils
 const generateToken = (userId) => {
@@ -37,6 +39,11 @@ export const register = async (req, res) => {
     const saltRounds = 12
     const password_hash = await bcrypt.hash(password, saltRounds)
 
+    // Generar token de verificación
+    const verificationToken = uuidv4()
+    const tokenExpiry = new Date()
+    tokenExpiry.setHours(tokenExpiry.getHours() + 24) // Expira en 24 horas
+
     // Crear usuario
     const usuario = await Usuario.create({
       email,
@@ -47,7 +54,19 @@ export const register = async (req, res) => {
       experiencia_previa,
       dni,
       rol: "cliente", // por defecto siempre cliente
+      is_verified: false,
+      verification_token: verificationToken,
+      token_expiry: tokenExpiry,
     })
+
+    // Enviar correo de verificación
+    try {
+      await sendVerificationEmail(email, verificationToken, nombre)
+      console.log('[Auth] Verification email sent to:', email)
+    } catch (emailError) {
+      console.error('[Auth] Error sending verification email:', emailError)
+      // No bloqueamos el registro si falla el email
+    }
 
     const token = generateToken(usuario.id_usuarios)
 
@@ -60,7 +79,7 @@ export const register = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Usuario registrado exitosamente",
+      message: "Usuario registrado exitosamente. Por favor verifica tu correo electrónico.",
       data: {
         token, // Incluir token en respuesta para uso del frontend
         user: {
@@ -69,6 +88,7 @@ export const register = async (req, res) => {
           nombre: usuario.nombre,
           apellido: usuario.apellido,
           rol: usuario.rol,
+          is_verified: usuario.is_verified,
         },
       },
     })
@@ -252,6 +272,71 @@ export const googleCallback = async (req, res, next) => {
  */
 export const getMe = getProfile;
 
+/**
+ * Verificar correo electrónico
+ */
+export const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Token de verificación no proporcionado",
+      })
+    }
+
+    // Buscar usuario con el token
+    const usuario = await Usuario.findOne({
+      where: { verification_token: token }
+    })
+
+    if (!usuario) {
+      return res.status(404).json({
+        success: false,
+        message: "Token de verificación inválido",
+      })
+    }
+
+    // Verificar si el token expiró
+    if (new Date() > new Date(usuario.token_expiry)) {
+      return res.status(400).json({
+        success: false,
+        message: "El token de verificación ha expirado. Por favor solicita uno nuevo.",
+      })
+    }
+
+    // Verificar el usuario
+    await usuario.update({
+      is_verified: true,
+      verification_token: null,
+      token_expiry: null,
+    })
+
+    console.log('[Auth] Email verified for user:', usuario.email)
+
+    res.json({
+      success: true,
+      message: "¡Correo verificado exitosamente! Ya puedes acceder a todas las funciones.",
+      data: {
+        user: {
+          id: usuario.id_usuarios,
+          email: usuario.email,
+          nombre: usuario.nombre,
+          is_verified: true,
+        }
+      }
+    })
+  } catch (error) {
+    console.error('[Auth] Error verifying email:', error)
+    res.status(500).json({
+      success: false,
+      message: "Error interno del servidor",
+    })
+  }
+}
+
 // TODO: agregar endpoint para cambiar password
 // TODO: agregar endpoint para actualizar perfil
 // TODO: implementar refresh tokens
+// TODO: agregar endpoint para reenviar email de verificación

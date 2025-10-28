@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   Box,
   Paper,
@@ -36,10 +36,34 @@ export const CatalogFilters = ({ onFilterChange, onClear }) => {
     precio_max: 500000,
   })
 
-  const handleChange = (field, value) => {
+  // Refs para debouncing
+  const debounceTimer = useRef(null)
+
+  // Cleanup del timer al desmontar
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current)
+      }
+    }
+  }, [])
+
+  const handleChange = (field, value, immediate = true) => {
     const newFilters = { ...filters, [field]: value }
     setFilters(newFilters)
-    onFilterChange?.(newFilters)
+
+    if (immediate) {
+      // Para dropdowns y text inputs: aplicar inmediatamente
+      onFilterChange?.(newFilters)
+    } else {
+      // Para sliders: aplicar con debounce
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current)
+      }
+      debounceTimer.current = setTimeout(() => {
+        onFilterChange?.(newFilters)
+      }, 500) // 500ms de delay
+    }
   }
 
   const handleClear = () => {
@@ -164,14 +188,17 @@ export const CatalogFilters = ({ onFilterChange, onClear }) => {
           {/* Duración */}
           <Box>
             <Typography variant="body2" gutterBottom sx={{ fontWeight: 500 }}>
-              Duración (días)
+              Duración (días): {filters.duracion_min} - {filters.duracion_max}
             </Typography>
             <Box sx={{ px: 2 }}>
               <Slider
                 value={[filters.duracion_min, filters.duracion_max]}
                 onChange={(e, newValue) => {
-                  handleChange("duracion_min", newValue[0])
-                  handleChange("duracion_max", newValue[1])
+                  setFilters({ ...filters, duracion_min: newValue[0], duracion_max: newValue[1] })
+                }}
+                onChangeCommitted={(e, newValue) => {
+                  handleChange("duracion_min", newValue[0], false)
+                  handleChange("duracion_max", newValue[1], false)
                 }}
                 valueLabelDisplay="auto"
                 min={1}
@@ -188,14 +215,17 @@ export const CatalogFilters = ({ onFilterChange, onClear }) => {
           {/* Precio */}
           <Box>
             <Typography variant="body2" gutterBottom sx={{ fontWeight: 500 }}>
-              Rango de precio
+              Rango de precio: ${filters.precio_min.toLocaleString()} - ${filters.precio_max.toLocaleString()}
             </Typography>
             <Box sx={{ px: 2 }}>
               <Slider
                 value={[filters.precio_min, filters.precio_max]}
                 onChange={(e, newValue) => {
-                  handleChange("precio_min", newValue[0])
-                  handleChange("precio_max", newValue[1])
+                  setFilters({ ...filters, precio_min: newValue[0], precio_max: newValue[1] })
+                }}
+                onChangeCommitted={(e, newValue) => {
+                  handleChange("precio_min", newValue[0], false)
+                  handleChange("precio_max", newValue[1], false)
                 }}
                 valueLabelDisplay="auto"
                 valueLabelFormat={(value) => `$${value.toLocaleString()}`}

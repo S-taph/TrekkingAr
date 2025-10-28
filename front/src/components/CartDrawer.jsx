@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   Drawer,
   Box,
@@ -23,8 +24,11 @@ import {
   ShoppingCart as CartIcon,
 } from "@mui/icons-material"
 import { useCart } from "../context/CartContext"
+import { useAuth } from "../context/AuthContext"
 
 export const CartDrawer = ({ open, onClose }) => {
+  const navigate = useNavigate()
+  const { user } = useAuth()
   const {
     items,
     loading,
@@ -216,8 +220,16 @@ export const CartDrawer = ({ open, onClose }) => {
                 size="large"
                 fullWidth
                 onClick={() => {
-                  // TODO: Navegar a checkout
-                  console.log("Ir a checkout")
+                  if (user) {
+                    // Usuario autenticado - ir directo a checkout
+                    onClose()
+                    navigate("/checkout")
+                  } else {
+                    // Usuario no autenticado - guardar URL de retorno y redirigir a login
+                    localStorage.setItem("redirectAfterLogin", "/checkout")
+                    onClose()
+                    navigate("/login")
+                  }
                 }}
               >
                 Finalizar Compra

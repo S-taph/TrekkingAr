@@ -22,9 +22,13 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.getProfile()
       if (response.success) {
         setUser(response.data.user)
+      } else {
+        // Si la respuesta no es exitosa, limpiar usuario
+        setUser(null)
       }
-    } catch {
-      console.log("[v0] No hay sesión activa")
+    } catch (error) {
+      // Si hay error de autenticación, el token ya fue limpiado en api.js
+      console.log("[AuthContext] No hay sesión activa o token inválido:", error.message)
       setUser(null)
     } finally {
       setLoading(false)

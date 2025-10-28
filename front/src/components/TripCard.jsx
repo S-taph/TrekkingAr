@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import {
   Card,
   CardMedia,
@@ -12,6 +12,8 @@ import {
   Stack,
   IconButton,
   Skeleton,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import {
   AccessTime as DurationIcon,
@@ -23,6 +25,7 @@ import {
   FavoriteBorder as FavoriteBorderIcon,
 } from "@mui/icons-material"
 import { useCart } from "../context/CartContext"
+import { useAuth } from "../context/AuthContext"
 import { getViajeMainImage, handleImageError } from "../utils/imageUrl"
 
 /**
@@ -32,9 +35,13 @@ import { getViajeMainImage, handleImageError } from "../utils/imageUrl"
  */
 export const TripCard = ({ trip, loading = false }) => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { addItem } = useCart()
+  const { user } = useAuth()
   const [isFavorite, setIsFavorite] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [showLoginRequired, setShowLoginRequired] = useState(false)
 
   if (loading) {
     return (
@@ -63,7 +70,7 @@ export const TripCard = ({ trip, loading = false }) => {
 
   // Obtener próxima fecha disponible
   const proximaFecha = fechas_disponibles[0]
-  const precioFinal = proximaFecha?.precio || precio_base
+  const precioFinal = proximaFecha?.precio_fecha || precio_base
 
   // Mapa de colores para dificultad
   const dificultadColors = {
@@ -77,13 +84,27 @@ export const TripCard = ({ trip, loading = false }) => {
     e.stopPropagation()
     if (!proximaFecha) return
 
+    // Verificar si el usuario está autenticado
+    if (!user) {
+      setShowLoginRequired(true)
+      // Redirigir a login después de 2 segundos
+      setTimeout(() => {
+        navigate("/login", { state: { from: location.pathname } })
+      }, 2000)
+      return
+    }
+
     setAdding(true)
     try {
-      await addItem({
+      const result = await addItem({
         id_viaje,
-        id_fecha_viaje: proximaFecha.id,
+        id_fecha_viaje: proximaFecha.id_fechas_viaje,
         cantidad: 1,
       })
+
+      if (result.success) {
+        setShowSuccess(true) // Mostrar notificación de éxito
+      }
     } catch (error) {
       console.error("Error agregando al carrito:", error)
     } finally {
@@ -104,27 +125,31 @@ export const TripCard = ({ trip, loading = false }) => {
   return (
     <Card
       sx={{
-        height: "550px", // Altura aumentada para evitar cortes
+        height: "580px", // Altura aumentada para evitar cortes
         display: "flex",
         flexDirection: "column",
-        cursor: "pointer",
         transition: "all 0.3s ease",
         "&:hover": {
           transform: "translateY(-8px)",
           boxShadow: 8,
         },
       }}
-      onClick={handleCardClick}
     >
       {/* Imagen principal */}
-      <Box sx={{ position: "relative" }}>
+      <Box
+        sx={{ position: "relative", cursor: "pointer" }}
+        onClick={handleCardClick}
+      >
         <CardMedia
           component="img"
           height="200"
           image={getViajeMainImage(trip)}
           alt={titulo}
           sx={{ objectFit: "cover" }}
-          onError={handleImageError}
+          onError={(e) => {
+            handleImageError(e)
+            e.stopPropagation() // Prevenir propagación del evento
+          }}
         />
         {/* Botón favorito */}
         <IconButton
@@ -178,7 +203,9 @@ export const TripCard = ({ trip, loading = false }) => {
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
+          cursor: "pointer",
         }}
+        onClick={handleCardClick}
       >
         <Typography
           variant="h6"
@@ -247,15 +274,15 @@ export const TripCard = ({ trip, loading = false }) => {
       </CardContent>
 
       {/* Precio y acciones */}
-      <CardActions
+      <Box
         sx={{
-          justifyContent: "space-between",
           px: 2,
           pb: 2,
           mt: "auto", // Empuja las acciones al fondo
         }}
       >
-        <Box>
+        {/* Precio arriba */}
+        <Box sx={{ mb: 2 }}>
           <Typography variant="caption" color="text.secondary">
             Desde
           </Typography>
@@ -264,12 +291,16 @@ export const TripCard = ({ trip, loading = false }) => {
           </Typography>
         </Box>
 
-        <Stack direction="row" spacing={1}>
+        {/* Botones abajo con flexbox */}
+        <Stack direction="row" spacing={1} sx={{ width: "100%" }}>
           <Button
             variant="outlined"
             size="small"
-            onClick={handleCardClick}
-            sx={{ minWidth: "auto" }}
+            onClick={(e) => {
+              e.stopPropagation()
+              handleCardClick()
+            }}
+            sx={{ flex: 1 }}
           >
             Ver más
           </Button>
@@ -279,11 +310,46 @@ export const TripCard = ({ trip, loading = false }) => {
             onClick={handleAddToCart}
             disabled={!proximaFecha || adding}
             startIcon={<CartIcon />}
+            sx={{
+              flex: 1,
+              bgcolor: "success.main",
+              "&:hover": {
+                bgcolor: "success.dark",
+              },
+              "&.Mui-disabled": {
+                bgcolor: "grey.400",
+                color: "white",
+              }
+            }}
           >
             {adding ? "..." : "Reservar"}
           </Button>
         </Stack>
-      </CardActions>
+      </Box>
+
+      {/* Snackbar de confirmación */}
+      <Snackbar
+        open={showSuccess}
+        autoHideDuration={3000}
+        onClose={() => setShowSuccess(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={() => setShowSuccess(false)} severity="success" sx={{ width: "100%" }}>
+          Viaje agregado al carrito
+        </Alert>
+      </Snackbar>
+
+      {/* Snackbar de login requerido */}
+      <Snackbar
+        open={showLoginRequired}
+        autoHideDuration={2000}
+        onClose={() => setShowLoginRequired(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={() => setShowLoginRequired(false)} severity="info" sx={{ width: "100%" }}>
+          Debes iniciar sesión para reservar. Redirigiendo...
+        </Alert>
+      </Snackbar>
     </Card>
   )
 }

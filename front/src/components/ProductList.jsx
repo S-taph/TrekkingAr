@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { Box, Typography, CircularProgress, Alert } from "@mui/material"
 import { TripCard } from "./TripCard"
 import { useViajes } from "../hooks/useViajes"
@@ -8,6 +8,8 @@ import { useViajes } from "../hooks/useViajes"
 const ProductList = ({ searchFilters = {}, sidebarFilters = {} }) => {
   console.log("[ProductList] searchFilters:", searchFilters)
   console.log("[ProductList] sidebarFilters:", sidebarFilters)
+
+  const isFirstRender = useRef(true)
 
   // Combinar todos los filtros para la API
   const apiFilters = useMemo(() => {
@@ -42,10 +44,15 @@ const ProductList = ({ searchFilters = {}, sidebarFilters = {} }) => {
 
   const { viajes, loading, error, refetch } = useViajes(apiFilters)
 
-  // Refetch cuando cambien los filtros
+  // Refetch cuando cambien los filtros (pero NO en el primer render)
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return // Skip first render - useViajes ya hace el fetch inicial
+    }
+
     refetch(apiFilters)
-  }, [apiFilters, refetch])
+  }, [apiFilters]) // apiFilters es estable gracias a useMemo
 
   if (loading) {
     return (

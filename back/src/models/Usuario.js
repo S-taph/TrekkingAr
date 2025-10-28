@@ -83,6 +83,21 @@ const Usuario = sequelize.define(
       type: DataTypes.STRING(500),
       allowNull: true,
     },
+    is_verified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      field: "is_verified",
+    },
+    verification_token: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: "verification_token",
+    },
+    token_expiry: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "token_expiry",
+    },
   },
   {
     timestamps: true,

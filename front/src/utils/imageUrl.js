@@ -61,13 +61,16 @@ export const buildImageUrls = (imagenes, viajeId = null) => {
     .filter(Boolean); // Remover nulls
 };
 
+// Placeholder usando data URI (imagen SVG inline)
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Crect fill="%23f0f0f0" width="400" height="300"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="24" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
+
 /**
  * Obtiene la imagen principal de un viaje
  * @param {Object} viaje - Objeto del viaje
- * @returns {string|null} URL de la imagen principal
+ * @returns {string} URL de la imagen principal o placeholder
  */
 export const getViajeMainImage = (viaje) => {
-  if (!viaje) return null;
+  if (!viaje) return PLACEHOLDER_IMAGE;
 
   // Prioridad 1: imagen_principal_url
   if (viaje.imagen_principal_url) {
@@ -85,8 +88,8 @@ export const getViajeMainImage = (viaje) => {
     }
   }
 
-  // Fallback: imagen placeholder
-  return '/placeholder-trip.jpg';
+  // Fallback: imagen placeholder inline (data URI)
+  return PLACEHOLDER_IMAGE;
 };
 
 /**
@@ -94,6 +97,7 @@ export const getViajeMainImage = (viaje) => {
  * @param {Event} e - Evento de error
  */
 export const handleImageError = (e) => {
-  e.target.src = '/placeholder-trip.jpg';
+  // Usar data URI inline para evitar loop infinito
+  e.target.src = PLACEHOLDER_IMAGE;
   e.target.onerror = null; // Prevenir loop infinito
 };

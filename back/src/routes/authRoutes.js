@@ -1,6 +1,6 @@
 import express from "express"
 import { body } from "express-validator"
-import { register, login, getProfile, logout, googleAuth, googleCallback, getMe } from "../controllers/authController.js"
+import { register, login, getProfile, logout, googleAuth, googleCallback, getMe, verifyEmail } from "../controllers/authController.js"
 import passport from "passport"
 import jwt from "jsonwebtoken"
 import { authenticateToken } from "../middleware/auth.js"
@@ -26,6 +26,9 @@ router.post("/login", loginValidation, login)
 router.get("/profile", authenticateToken, getProfile)
 router.get("/me", authenticateToken, getMe) // Alias para /profile
 router.post("/logout", logout)
+
+// Verificación de email
+router.get("/verify-email", verifyEmail)
 
 // Google OAuth2
 router.get('/google', googleAuth)

@@ -30,7 +30,7 @@ export const CartProvider = ({ children }) => {
       setError(null)
       const response = await carritoAPI.getCarrito()
       if (response.success) {
-        setItems(response.data.items || [])
+        setItems(response.data.carrito?.items || [])
       }
     } catch (err) {
       console.error("[CartContext] Error cargando carrito:", err)

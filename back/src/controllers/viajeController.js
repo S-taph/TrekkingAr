@@ -237,6 +237,8 @@ export const deleteImagen = async (req, res) => {
   try {
     const { id, imagenId } = req.params;
 
+    console.log(`[deleteImagen] Intentando borrar imagen ${imagenId} del viaje ${id}`);
+
     // Verificar que el viaje existe
     const viaje = await Viaje.findByPk(id);
     if (!viaje) {
@@ -246,32 +248,58 @@ export const deleteImagen = async (req, res) => {
       });
     }
 
-    // Buscar la imagen
+    // Buscar la imagen - FIX: usar id_imagen_viaje en lugar de id
     const imagen = await ImagenViaje.findOne({
       where: {
-        id: imagenId,
+        id_imagen_viaje: imagenId,
         id_viaje: id
       }
     });
 
     if (!imagen) {
+      console.error(`[deleteImagen] Imagen ${imagenId} no encontrada para viaje ${id}`);
       return res.status(404).json({
         success: false,
         message: 'Imagen no encontrada'
       });
     }
 
+    // Si esta imagen es la principal del viaje, limpiar referencia
+    if (viaje.imagen_principal_url === imagen.url) {
+      console.log(`[deleteImagen] Limpiando imagen_principal_url del viaje ${id}`);
+      await viaje.update({ imagen_principal_url: null });
+    }
+
     // Eliminar archivo físico
-    const fs = await import('fs');
-    const path = await import('path');
-    const filePath = path.join(process.cwd(), 'uploads', 'viajes', id, imagen.url_local);
-    
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+
+      // Extraer el nombre del archivo de la URL
+      // Si es URL completa: http://localhost:3003/uploads/viajes/file.jpg
+      // Si es path relativo: /uploads/viajes/file.jpg
+      let fileName = imagen.url;
+      if (fileName.includes('/uploads/')) {
+        fileName = fileName.split('/uploads/')[1];
+      }
+
+      const filePath = path.join(process.cwd(), 'uploads', fileName);
+      console.log(`[deleteImagen] Intentando borrar archivo: ${filePath}`);
+
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log(`[deleteImagen] Archivo físico eliminado: ${filePath}`);
+      } else {
+        console.warn(`[deleteImagen] Archivo no encontrado en disco: ${filePath}`);
+      }
+    } catch (fsError) {
+      console.error('[deleteImagen] Error al eliminar archivo físico:', fsError);
+      // Continuar aunque falle la eliminación del archivo físico
     }
 
     // Eliminar registro de la base de datos
     await imagen.destroy();
+    console.log(`[deleteImagen] Registro de imagen ${imagenId} eliminado de la BD`);
 
     res.json({
       success: true,
@@ -279,10 +307,11 @@ export const deleteImagen = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error eliminando imagen:', error);
+    console.error('[deleteImagen] Error eliminando imagen:', error);
     res.status(500).json({
       success: false,
-      message: 'Error interno del servidor'
+      message: 'Error interno del servidor',
+      error: error.message
     });
   }
 };

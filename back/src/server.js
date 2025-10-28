@@ -19,6 +19,7 @@ import usuarioRoutes from "./routes/usuarioRoutes.js"
 import carritoRoutes from "./routes/carritoRoutes.js"
 import contactRoutes from "./routes/contactRoutes.js"
 import reviewRoutes from "./routes/reviewRoutes.js"
+import chatbotRoutes from "./routes/chatbotRoutes.js"
 
 // Importar configuración de BD y modelos
 import sequelize from "./config/database.js"
@@ -191,6 +192,7 @@ app.use("/api/guias", guiaRoutes)
 app.use("/api/usuarios", usuarioRoutes)
 app.use("/api/carrito", carritoRoutes)
 app.use("/api/reviews", reviewRoutes) // IMPORTANTE: Debe ir ANTES de contactRoutes
+app.use("/api/chatbot", chatbotRoutes) // Ruta del chatbot
 app.use("/api", contactRoutes) // Este aplica middleware global, debe ir al final
 
 // Configure Passport Google (después de las rutas para evitar conflictos)
@@ -215,8 +217,8 @@ app.get("/", (req, res) => {
   })
 })
 
-// Middleware para rutas no encontradas
-app.use("*", (req, res) => {
+// Middleware para rutas no encontradas (solo para rutas API)
+app.use("/api/*", (req, res) => {
   res.status(404).json({
     success: false,
     message: "Ruta no encontrada",

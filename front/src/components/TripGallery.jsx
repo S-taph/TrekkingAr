@@ -2,6 +2,9 @@ import { useState } from "react"
 import { Box, ImageList, ImageListItem, Modal, IconButton } from "@mui/material"
 import { Close as CloseIcon, NavigateBefore, NavigateNext } from "@mui/icons-material"
 
+// Placeholder inline (data URI SVG) para evitar requests HTTP
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Crect fill="%23f0f0f0" width="400" height="300"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="24" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
+
 /**
  * TripGallery - Galería de imágenes del viaje
  * @param {Array} images - Array de URLs de imágenes
@@ -23,7 +26,7 @@ export const TripGallery = ({ images = [] }) => {
           borderRadius: 2,
         }}
       >
-        <img src="/placeholder-trip.jpg" alt="No disponible" style={{ maxHeight: "100%" }} />
+        <img src={PLACEHOLDER_IMAGE} alt="No disponible" style={{ maxHeight: "100%" }} />
       </Box>
     )
   }
@@ -84,7 +87,8 @@ export const TripGallery = ({ images = [] }) => {
                 height: "100%",
               }}
               onError={(e) => {
-                e.target.src = "/placeholder-trip.jpg"
+                e.target.src = PLACEHOLDER_IMAGE
+                e.target.onerror = null // Prevenir loop infinito
               }}
             />
           </ImageListItem>

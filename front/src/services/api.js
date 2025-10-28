@@ -12,19 +12,31 @@ const apiRequest = async (endpoint, options = {}) => {
   }
 
   try {
-    console.log("[v0] API Request:", `${API_BASE_URL}${endpoint}`, config)
+    console.log("[API] Request:", `${API_BASE_URL}${endpoint}`, config.method || 'GET')
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
     const data = await response.json()
 
-    console.log("[v0] API Response:", response.status, data)
+    console.log("[API] Response:", response.status, data)
 
     if (!response.ok) {
+      // Si es un error de autenticación (401/403), limpiar cookies inválidas
+      if (response.status === 401 || response.status === 403) {
+        // Limpiar cookie inválida
+        if (endpoint !== "/auth/logout" && endpoint !== "/auth/login") {
+          console.log("[API] Token inválido detectado, limpiando cookies...")
+          document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+          document.cookie = "token=; path=/; domain=localhost; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+        }
+      }
       throw new Error(data.message || `Error ${response.status}: ${response.statusText}`)
     }
 
     return data
   } catch (error) {
-    console.error("[v0] API Error:", error)
+    // Solo loguear errores que no sean de autenticación esperados
+    if (!error.message?.includes("Token inválido") && !error.message?.includes("Token de acceso requerido")) {
+      console.error("[API] Error:", error)
+    }
     throw error
   }
 }
