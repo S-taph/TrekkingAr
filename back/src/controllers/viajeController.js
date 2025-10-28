@@ -57,7 +57,10 @@ export const getViajes = async (req, res) => {
       activo = true,
       destacado,
       precio_min,
-      precio_max
+      precio_max,
+      duracion_min,
+      duracion_max,
+      sortBy = 'fecha_creacion'
     } = req.query;
 
     const offset = (page - 1) * limit;
@@ -94,11 +97,23 @@ export const getViajes = async (req, res) => {
       }
     }
 
+    // Filtro de duración
+    if (duracion_min !== undefined || duracion_max !== undefined) {
+      where.duracion_dias = {};
+      if (duracion_min !== undefined) {
+        where.duracion_dias[Op.gte] = parseInt(duracion_min);
+      }
+      if (duracion_max !== undefined) {
+        where.duracion_dias[Op.lte] = parseInt(duracion_max);
+      }
+    }
+
     // Construir include para categoría
     const include = [
       {
         model: Categoria,
-        as: 'categoria'
+        as: 'categoria',
+        required: false
       },
       {
         model: FechaViaje,
@@ -118,14 +133,39 @@ export const getViajes = async (req, res) => {
       include[0].where = { id_categoria: categoria };
     }
 
+    // Determinar orden de resultados
+    let orderClause;
+    switch (sortBy) {
+      case 'precio_asc':
+        orderClause = [['precio_base', 'ASC'], [{ model: FechaViaje, as: 'fechas' }, 'fecha_inicio', 'ASC']];
+        break;
+      case 'precio_desc':
+        orderClause = [['precio_base', 'DESC'], [{ model: FechaViaje, as: 'fechas' }, 'fecha_inicio', 'ASC']];
+        break;
+      case 'duracion_asc':
+        orderClause = [['duracion_dias', 'ASC'], [{ model: FechaViaje, as: 'fechas' }, 'fecha_inicio', 'ASC']];
+        break;
+      case 'duracion_desc':
+        orderClause = [['duracion_dias', 'DESC'], [{ model: FechaViaje, as: 'fechas' }, 'fecha_inicio', 'ASC']];
+        break;
+      case 'popularidad':
+        orderClause = [['destacado', 'DESC'], ['fecha_creacion', 'DESC'], [{ model: FechaViaje, as: 'fechas' }, 'fecha_inicio', 'ASC']];
+        break;
+      case 'fecha_creacion':
+      default:
+        orderClause = [['fecha_creacion', 'DESC'], [{ model: FechaViaje, as: 'fechas' }, 'fecha_inicio', 'ASC']];
+        break;
+    }
+
     // Obtener viajes con paginación
     const { count, rows: viajes } = await Viaje.findAndCountAll({
       where,
       include,
-      order: [['fecha_creacion', 'DESC']],
+      order: orderClause,
       limit: parseInt(limit),
       offset: parseInt(offset),
-      distinct: true
+      distinct: true,
+      subQuery: false
     });
 
     // Procesar URLs de imágenes, calcular precio más bajo y cupos disponibles
