@@ -42,10 +42,35 @@ export const TripCard = ({ trip, loading = false }) => {
   const location = useLocation()
   const { addItem } = useCart()
   const { user } = useAuth()
+
+  // All useState hooks must be at the top, before any conditional returns
   const [isFavorite, setIsFavorite] = useState(false)
   const [adding, setAdding] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [showLoginRequired, setShowLoginRequired] = useState(false)
+
+  // Extract trip data before using in useState
+  const {
+    id_viaje,
+    titulo,
+    descripcion_corta,
+    imagen_principal,
+    destino,
+    duracion_dias,
+    dificultad,
+    precio_base,
+    precio_mas_bajo,
+    fechas_disponibles = [],
+    fechas = [],
+  } = trip || {}
+
+  // Normalizar fechas: usar fechas_disponibles si existe, sino fechas
+  const fechasDisponibles = fechas_disponibles.length > 0 ? fechas_disponibles : fechas
+
+  // Estado para la fecha seleccionada en el dropdown (must be before any returns)
+  const [selectedFechaId, setSelectedFechaId] = useState(
+    fechasDisponibles[0]?.id_fechas_viaje || fechasDisponibles[0]?.id || null
+  )
 
   if (loading) {
     return (
@@ -59,28 +84,6 @@ export const TripCard = ({ trip, loading = false }) => {
       </Card>
     )
   }
-
-  const {
-    id_viaje,
-    titulo,
-    descripcion_corta,
-    imagen_principal,
-    destino,
-    duracion_dias,
-    dificultad,
-    precio_base,
-    precio_mas_bajo, // Calculado por el backend
-    fechas_disponibles = [],
-    fechas = [], // Backend puede devolver "fechas" en lugar de "fechas_disponibles"
-  } = trip
-
-  // Normalizar fechas: usar fechas_disponibles si existe, sino fechas
-  const fechasDisponibles = fechas_disponibles.length > 0 ? fechas_disponibles : fechas
-
-  // Estado para la fecha seleccionada en el dropdown
-  const [selectedFechaId, setSelectedFechaId] = useState(
-    fechasDisponibles[0]?.id_fechas_viaje || fechasDisponibles[0]?.id || null
-  )
 
   // Obtener la fecha seleccionada
   const fechaSeleccionada = fechasDisponibles.find(
