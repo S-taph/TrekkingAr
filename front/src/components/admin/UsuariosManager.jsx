@@ -25,14 +25,16 @@ import {
   InputAdornment,
 } from "@mui/material"
 import { DataGrid } from "@mui/x-data-grid"
-import { Edit, Search } from "@mui/icons-material"
+import { Edit, Search, ManageAccounts } from "@mui/icons-material"
 import { usuariosAPI } from "../../services/api.js"
+import RoleManager from "./RoleManager"
 
 export default function UsuariosManager() {
   const [usuarios, setUsuarios] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [editDialog, setEditDialog] = useState({ open: false, usuario: null })
+  const [roleDialog, setRoleDialog] = useState({ open: false, usuario: null })
   const [newRol, setNewRol] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
 
@@ -142,6 +144,19 @@ export default function UsuariosManager() {
     }
   }
 
+  const handleOpenRoleDialog = (usuario) => {
+    setRoleDialog({ open: true, usuario })
+  }
+
+  const handleCloseRoleDialog = () => {
+    setRoleDialog({ open: false, usuario: null })
+  }
+
+  const handleRoleSuccess = (message) => {
+    setSuccessMessage(message)
+    loadUsuarios() // Recargar usuarios para actualizar roles
+  }
+
   const columns = [
     { field: "id_usuarios", headerName: "ID", width: 90 },
     { field: "nombre", headerName: "Nombre", width: 150 },
@@ -175,15 +190,26 @@ export default function UsuariosManager() {
     {
       field: "acciones",
       headerName: "Acciones",
-      width: 100,
+      width: 150,
       renderCell: (params) => (
-        <IconButton
-          size="small"
-          onClick={() => handleOpenEditDialog(params.row)}
-          sx={{ color: "#64b5f6" }}
-        >
-          <Edit />
-        </IconButton>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <IconButton
+            size="small"
+            onClick={() => handleOpenEditDialog(params.row)}
+            sx={{ color: "#64b5f6" }}
+            title="Editar rol principal"
+          >
+            <Edit />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={() => handleOpenRoleDialog(params.row)}
+            sx={{ color: "#9c27b0" }}
+            title="Gestionar múltiples roles"
+          >
+            <ManageAccounts />
+          </IconButton>
+        </Box>
       ),
     },
   ]
@@ -361,6 +387,14 @@ export default function UsuariosManager() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Dialog de gestión de roles múltiples */}
+      <RoleManager
+        usuario={roleDialog.usuario}
+        open={roleDialog.open}
+        onClose={handleCloseRoleDialog}
+        onSuccess={handleRoleSuccess}
+      />
 
       {/* Snackbar de éxito */}
       <Snackbar

@@ -373,3 +373,37 @@ export const pagosAPI = {
     return apiRequest(`/pagos/mis-pagos?${queryString}`)
   },
 }
+
+// Roles API - Gestión de múltiples roles por usuario
+export const rolesAPI = {
+  // Obtener roles de un usuario
+  getUserRoles: (id_usuario) => apiRequest(`/roles/user/${id_usuario}`),
+
+  // Asignar un rol a un usuario
+  assignRole: (id_usuario, rolData) =>
+    apiRequest(`/roles/user/${id_usuario}/assign`, {
+      method: "POST",
+      body: JSON.stringify(rolData),
+    }),
+
+  // Remover un rol de un usuario
+  removeRole: (id_usuario, rolData) =>
+    apiRequest(`/roles/user/${id_usuario}/remove`, {
+      method: "POST",
+      body: JSON.stringify(rolData),
+    }),
+
+  // Promover usuario a guía
+  promoteToGuia: (id_usuario, guiaData) =>
+    apiRequest(`/roles/user/${id_usuario}/promote-guia`, {
+      method: "POST",
+      body: JSON.stringify(guiaData),
+    }),
+
+  // Promover usuario a administrador
+  promoteToAdmin: (id_usuario, adminData = {}) =>
+    apiRequest(`/roles/user/${id_usuario}/promote-admin`, {
+      method: "POST",
+      body: JSON.stringify(adminData),
+    }),
+}
