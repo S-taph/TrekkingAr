@@ -42,6 +42,8 @@ import {
   FilterList as FilterIcon,
   Info as InfoIcon,
   Image as ImageIcon,
+  Star,
+  StarBorder,
 } from "@mui/icons-material"
 import { viajesAPI } from "../../services/api"
 import ViajeForm from "./ViajeForm"
@@ -240,6 +242,32 @@ export default function ViajesManager() {
     setImagePreviewDialog(true)
   }
 
+  const handleToggleDestacado = async (viaje) => {
+    if (viaje.isExample) {
+      setError("No puedes modificar viajes de ejemplo.")
+      return
+    }
+
+    try {
+      const nuevoEstadoDestacado = !viaje.destacado
+      await viajesAPI.updateViaje(viaje.id_viaje, {
+        destacado: nuevoEstadoDestacado
+      })
+
+      // Actualizar el estado local para reflejar el cambio inmediatamente
+      setViajes(viajes.map(v =>
+        v.id_viaje === viaje.id_viaje
+          ? { ...v, destacado: nuevoEstadoDestacado }
+          : v
+      ))
+    } catch (error) {
+      console.error("Error actualizando estado destacado:", error)
+      setError("Error al actualizar el estado destacado")
+      // Recargar viajes si hay error
+      loadViajes()
+    }
+  }
+
   if (loading && viajes.length === 0) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -382,6 +410,7 @@ export default function ViajesManager() {
                   <TableCell>Duración</TableCell>
                   <TableCell>Precio</TableCell>
                   <TableCell>Estado</TableCell>
+                  <TableCell align="center">Destacado</TableCell>
                   <TableCell align="center">Acciones</TableCell>
                 </TableRow>
               </TableHead>
@@ -455,6 +484,26 @@ export default function ViajesManager() {
                         color={viaje.activo ? "success" : "default"}
                         size="small"
                       />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title={viaje.isExample ? "No se puede modificar datos de ejemplo" : (viaje.destacado ? "Quitar de destacados" : "Marcar como destacado")}>
+                        <span>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleToggleDestacado(viaje)}
+                            color={viaje.destacado ? "warning" : "default"}
+                            disabled={viaje.isExample}
+                            sx={{
+                              transition: "all 0.2s",
+                              "&:hover:not(:disabled)": {
+                                transform: "scale(1.2)",
+                              }
+                            }}
+                          >
+                            {viaje.destacado ? <Star /> : <StarBorder />}
+                          </IconButton>
+                        </span>
+                      </Tooltip>
                     </TableCell>
                     <TableCell align="center">
                       <Box display="flex" gap={1} justifyContent="center">

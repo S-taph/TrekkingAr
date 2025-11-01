@@ -1,6 +1,7 @@
 import Usuario from "./Usuario.js"
 import Viaje from "./Viaje.js"
 import Categoria from "./Categoria.js"
+import Destino from "./Destino.js"
 import Reserva from "./Reserva.js"
 import Compra from "./Compra.js"
 import FechaViaje from "./FechaViaje.js"
@@ -26,6 +27,8 @@ import ImagenViaje from "./ImagenViaje.js"
 import Administrador from "./Administrador.js"
 import Configuracion from "./Configuracion.js"
 import Review from "./Review.js"
+import AuditLog from "./AuditLog.js"
+import UsuarioRol from "./UsuarioRol.js"
 
 // ===== RELACIONES USUARIO =====
 Usuario.hasMany(Reserva, { foreignKey: "id_usuario", as: "reservas" })
@@ -34,11 +37,20 @@ Usuario.hasMany(Sugerencia, { foreignKey: "id_usuario", as: "sugerencias" })
 // Usuario.hasMany(Notificacion, { foreignKey: "id_usuario", as: "notificaciones" }) // TODO: Implementar Notificacion
 Usuario.hasOne(Guia, { foreignKey: "id_usuario", as: "perfilGuia" })
 
+// ===== RELACIONES USUARIO-ROL (MÚLTIPLES ROLES) =====
+Usuario.hasMany(UsuarioRol, { foreignKey: "id_usuario", as: "roles" })
+UsuarioRol.belongsTo(Usuario, { foreignKey: "id_usuario", as: "usuario" })
+UsuarioRol.belongsTo(Usuario, { foreignKey: "asignado_por", as: "asignadoPor" })
+
 // ===== RELACIONES CATEGORÍA =====
 Categoria.hasMany(Viaje, { foreignKey: "id_categoria", as: "viajes" })
 
+// ===== RELACIONES DESTINO =====
+Destino.hasMany(Viaje, { foreignKey: "id_destino", as: "viajes" })
+
 // ===== RELACIONES VIAJE =====
 Viaje.belongsTo(Categoria, { foreignKey: "id_categoria", as: "categoria" })
+Viaje.belongsTo(Destino, { foreignKey: "id_destino", as: "destino" })
 Viaje.hasMany(FechaViaje, { foreignKey: "id_viaje", as: "fechas" })
 Viaje.hasMany(Contenido, { foreignKey: "id_viaje", as: "contenidos" })
 
@@ -62,7 +74,7 @@ Compra.hasMany(Reserva, { foreignKey: "id_compra", as: "reservas" })
 // ===== RELACIONES RESERVA =====
 Reserva.belongsTo(Usuario, { foreignKey: "id_usuario", as: "usuario" })
 Reserva.belongsTo(Compra, { foreignKey: "id_compra", as: "compra" })
-Reserva.belongsTo(FechaViaje, { foreignKey: "id_fecha_viaje", as: "fechaViaje" })
+Reserva.belongsTo(FechaViaje, { foreignKey: "id_fecha_viaje", as: "fecha_viaje" })
 
 // ===== RELACIONES CONTENIDO =====
 Contenido.belongsTo(Viaje, { foreignKey: "id_viaje", as: "viaje" })
@@ -101,7 +113,7 @@ CampaniaSuscriptor.belongsTo(Suscriptor, { foreignKey: "id_suscriptor", as: "sus
 
 // ===== RELACIONES PAGO =====
 Pago.belongsTo(Compra, { foreignKey: "id_compra", as: "compra" })
-Pago.belongsTo(MetodoPago, { foreignKey: "id_metodo_pago", as: "metodoPago" })
+Pago.belongsTo(MetodoPago, { foreignKey: "id_metodo_pago", as: "metodo_pago" })
 
 Compra.hasMany(Pago, { foreignKey: "id_compra", as: "pagos" })
 MetodoPago.hasMany(Pago, { foreignKey: "id_metodo_pago", as: "pagos" })
@@ -172,10 +184,15 @@ Usuario.hasOne(Administrador, { foreignKey: "id_usuario", as: "perfilAdmin" })
 Review.belongsTo(Viaje, { foreignKey: "id_viaje", as: "viaje" })
 Viaje.hasMany(Review, { foreignKey: "id_viaje", as: "reviews" })
 
+// ===== RELACIONES AUDIT LOG =====
+AuditLog.belongsTo(Usuario, { foreignKey: "id_usuario", as: "usuario" })
+Usuario.hasMany(AuditLog, { foreignKey: "id_usuario", as: "auditLogs" })
+
 export {
   Usuario,
   Viaje,
   Categoria,
+  Destino,
   Reserva,
   Compra,
   FechaViaje,
@@ -201,4 +218,6 @@ export {
   Configuracion,
   AdminNotificacion,
   Review,
+  AuditLog,
+  UsuarioRol,
 }

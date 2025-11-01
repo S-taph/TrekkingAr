@@ -84,6 +84,8 @@ export const viajesAPI = {
 
   getPreciosStats: () => apiRequest("/viajes/stats/precios"),
 
+  getDestinos: () => apiRequest("/viajes/destinos"),
+
   getViajeById: (id) => apiRequest(`/viajes/${id}`),
 
   createViaje: (viajeData) =>
@@ -215,6 +217,13 @@ export const usuariosAPI = {
 
     return await response.json()
   },
+
+  // Cambiar contraseña
+  changePassword: (id, passwordData) =>
+    apiRequest(`/usuarios/${id}/change-password`, {
+      method: "PUT",
+      body: JSON.stringify(passwordData),
+    }),
 }
 
 // Auth API
@@ -344,4 +353,23 @@ export const notificacionesAPI = {
     apiRequest("/admin/notificaciones/read-all", {
       method: "PUT",
     }),
+}
+
+// Pagos API
+export const pagosAPI = {
+  // Obtener tarjetas de prueba
+  getTarjetasPrueba: () => apiRequest("/pagos/tarjetas-prueba"),
+
+  // Procesar pago
+  procesarPago: (pagoData) =>
+    apiRequest("/pagos/procesar", {
+      method: "POST",
+      body: JSON.stringify(pagoData),
+    }),
+
+  // Obtener mis pagos
+  getMisPagos: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString()
+    return apiRequest(`/pagos/mis-pagos?${queryString}`)
+  },
 }

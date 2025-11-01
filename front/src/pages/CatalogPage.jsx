@@ -32,16 +32,16 @@ export default function CatalogPage() {
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters)
-    refetch({ ...newFilters, sortBy }, 1)
+    refetch({ activo: true, ...newFilters, sortBy }, 1)
   }
 
   const handleClearFilters = () => {
     setFilters({})
-    refetch({ sortBy }, 1)
+    refetch({ activo: true, sortBy }, 1)
   }
 
   const handlePageChange = (event, page) => {
-    refetch({ ...filters, sortBy }, page)
+    refetch({ activo: true, ...filters, sortBy }, page)
     // Scroll to top
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
@@ -49,27 +49,80 @@ export default function CatalogPage() {
   const handleSortChange = (event) => {
     const newSortBy = event.target.value
     setSortBy(newSortBy)
-    refetch({ ...filters, sortBy: newSortBy }, pagination.page)
+    refetch({ activo: true, ...filters, sortBy: newSortBy }, pagination.page)
+  }
+
+  // Agrupar viajes por mes de salida - cada viaje puede aparecer en múltiples meses
+  const groupTripsByMonth = (trips) => {
+    const grouped = {}
+
+    trips.forEach(trip => {
+      // Obtener TODOS los meses donde el viaje tiene fechas disponibles
+      if (trip.fechas_disponibles && trip.fechas_disponibles.length > 0) {
+        const monthsSet = new Set()
+
+        trip.fechas_disponibles.forEach(fecha => {
+          const date = new Date(fecha.fecha_inicio)
+          const monthKey = `${date.getFullYear()}-${date.getMonth()}`
+
+          if (!monthsSet.has(monthKey)) {
+            monthsSet.add(monthKey)
+            const monthName = date.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })
+
+            if (!grouped[monthKey]) {
+              grouped[monthKey] = {
+                month: monthName,
+                trips: [],
+                sortOrder: date.getTime()
+              }
+            }
+            grouped[monthKey].trips.push(trip)
+          }
+        })
+      } else {
+        // Sin fechas disponibles
+        if (!grouped['sin-fecha']) {
+          grouped['sin-fecha'] = {
+            month: 'Sin fechas disponibles',
+            trips: [],
+            sortOrder: Infinity
+          }
+        }
+        grouped['sin-fecha'].trips.push(trip)
+      }
+    })
+
+    // Ordenar grupos por fecha
+    return Object.values(grouped).sort((a, b) => a.sortOrder - b.sortOrder)
   }
 
   return (
-    <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
+    <Box sx={{
+      bgcolor: "background.default",
+      minHeight: "100vh",
+      overflowX: "hidden", // Evitar scroll horizontal
+      overflowY: "auto", // Permitir scroll vertical normal
+    }}>
       <Header />
 
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        {/* Título y subtítulo */}
-        <Box sx={{ mb: 4 }}>
+      {/* Contenedor con padding-top para no solaparse con el header fijo */}
+      <Container maxWidth="xl" sx={{ pt: { xs: 10, md: 12 }, pb: 4 }}>
+        {/* Título principal "Salidas" */}
+        <Box sx={{ mb: 4, mt: 2, textAlign: 'center' }}>
           <Typography
             variant="h3"
             sx={{
               fontWeight: 700,
               mb: 1,
-              background: "linear-gradient(45deg, #3E6D4A 30%, #D9A86C 90%)",
+              background: (theme) =>
+                theme.palette.mode === 'dark'
+                  ? "linear-gradient(45deg, #ffffff 30%, #D9A86C 90%)"
+                  : "linear-gradient(45deg, #000000 30%, #D9A86C 90%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
             }}
           >
-            Explora Nuestros Viajes
+            Salidas
           </Typography>
           <Typography variant="body1" color="text.secondary">
             Descubre experiencias únicas de trekking y aventura en la Argentina
@@ -121,40 +174,85 @@ export default function CatalogPage() {
           </Alert>
         )}
 
-        {/* Grid de viajes */}
-        <Grid container spacing={3}>
-          {loading
-            ? // Skeletons durante carga
-              Array.from(new Array(12)).map((_, index) => (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
-                  <TripCard loading />
-                </Grid>
-              ))
-            : viajes.length === 0
-              ? // Sin resultados
-                <Grid item xs={12}>
-                  <Box
-                    sx={{
-                      textAlign: "center",
-                      py: 8,
-                      px: 2,
-                    }}
-                  >
-                    <Typography variant="h6" color="text.secondary" gutterBottom>
-                      No se encontraron viajes
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Intenta ajustar los filtros o buscar con otros términos
-                    </Typography>
+        {/* Grid de viajes agrupados por mes */}
+        {loading ? (
+          // Skeletons durante carga
+          <Grid container spacing={3}>
+            {Array.from(new Array(12)).map((_, index) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+                <TripCard loading />
+              </Grid>
+            ))}
+          </Grid>
+        ) : viajes.length === 0 ? (
+          // Sin resultados
+          <Box
+            sx={{
+              textAlign: "center",
+              py: 8,
+              px: 2,
+            }}
+          >
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              No se encontraron viajes
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Intenta ajustar los filtros o buscar con otros términos
+            </Typography>
+          </Box>
+        ) : (
+          // Viajes agrupados por mes
+          (() => {
+            const groups = groupTripsByMonth(viajes)
+            return (
+              <>
+                {groups.map((group, groupIndex) => (
+                  <Box key={group.month} sx={{ mb: 6 }}>
+                    {/* Título del mes */}
+                    <Box
+                      sx={{
+                        mb: 3,
+                        pb: 1,
+                        borderBottom: (theme) => `2px solid ${theme.palette.primary.main}`,
+                        textAlign: 'center',
+                      }}
+                    >
+                      <Typography
+                        variant="h5"
+                        sx={{
+                          fontWeight: 700,
+                          color: "primary.main",
+                          textTransform: "capitalize",
+                        }}
+                      >
+                        {group.month}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {group.trips.length} {group.trips.length === 1 ? 'salida disponible' : 'salidas disponibles'}
+                      </Typography>
+                    </Box>
+
+                    {/* Grid de viajes del mes */}
+                    <Grid container spacing={3} justifyContent="center">
+                      {group.trips.map((trip) => (
+                        <Grid item xs={12} sm={6} md={4} lg={3} key={trip.id_viaje}>
+                          <TripCard trip={trip} />
+                        </Grid>
+                      ))}
+                    </Grid>
+
+                    {/* Separador entre grupos (excepto el último) */}
+                    {groupIndex < groups.length - 1 && (
+                      <Box sx={{ mt: 5, mb: 2 }}>
+                        {/* Espacio visual entre grupos */}
+                      </Box>
+                    )}
                   </Box>
-                </Grid>
-              : // Viajes
-                viajes.map((trip) => (
-                  <Grid item xs={12} sm={6} md={4} lg={3} key={trip.id_viaje}>
-                    <TripCard trip={trip} />
-                  </Grid>
                 ))}
-        </Grid>
+              </>
+            )
+          })()
+        )}
 
         {/* Paginación */}
         {!loading && pagination.totalPages > 1 && (

@@ -122,26 +122,20 @@ export const CartDrawer = ({ open, onClose }) => {
                     }}
                   >
                     {/* Título del viaje */}
-                    <ListItemText
-                      primary={
-                        <Typography variant="subtitle1" fontWeight={600}>
-                          {item.viaje?.titulo || "Viaje"}
+                    <Box sx={{ width: "100%" }}>
+                      <Typography variant="subtitle1" fontWeight={600}>
+                        {item.viaje?.titulo || "Viaje"}
+                      </Typography>
+                      {item.fecha_viaje && (
+                        <Typography variant="body2" color="text.secondary">
+                          Fecha:{" "}
+                          {new Date(item.fecha_viaje.fecha_inicio).toLocaleDateString()}
                         </Typography>
-                      }
-                      secondary={
-                        <Stack spacing={0.5}>
-                          {item.fecha_viaje && (
-                            <Typography variant="body2" color="text.secondary">
-                              Fecha:{" "}
-                              {new Date(item.fecha_viaje.fecha_inicio).toLocaleDateString()}
-                            </Typography>
-                          )}
-                          <Typography variant="body2" color="primary" fontWeight={600}>
-                            ${item.precio_unitario.toLocaleString()} x {item.cantidad}
-                          </Typography>
-                        </Stack>
-                      }
-                    />
+                      )}
+                      <Typography variant="body2" color="primary" fontWeight={600}>
+                        ${item.precio_unitario.toLocaleString()} x {item.cantidad}
+                      </Typography>
+                    </Box>
 
                     {/* Controles de cantidad */}
                     <Box

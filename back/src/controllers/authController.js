@@ -4,7 +4,9 @@ import { validationResult } from "express-validator"
 import passport from "passport"
 import { v4 as uuidv4 } from "uuid"
 import Usuario from "../models/Usuario.js"
-import { sendVerificationEmail } from "../config/nodemailer.js"
+import emailService from "../services/emailService.js"
+import auditService from "../services/auditService.js"
+import roleService from "../services/roleService.js"
 
 // TODO: mover esto a un archivo de utils
 const generateToken = (userId) => {
@@ -53,19 +55,28 @@ export const register = async (req, res) => {
       telefono,
       experiencia_previa,
       dni,
-      rol: "cliente", // por defecto siempre cliente
+      rol: "cliente", // por defecto siempre cliente (mantenido para retrocompatibilidad)
       is_verified: false,
       verification_token: verificationToken,
       token_expiry: tokenExpiry,
     })
 
+    // Asignar rol de cliente en el nuevo sistema
+    await roleService.setupInitialRoles(usuario.id_usuarios, "cliente")
+
     // Enviar correo de verificación
     try {
-      await sendVerificationEmail(email, verificationToken, nombre)
-      console.log('[Auth] Verification email sent to:', email)
+      const emailResult = await emailService.sendVerificationEmail(email, verificationToken, nombre)
+      console.log('[Auth] ✅ Verification email sent successfully to:', email)
+      console.log('[Auth] Email service response:', emailResult)
     } catch (emailError) {
-      console.error('[Auth] Error sending verification email:', emailError)
-      // No bloqueamos el registro si falla el email
+      console.error('[Auth] ❌ CRITICAL: Error sending verification email:', emailError)
+      console.error('[Auth] Email error details:', {
+        email,
+        errorMessage: emailError.message,
+        errorStack: emailError.stack
+      })
+      // No bloqueamos el registro si falla el email, pero registramos el error claramente
     }
 
     const token = generateToken(usuario.id_usuarios)
@@ -117,6 +128,8 @@ export const login = async (req, res) => {
     // Buscar usuario por email
     const usuario = await Usuario.findOne({ where: { email } })
     if (!usuario) {
+      // Registrar intento fallido
+      await auditService.logFailedLogin(email, req, "Usuario no encontrado")
       return res.status(401).json({
         success: false,
         message: "Credenciales incorrectas",
@@ -125,6 +138,7 @@ export const login = async (req, res) => {
 
     // Verificar si está activo
     if (!usuario.activo) {
+      await auditService.logFailedLogin(email, req, "Cuenta desactivada")
       return res.status(401).json({
         success: false,
         message: "Cuenta desactivada. Contacta al administrador.",
@@ -134,11 +148,16 @@ export const login = async (req, res) => {
     // Verificar password
     const isValidPassword = await bcrypt.compare(password, usuario.password_hash)
     if (!isValidPassword) {
+      // Registrar intento fallido
+      await auditService.logFailedLogin(email, req, "Contraseña incorrecta")
       return res.status(401).json({
         success: false,
         message: "Credenciales incorrectas",
       })
     }
+
+    // Registrar login exitoso en auditoría
+    await auditService.logLogin(usuario, req, "tradicional")
 
     const token = generateToken(usuario.id_usuarios)
 
@@ -148,6 +167,11 @@ export const login = async (req, res) => {
       sameSite: "strict", // Protección CSRF
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días en milisegundos
     })
+
+    // Log adicional para administradores
+    if (usuario.rol === 'admin') {
+      console.log(`[SECURITY] 🔐 Admin login: ${usuario.email} from IP: ${auditService.getClientIp(req)}`)
+    }
 
     res.json({
       success: true,
@@ -201,6 +225,11 @@ export const getProfile = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
+    // Registrar logout en auditoría si hay usuario autenticado
+    if (req.user) {
+      await auditService.logLogout(req.user, req)
+    }
+
     res.clearCookie("token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -244,6 +273,14 @@ export const googleCallback = async (req, res, next) => {
     }
 
     try {
+      // Registrar login OAuth en auditoría
+      await auditService.logLogin(user, req, "oauth")
+
+      // Log adicional para administradores
+      if (user.rol === 'admin') {
+        console.log(`[SECURITY] 🔐 Admin OAuth login: ${user.email} from IP: ${auditService.getClientIp(req)}`)
+      }
+
       const token = generateToken(user.id_usuarios);
 
       // Configurar cookie

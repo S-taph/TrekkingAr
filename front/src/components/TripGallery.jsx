@@ -85,7 +85,7 @@ export const TripGallery = ({ images = [] }) => {
   const currentImage = images[currentIndex] || PLACEHOLDER_IMAGE
 
   return (
-    <Box sx={{ width: "100%", position: "relative" }}>
+    <Box sx={{ width: "100%", maxWidth: "100%", overflow: "hidden", position: "relative" }}>
       {/* Imagen Principal */}
       <Box
         sx={{
@@ -192,6 +192,8 @@ export const TripGallery = ({ images = [] }) => {
           spacing={1}
           sx={{
             mt: 2,
+            width: "100%",
+            maxWidth: "100%",
             overflowX: "auto",
             overflowY: "hidden",
             pb: 1,

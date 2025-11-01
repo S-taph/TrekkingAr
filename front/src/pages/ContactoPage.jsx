@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { useEffect } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "react-router-dom"
 import {
   Container,
   Box,
@@ -29,12 +29,19 @@ import { contactoAPI } from "../services/api"
  * Envía emails a todos los administradores
  */
 export default function ContactoPage() {
+  const [searchParams] = useSearchParams()
+
+  // Leer parámetros de la URL
+  const tripId = searchParams.get('tripId')
+  const tripName = searchParams.get('tripName')
+
   const [formData, setFormData] = useState({
     nombre: "",
     email: "",
     telefono: "",
-    asunto: "",
+    asunto: tripName ? `Consulta sobre: ${tripName}` : "",
     mensaje: "",
+    tripId: tripId || "", // Campo oculto para futuras referencias en BD
   })
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -43,6 +50,17 @@ export default function ContactoPage() {
   useEffect(() => {
     document.title = "Contacto - TrekkingAR"
   }, [])
+
+  // Actualizar asunto si cambian los parámetros de URL
+  useEffect(() => {
+    if (tripName) {
+      setFormData(prev => ({
+        ...prev,
+        asunto: `Consulta sobre: ${tripName}`,
+        tripId: tripId || ""
+      }))
+    }
+  }, [tripName, tripId])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -58,7 +76,18 @@ export default function ContactoPage() {
     setError(null)
 
     try {
-      const response = await contactoAPI.sendMessage(formData)
+      // Preparar datos para enviar (incluye tripId si existe)
+      const dataToSend = {
+        nombre: formData.nombre,
+        email: formData.email,
+        telefono: formData.telefono,
+        asunto: formData.asunto,
+        mensaje: formData.tripId
+          ? `[ID Viaje: ${formData.tripId}]\n\n${formData.mensaje}`
+          : formData.mensaje,
+      }
+
+      const response = await contactoAPI.sendMessage(dataToSend)
 
       if (response.success) {
         setSuccess(true)
@@ -69,6 +98,7 @@ export default function ContactoPage() {
           telefono: "",
           asunto: "",
           mensaje: "",
+          tripId: "",
         })
       } else {
         throw new Error(response.message || "Error al enviar el mensaje")
@@ -162,6 +192,13 @@ export default function ContactoPage() {
               <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
                 Envíanos un Mensaje
               </Typography>
+
+              {/* Indicador si viene de un viaje */}
+              {tripName && (
+                <Alert severity="info" sx={{ mb: 3 }}>
+                  Consulta sobre el viaje: <strong>{tripName}</strong>
+                </Alert>
+              )}
 
               <form onSubmit={handleSubmit}>
                 <Stack spacing={3}>

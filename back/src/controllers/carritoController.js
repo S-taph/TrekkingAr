@@ -336,6 +336,46 @@ export const removeItem = async (req, res) => {
 };
 
 /**
+ * Vacía todo el carrito del usuario
+ */
+export const clearCarrito = async (req, res) => {
+  try {
+    const userId = req.user.id_usuarios;
+
+    // Buscar carrito del usuario
+    const carrito = await Carrito.findOne({
+      where: {
+        id_usuario: userId
+      }
+    });
+
+    if (!carrito) {
+      return res.json({
+        success: true,
+        message: 'Carrito vacío'
+      });
+    }
+
+    // Eliminar todos los items del carrito
+    await CarritoItem.destroy({
+      where: { carritoId: carrito.id_carrito }
+    });
+
+    res.json({
+      success: true,
+      message: 'Carrito vaciado exitosamente'
+    });
+
+  } catch (error) {
+    console.error('Error vaciando carrito:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+/**
  * Procesa el checkout del carrito (placeholder)
  */
 export const checkout = async (req, res) => {

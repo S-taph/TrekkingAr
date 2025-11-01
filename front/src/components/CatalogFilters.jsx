@@ -2,268 +2,311 @@ import { useState, useEffect, useRef } from "react"
 import {
   Box,
   Paper,
-  Typography,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Slider,
+  ToggleButtonGroup,
+  ToggleButton,
   Button,
   Chip,
   Stack,
-  Collapse,
-  IconButton,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material"
 import {
-  FilterList as FilterIcon,
   Clear as ClearIcon,
-  ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material"
-import { viajesAPI } from "../services/api"
+
+const ALL_MONTHS = [
+  { value: 1, label: "Ene" },
+  { value: 2, label: "Feb" },
+  { value: 3, label: "Mar" },
+  { value: 4, label: "Abr" },
+  { value: 5, label: "May" },
+  { value: 6, label: "Jun" },
+  { value: 7, label: "Jul" },
+  { value: 8, label: "Ago" },
+  { value: 9, label: "Sep" },
+  { value: 10, label: "Oct" },
+  { value: 11, label: "Nov" },
+  { value: 12, label: "Dic" },
+]
+
+// Get current month and next 4 months
+const getNextMonths = () => {
+  const currentMonth = new Date().getMonth() + 1 // 1-12
+  const months = []
+
+  for (let i = 0; i < 5; i++) {
+    const monthValue = ((currentMonth - 1 + i) % 12) + 1
+    months.push(ALL_MONTHS[monthValue - 1])
+  }
+
+  return months
+}
+
+const MONTHS = getNextMonths()
+
+const DURATION_OPTIONS = [
+  { value: "1-3", label: "1-3 días" },
+  { value: "4-7", label: "4-7 días" },
+  { value: "8+", label: "8+ días" },
+]
+
+const DIFFICULTY_OPTIONS = [
+  { value: "facil", label: "Fácil" },
+  { value: "moderado", label: "Moderado" },
+  { value: "dificil", label: "Difícil" },
+  { value: "extremo", label: "Extremo" },
+]
 
 /**
- * CatalogFilters - Filtros para el catálogo de viajes
+ * CatalogFilters - Compact horizontal filter bar
  */
 export const CatalogFilters = ({ onFilterChange, onClear }) => {
-  const [expanded, setExpanded] = useState(true)
-  const [maxPrice, setMaxPrice] = useState(500000)
-  const [filters, setFilters] = useState({
-    busqueda: "",
-    destino: "",
-    dificultad: "",
-    duracion_min: 1,
-    duracion_max: 30,
-    precio_min: 0,
-    precio_max: 500000,
-  })
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
-  // Refs para debouncing
+  const [mes, setMes] = useState(null)
+  const [duracion, setDuracion] = useState(null)
+  const [dificultad, setDificultad] = useState(null)
+
+  // Refs for debouncing
   const debounceTimer = useRef(null)
 
-  // Cargar precio máximo dinámicamente
-  useEffect(() => {
-    const fetchPriceStats = async () => {
-      try {
-        const response = await viajesAPI.getPreciosStats()
-        if (response.success) {
-          const max = Math.ceil(response.data.precio_maximo / 10000) * 10000
-          setMaxPrice(max)
-          setFilters(prev => ({ ...prev, precio_max: max }))
+  // Apply filters with debouncing
+  const applyFilters = (newFilters) => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current)
+    }
+
+    debounceTimer.current = setTimeout(() => {
+      const filters = {}
+
+      // Month filter
+      if (newFilters.mes) {
+        filters.mes = newFilters.mes
+      }
+
+      // Duration filter
+      if (newFilters.duracion) {
+        if (newFilters.duracion === "1-3") {
+          filters.duracion_min = 1
+          filters.duracion_max = 3
+        } else if (newFilters.duracion === "4-7") {
+          filters.duracion_min = 4
+          filters.duracion_max = 7
+        } else if (newFilters.duracion === "8+") {
+          filters.duracion_min = 8
+          filters.duracion_max = 100
         }
-      } catch (error) {
-        console.error("Error obteniendo estadísticas de precios:", error)
       }
-    }
-    fetchPriceStats()
-  }, [])
 
-  // Cleanup del timer al desmontar
-  useEffect(() => {
-    return () => {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current)
+      // Difficulty filter
+      if (newFilters.dificultad) {
+        filters.dificultad = newFilters.dificultad
       }
-    }
-  }, [])
 
-  const handleChange = (field, value, immediate = true) => {
-    const newFilters = { ...filters, [field]: value }
-    setFilters(newFilters)
-
-    if (immediate) {
-      // Para dropdowns y text inputs: aplicar inmediatamente
-      onFilterChange?.(newFilters)
-    } else {
-      // Para sliders: aplicar con debounce
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current)
-      }
-      debounceTimer.current = setTimeout(() => {
-        onFilterChange?.(newFilters)
-      }, 500) // 500ms de delay
-    }
+      onFilterChange(filters)
+    }, 300)
   }
 
-  const handleClear = () => {
-    const clearedFilters = {
-      busqueda: "",
-      destino: "",
-      dificultad: "",
-      duracion_min: 1,
-      duracion_max: 30,
-      precio_min: 0,
-      precio_max: maxPrice,
-    }
-    setFilters(clearedFilters)
-    onClear?.()
-    onFilterChange?.(clearedFilters)
+  const handleMesChange = (event, newValue) => {
+    setMes(newValue)
+    applyFilters({ mes: newValue, duracion, dificultad })
   }
 
-  const activeFiltersCount = Object.entries(filters).filter(([key, value]) => {
-    if (key === "busqueda" || key === "destino" || key === "dificultad") {
-      return value !== ""
-    }
-    if (key === "duracion_min" || key === "duracion_max") {
-      return value !== 1 && value !== 30
-    }
-    if (key === "precio_min") {
-      return value !== 0
-    }
-    if (key === "precio_max") {
-      return value !== maxPrice
-    }
-    return false
-  }).length
+  const handleDuracionChange = (event, newValue) => {
+    setDuracion(newValue)
+    applyFilters({ mes, duracion: newValue, dificultad })
+  }
+
+  const handleDificultadChange = (event, newValue) => {
+    setDificultad(newValue)
+    applyFilters({ mes, duracion, dificultad: newValue })
+  }
+
+  const handleClearFilters = () => {
+    setMes(null)
+    setDuracion(null)
+    setDificultad(null)
+    onFilterChange({})
+    if (onClear) onClear()
+  }
+
+  const activeFiltersCount = [mes, duracion, dificultad].filter(Boolean).length
 
   return (
-    <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
-      {/* Header */}
-      <Box
+    <Paper
+      elevation={2}
+      sx={{
+        p: 2,
+        mb: 3,
+        bgcolor: (theme) =>
+          theme.palette.mode === 'dark'
+            ? 'rgba(100, 181, 246, 0.08)'
+            : 'rgba(100, 181, 246, 0.06)',
+        borderRadius: 2,
+        border: (theme) => `1px solid ${
+          theme.palette.mode === 'dark'
+            ? 'rgba(100, 181, 246, 0.2)'
+            : 'rgba(100, 181, 246, 0.15)'
+        }`,
+      }}
+    >
+      <Stack
+        direction={isMobile ? "column" : "row"}
+        spacing={2}
+        alignItems={isMobile ? "stretch" : "flex-start"}
+        flexWrap={isMobile ? "wrap" : "nowrap"}
         sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          mb: expanded ? 2 : 0,
+          overflowX: { xs: 'auto', md: 'visible' },
+          pb: isMobile ? 0 : 1,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <FilterIcon color="primary" />
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Filtros
+        {/* Mes de Salida */}
+        <Box sx={{ flex: isMobile ? 1 : '0 0 auto', minWidth: isMobile ? 'auto' : '280px' }}>
+          <Typography variant="caption" sx={{ display: "block", mb: 0.5, fontWeight: 600 }}>
+            Mes de Salida
           </Typography>
-          {activeFiltersCount > 0 && (
-            <Chip label={activeFiltersCount} size="small" color="primary" />
-          )}
-        </Box>
-
-        <Box sx={{ display: "flex", gap: 1 }}>
-          {activeFiltersCount > 0 && (
-            <Button
-              size="small"
-              startIcon={<ClearIcon />}
-              onClick={handleClear}
-            >
-              Limpiar
-            </Button>
-          )}
-          <IconButton
-            onClick={() => setExpanded(!expanded)}
+          <ToggleButtonGroup
+            value={mes}
+            exclusive
+            onChange={handleMesChange}
+            size="small"
+            orientation="horizontal"
             sx={{
-              transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.3s",
+              display: 'flex',
+              flexDirection: 'row',
+              flexWrap: "wrap",
+              gap: 0.5,
+              overflowX: { xs: 'auto', md: 'visible' },
+              "& .MuiToggleButton-root": {
+                minWidth: 45,
+                py: 0.5,
+                fontSize: "0.75rem",
+                border: "1px solid",
+                borderColor: "divider",
+                "&.Mui-selected": {
+                  bgcolor: "primary.main",
+                  color: "white",
+                  "&:hover": {
+                    bgcolor: "primary.dark",
+                  },
+                },
+              },
             }}
           >
-            <ExpandMoreIcon />
-          </IconButton>
+            {MONTHS.map((month) => (
+              <ToggleButton key={month.value} value={month.value}>
+                {month.label}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
         </Box>
-      </Box>
 
-      {/* Filtros */}
-      <Collapse in={expanded}>
-        <Stack spacing={3}>
-          {/* Búsqueda */}
-          <TextField
-            fullWidth
-            label="Buscar viaje"
-            placeholder="Nombre, ubicación, actividad..."
-            value={filters.busqueda}
-            onChange={(e) => handleChange("busqueda", e.target.value)}
+        {/* Duración */}
+        <Box sx={{ minWidth: isMobile ? 'auto' : '200px' }}>
+          <Typography variant="caption" sx={{ display: "block", mb: 0.5, fontWeight: 600 }}>
+            Duración
+          </Typography>
+          <ToggleButtonGroup
+            value={duracion}
+            exclusive
+            onChange={handleDuracionChange}
             size="small"
-          />
+            sx={{
+              "& .MuiToggleButton-root": {
+                px: 2,
+                py: 0.5,
+                fontSize: "0.875rem",
+                border: "1px solid",
+                borderColor: "divider",
+                "&.Mui-selected": {
+                  bgcolor: "primary.main",
+                  color: "white",
+                  "&:hover": {
+                    bgcolor: "primary.dark",
+                  },
+                },
+              },
+            }}
+          >
+            {DURATION_OPTIONS.map((option) => (
+              <ToggleButton key={option.value} value={option.value}>
+                {option.label}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </Box>
 
-          {/* Destino y Dificultad */}
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Destino</InputLabel>
-              <Select
-                value={filters.destino}
-                label="Destino"
-                onChange={(e) => handleChange("destino", e.target.value)}
-              >
-                <MenuItem value="">Todos</MenuItem>
-                <MenuItem value="patagonia">Patagonia</MenuItem>
-                <MenuItem value="mendoza">Mendoza</MenuItem>
-                <MenuItem value="salta">Salta</MenuItem>
-                <MenuItem value="cordoba">Córdoba</MenuItem>
-                <MenuItem value="neuquen">Neuquén</MenuItem>
-                <MenuItem value="ushuaia">Ushuaia</MenuItem>
-              </Select>
-            </FormControl>
+        {/* Dificultad */}
+        <Box sx={{ minWidth: isMobile ? 'auto' : '250px' }}>
+          <Typography variant="caption" sx={{ display: "block", mb: 0.5, fontWeight: 600 }}>
+            Dificultad
+          </Typography>
+          <ToggleButtonGroup
+            value={dificultad}
+            exclusive
+            onChange={handleDificultadChange}
+            size="small"
+            sx={{
+              "& .MuiToggleButton-root": {
+                px: 2,
+                py: 0.5,
+                fontSize: "0.875rem",
+                border: "1px solid",
+                borderColor: "divider",
+                "&.Mui-selected": {
+                  bgcolor: "primary.main",
+                  color: "white",
+                  "&:hover": {
+                    bgcolor: "primary.dark",
+                  },
+                },
+              },
+            }}
+          >
+            {DIFFICULTY_OPTIONS.map((option) => (
+              <ToggleButton key={option.value} value={option.value}>
+                {option.label}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </Box>
 
-            <FormControl fullWidth size="small">
-              <InputLabel>Dificultad</InputLabel>
-              <Select
-                value={filters.dificultad}
-                label="Dificultad"
-                onChange={(e) => handleChange("dificultad", e.target.value)}
-              >
-                <MenuItem value="">Todas</MenuItem>
-                <MenuItem value="facil">Fácil</MenuItem>
-                <MenuItem value="moderada">Moderada</MenuItem>
-                <MenuItem value="dificil">Difícil</MenuItem>
-                <MenuItem value="extrema">Extrema</MenuItem>
-              </Select>
-            </FormControl>
-          </Stack>
-
-          {/* Duración */}
-          <Box>
-            <Typography variant="body2" gutterBottom sx={{ fontWeight: 500 }}>
-              Duración (días): {filters.duracion_min} - {filters.duracion_max}
-            </Typography>
-            <Box sx={{ px: 2 }}>
-              <Slider
-                value={[filters.duracion_min, filters.duracion_max]}
-                onChange={(e, newValue) => {
-                  setFilters({ ...filters, duracion_min: newValue[0], duracion_max: newValue[1] })
-                }}
-                onChangeCommitted={(e, newValue) => {
-                  handleChange("duracion_min", newValue[0], false)
-                  handleChange("duracion_max", newValue[1], false)
-                }}
-                valueLabelDisplay="auto"
-                min={1}
-                max={30}
-                marks={[
-                  { value: 1, label: "1" },
-                  { value: 15, label: "15" },
-                  { value: 30, label: "30" },
-                ]}
-              />
-            </Box>
-          </Box>
-
-          {/* Precio */}
-          <Box>
-            <Typography variant="body2" gutterBottom sx={{ fontWeight: 500 }}>
-              Rango de precio: ${filters.precio_min.toLocaleString()} - ${filters.precio_max.toLocaleString()}
-            </Typography>
-            <Box sx={{ px: 2 }}>
-              <Slider
-                value={[filters.precio_min, filters.precio_max]}
-                onChange={(e, newValue) => {
-                  setFilters({ ...filters, precio_min: newValue[0], precio_max: newValue[1] })
-                }}
-                onChangeCommitted={(e, newValue) => {
-                  handleChange("precio_min", newValue[0], false)
-                  handleChange("precio_max", newValue[1], false)
-                }}
-                valueLabelDisplay="auto"
-                valueLabelFormat={(value) => `$${value.toLocaleString()}`}
-                min={0}
-                max={maxPrice}
-                step={10000}
-                marks={[
-                  { value: 0, label: "$0" },
-                  { value: Math.floor(maxPrice / 2), label: `$${Math.floor(maxPrice / 2 / 1000)}k` },
-                  { value: maxPrice, label: `$${Math.floor(maxPrice / 1000)}k` },
-                ]}
-              />
-            </Box>
-          </Box>
-        </Stack>
-      </Collapse>
+        {/* Clear Filters Button */}
+        <Box sx={{
+          ml: "auto",
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          alignSelf: isMobile ? "stretch" : "center",
+          mt: isMobile ? 0 : 2.5,
+        }}>
+          {activeFiltersCount > 0 && (
+            <Chip
+              label={`${activeFiltersCount} filtro${activeFiltersCount > 1 ? "s" : ""}`}
+              size="small"
+              color="primary"
+            />
+          )}
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<ClearIcon />}
+            onClick={handleClearFilters}
+            disabled={activeFiltersCount === 0}
+            sx={{
+              py: 0.75,
+              px: 2,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Limpiar
+          </Button>
+        </Box>
+      </Stack>
     </Paper>
   )
 }
+
+export default CatalogFilters

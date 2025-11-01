@@ -7,7 +7,7 @@
 
 import express from "express";
 import { body, param } from "express-validator";
-import { getCarrito, addItem, updateItem, removeItem, checkout } from "../controllers/carritoController.js";
+import { getCarrito, addItem, updateItem, removeItem, clearCarrito, checkout } from "../controllers/carritoController.js";
 import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -45,6 +45,7 @@ router.get("/", getCarrito);
 router.post("/items", addItemValidation, addItem);
 router.put("/items/:id", updateItemValidation, updateItem);
 router.delete("/items/:id", removeItemValidation, removeItem);
+router.delete("/clear", clearCarrito);
 router.post("/checkout", checkout);
 
 export default router;

@@ -1,10 +1,9 @@
 import { useState } from "react"
-import { useNavigate, useLocation } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import {
   Card,
   CardMedia,
   CardContent,
-  CardActions,
   Typography,
   Button,
   Chip,
@@ -12,8 +11,6 @@ import {
   Stack,
   IconButton,
   Skeleton,
-  Snackbar,
-  Alert,
   FormControl,
   InputLabel,
   Select,
@@ -24,12 +21,9 @@ import {
   TrendingUp as DifficultyIcon,
   Place as LocationIcon,
   CalendarToday as DateIcon,
-  ShoppingCart as CartIcon,
   Favorite as FavoriteIcon,
   FavoriteBorder as FavoriteBorderIcon,
 } from "@mui/icons-material"
-import { useCart } from "../context/CartContext"
-import { useAuth } from "../context/AuthContext"
 import { getViajeMainImage, handleImageError } from "../utils/imageUrl"
 
 /**
@@ -39,15 +33,9 @@ import { getViajeMainImage, handleImageError } from "../utils/imageUrl"
  */
 export const TripCard = ({ trip, loading = false }) => {
   const navigate = useNavigate()
-  const location = useLocation()
-  const { addItem } = useCart()
-  const { user } = useAuth()
 
   // All useState hooks must be at the top, before any conditional returns
   const [isFavorite, setIsFavorite] = useState(false)
-  const [adding, setAdding] = useState(false)
-  const [showSuccess, setShowSuccess] = useState(false)
-  const [showLoginRequired, setShowLoginRequired] = useState(false)
 
   // Extract trip data before using in useState
   const {
@@ -99,43 +87,6 @@ export const TripCard = ({ trip, loading = false }) => {
     moderada: "warning",
     dificil: "error",
     extrema: "error",
-  }
-
-  const handleAddToCart = async (e) => {
-    e.stopPropagation()
-
-    // Validar que haya una fecha seleccionada
-    if (!selectedFechaId) {
-      console.warn("No hay fecha seleccionada")
-      return
-    }
-
-    // Verificar si el usuario está autenticado
-    if (!user) {
-      setShowLoginRequired(true)
-      // Redirigir a login después de 2 segundos
-      setTimeout(() => {
-        navigate("/login", { state: { from: location.pathname } })
-      }, 2000)
-      return
-    }
-
-    setAdding(true)
-    try {
-      const result = await addItem({
-        id_viaje,
-        id_fecha_viaje: selectedFechaId,
-        cantidad: 1,
-      })
-
-      if (result.success) {
-        setShowSuccess(true) // Mostrar notificación de éxito
-      }
-    } catch (error) {
-      console.error("Error agregando al carrito:", error)
-    } finally {
-      setAdding(false)
-    }
   }
 
   const handleCardClick = () => {
@@ -270,13 +221,16 @@ export const TripCard = ({ trip, loading = false }) => {
             <Typography
               variant="body2"
               color="text.secondary"
+              data-testid="tripcard-destino"
               sx={{
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
               }}
             >
-              {destino}
+              {typeof destino === 'string'
+                ? destino
+                : destino?.nombre || 'Destino no especificado'}
             </Typography>
           </Box>
 
@@ -359,65 +313,26 @@ export const TripCard = ({ trip, loading = false }) => {
           </Typography>
         </Box>
 
-        {/* Botones abajo con flexbox */}
-        <Stack direction="row" spacing={1} sx={{ width: "100%" }}>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation()
-              handleCardClick()
-            }}
-            sx={{ flex: 1 }}
-          >
-            Ver más
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={handleAddToCart}
-            disabled={!selectedFechaId || adding || (fechaSeleccionada?.cupos_disponibles === 0)}
-            startIcon={<CartIcon />}
-            sx={{
-              flex: 1,
-              bgcolor: "success.main",
-              "&:hover": {
-                bgcolor: "success.dark",
-              },
-              "&.Mui-disabled": {
-                bgcolor: "grey.400",
-                color: "white",
-              }
-            }}
-          >
-            {adding ? "..." : "Reservar"}
-          </Button>
-        </Stack>
+        {/* Botón Ver más - Usuario debe hacer clic para ver detalles y fechas */}
+        <Button
+          variant="contained"
+          size="medium"
+          fullWidth
+          onClick={(e) => {
+            e.stopPropagation()
+            handleCardClick()
+          }}
+          sx={{
+            bgcolor: "primary.main",
+            "&:hover": {
+              bgcolor: "primary.dark",
+            },
+          }}
+        >
+          Ver Detalles
+        </Button>
       </Box>
 
-      {/* Snackbar de confirmación */}
-      <Snackbar
-        open={showSuccess}
-        autoHideDuration={3000}
-        onClose={() => setShowSuccess(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert onClose={() => setShowSuccess(false)} severity="success" sx={{ width: "100%" }}>
-          Viaje agregado al carrito
-        </Alert>
-      </Snackbar>
-
-      {/* Snackbar de login requerido */}
-      <Snackbar
-        open={showLoginRequired}
-        autoHideDuration={2000}
-        onClose={() => setShowLoginRequired(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert onClose={() => setShowLoginRequired(false)} severity="info" sx={{ width: "100%" }}>
-          Debes iniciar sesión para reservar. Redirigiendo...
-        </Alert>
-      </Snackbar>
     </Card>
   )
 }

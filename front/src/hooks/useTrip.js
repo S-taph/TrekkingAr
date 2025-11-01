@@ -23,10 +23,18 @@ export const useTrip = (id) => {
         const viajeData = response.data.viaje
 
         // Normalizar nombres de campos para compatibilidad con frontend
-        if (viajeData.fechas && !viajeData.fechas_disponibles) {
+        // SIEMPRE normalizar fechas_disponibles si existen fechas
+        if (viajeData.fechas && viajeData.fechas.length > 0) {
           viajeData.fechas_disponibles = viajeData.fechas.map(fecha => ({
             ...fecha,
             // Asegurar que id es el campo correcto (puede ser id_fechas_viaje)
+            id: fecha.id_fechas_viaje || fecha.id,
+            precio: fecha.precio_fecha || fecha.precio,
+          }))
+        } else if (viajeData.fechas_disponibles && viajeData.fechas_disponibles.length > 0) {
+          // Si solo existe fechas_disponibles, también normalizarlo
+          viajeData.fechas_disponibles = viajeData.fechas_disponibles.map(fecha => ({
+            ...fecha,
             id: fecha.id_fechas_viaje || fecha.id,
             precio: fecha.precio_fecha || fecha.precio,
           }))

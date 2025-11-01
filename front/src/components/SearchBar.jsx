@@ -101,6 +101,11 @@ const SearchBar = ({ onSearch }) => {
                     borderColor: "white",
                   },
                 },
+                "& .MuiInputBase-input": {
+                  fontSize: "1rem",
+                  color: "#000",
+                  fontWeight: 500,
+                },
               }}
             />
           </Grid>
@@ -124,6 +129,7 @@ const SearchBar = ({ onSearch }) => {
               value={filters.dificultad}
               onChange={handleChange("dificultad")}
               size="small"
+              placeholder="Dificultad"
               sx={{
                 backgroundColor: "rgba(255, 255, 255, 0.9)",
                 borderRadius: 1,
@@ -137,6 +143,11 @@ const SearchBar = ({ onSearch }) => {
                   "&.Mui-focused fieldset": {
                     borderColor: "white",
                   },
+                },
+                "& .MuiInputBase-input": {
+                  fontSize: "1rem",
+                  color: "#000",
+                  fontWeight: 500,
                 },
               }}
             >
@@ -184,6 +195,11 @@ const SearchBar = ({ onSearch }) => {
                     borderColor: "white",
                   },
                 },
+                "& .MuiInputBase-input": {
+                  fontSize: "1rem",
+                  color: "#000",
+                  fontWeight: 500,
+                },
               }}
             />
           </Grid>
@@ -221,6 +237,15 @@ const SearchBar = ({ onSearch }) => {
                     borderColor: "white",
                   },
                 },
+                "& .MuiInputBase-input": {
+                  fontSize: "1rem",
+                  color: "#000",
+                  fontWeight: 500,
+                },
+                "& .MuiInputBase-input::placeholder": {
+                  color: "#000",
+                  opacity: 0.6,
+                },
               }}
             />
           </Grid>
@@ -234,12 +259,12 @@ const SearchBar = ({ onSearch }) => {
               startIcon={<SearchIcon />}
               sx={{
                 height: "40px",
-                backgroundColor: "rgba(255, 255, 255, 0.9)",
-                color: "primary.main",
+                backgroundColor: "primary.main",
+                color: "white",
                 fontWeight: "bold",
+                fontSize: "1rem",
                 "&:hover": {
-                  backgroundColor: "white",
-                  color: "primary.dark",
+                  backgroundColor: "primary.dark",
                 },
               }}
             >

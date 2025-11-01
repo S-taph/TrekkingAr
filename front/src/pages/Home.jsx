@@ -5,12 +5,12 @@ import { Container, Box, Button, Drawer, Typography } from "@mui/material"
 import FilterListIcon from "@mui/icons-material/FilterList"
 
 import Header from "../components/Header.jsx"
-import Banner from "../components/Banner.jsx"
+import Hero from "../components/Hero.jsx"
 import FilterBar from "../components/FilterBar.jsx"
 import ProductList from "../components/ProductList.jsx"
-import Hero from "../components/Hero.jsx"
 import Footer from "../components/Footer.jsx"
 import ProximosViajes from "../components/ProximosViajes.jsx"
+import AventurasDestacadas from "../components/AventurasDestacadas.jsx"
 import MediosPago from "../components/MediosPago.jsx"
 import SearchBar from "../components/SearchBar.jsx"
 import ExperienciasDestacadas from "../components/ExperienciasDestacadas.jsx"
@@ -39,17 +39,12 @@ export default function Home() {
       <Header />
 
       {/* HERO PRINCIPAL CON CTA */}
-      <Box sx={{ position: "relative", mt: { xs: 8, md: 0 }, mb: 6 }}>
+      <Box sx={{ position: "relative", mt: { xs: 8, md: 0 } }}>
         <Hero />
       </Box>
 
-      {/* BANNER DESTACADO */}
-      <Box sx={{ mt: 4, mb: 8 }}>
-        <Banner />
-      </Box>
-
       {/* CONTENEDOR PRINCIPAL */}
-      <Container maxWidth="lg" sx={{ mb: 10 }}>
+      <Container maxWidth="lg" sx={{ mt: 0, mb: 10 }}>
         {/* BARRA DE BÚSQUEDA */}
         <Box sx={{ mb: 4 }}>
           <SearchBar onSearch={handleSearch} />
@@ -85,7 +80,7 @@ export default function Home() {
           </Box>
 
           {/* PRODUCT LIST */}
-          <Box sx={{ flex: 1 }}>
+          <Box sx={{ flex: 1}}>
             <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
               Nuestros Viajes
             </Typography>
@@ -96,6 +91,11 @@ export default function Home() {
         {/* PRÓXIMOS VIAJES */}
         <Box sx={{ mt: 12 }}>
           <ProximosViajes />
+        </Box>
+
+        {/* AVENTURAS DESTACADAS */}
+        <Box sx={{ mt: 12 }}>
+          <AventurasDestacadas />
         </Box>
       </Container>
 

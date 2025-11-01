@@ -17,6 +17,14 @@ const Viaje = sequelize.define(
         key: "id_categoria",
       },
     },
+    id_destino: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: "destinos",
+        key: "id_destino",
+      },
+    },
     titulo: {
       type: DataTypes.STRING(255),
       allowNull: false,

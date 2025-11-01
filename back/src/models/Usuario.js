@@ -106,4 +106,52 @@ const Usuario = sequelize.define(
   },
 )
 
+/**
+ * Métodos de instancia para manejo de múltiples roles
+ */
+Usuario.prototype.getRoles = async function() {
+  const UsuarioRol = (await import('./UsuarioRol.js')).default
+  const roles = await UsuarioRol.findAll({
+    where: {
+      id_usuario: this.id_usuarios,
+      activo: true
+    },
+    attributes: ['rol']
+  })
+  return roles.map(r => r.rol)
+}
+
+Usuario.prototype.hasRole = async function(rol) {
+  const roles = await this.getRoles()
+  return roles.includes(rol)
+}
+
+Usuario.prototype.hasAnyRole = async function(rolesArray) {
+  const userRoles = await this.getRoles()
+  return rolesArray.some(rol => userRoles.includes(rol))
+}
+
+Usuario.prototype.isAdmin = async function() {
+  return await this.hasRole('admin')
+}
+
+Usuario.prototype.isGuia = async function() {
+  return await this.hasRole('guia')
+}
+
+Usuario.prototype.isCliente = async function() {
+  return await this.hasRole('cliente')
+}
+
+/**
+ * Método para obtener el rol principal (para retrocompatibilidad)
+ * Prioridad: admin > guia > cliente
+ */
+Usuario.prototype.getPrimaryRole = async function() {
+  const roles = await this.getRoles()
+  if (roles.includes('admin')) return 'admin'
+  if (roles.includes('guia')) return 'guia'
+  return 'cliente'
+}
+
 export default Usuario

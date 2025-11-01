@@ -1,8 +1,12 @@
+// Cargar variables de entorno PRIMERO, antes que cualquier otro módulo
+import dotenv from "dotenv"
+dotenv.config()
+
+// Ahora sí importar los demás módulos
 import express from "express"
 import cors from "cors"
 import helmet from "helmet"
 import rateLimit from "express-rate-limit"
-import dotenv from "dotenv"
 import cookieParser from "cookie-parser"
 import session from "express-session"
 import { createServer } from "http"
@@ -20,15 +24,15 @@ import carritoRoutes from "./routes/carritoRoutes.js"
 import contactRoutes from "./routes/contactRoutes.js"
 import reviewRoutes from "./routes/reviewRoutes.js"
 import chatbotRoutes from "./routes/chatbotRoutes.js"
+import pagoRoutes from "./routes/pagoRoutes.js"
+import auditRoutes from "./routes/auditRoutes.js"
+import roleRoutes from "./routes/roleRoutes.js"
 
 // Importar configuración de BD y modelos
 import sequelize from "./config/database.js"
 import "./models/associations.js"
 import seedDatabase from "../scripts/seedDatabase.js"
 import { configurePassportGoogle } from "./config/passport.js"
-
-// Cargar variables de entorno
-dotenv.config()
 
 const app = express()
 const server = createServer(app)
@@ -128,11 +132,21 @@ app.use((req, res, next) => {
 // Configurar rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // máximo 100 requests por ventana
+  max: 500, // Aumentado a 500 requests por ventana (era 100, demasiado restrictivo)
   message: {
     success: false,
     message: "Demasiadas solicitudes, intenta de nuevo más tarde",
   },
+  // Excluir rutas de lectura comunes que no necesitan limitación estricta
+  skip: (req) => {
+    const skipPaths = [
+      '/api/viajes',
+      '/api/categorias',
+      '/api/health',
+      '/api/reviews'
+    ];
+    return skipPaths.some(path => req.path.startsWith(path)) && req.method === 'GET';
+  }
 })
 
 // Middlewares globales
@@ -193,7 +207,10 @@ app.use("/api/usuarios", usuarioRoutes)
 app.use("/api/carrito", carritoRoutes)
 app.use("/api/reviews", reviewRoutes) // IMPORTANTE: Debe ir ANTES de contactRoutes
 app.use("/api/chatbot", chatbotRoutes) // Ruta del chatbot
-app.use("/api", contactRoutes) // Este aplica middleware global, debe ir al final
+app.use("/api/contact", contactRoutes) // Corregido: usar /api/contact para coincidir con frontend
+app.use("/api/pagos", pagoRoutes) // Rutas de pagos
+app.use("/api/audit", auditRoutes) // Rutas de auditoría (solo admin)
+app.use("/api/roles", roleRoutes) // Rutas de gestión de roles (solo admin)
 
 // Configure Passport Google (después de las rutas para evitar conflictos)
 configurePassportGoogle(app)

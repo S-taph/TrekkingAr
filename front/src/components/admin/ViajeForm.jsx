@@ -24,6 +24,7 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  Autocomplete,
 } from "@mui/material"
 import CloudUploadIcon from "@mui/icons-material/CloudUpload"
 import DeleteIcon from "@mui/icons-material/Delete"
@@ -36,6 +37,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
   // Estado principal del formulario
   const [formData, setFormData] = useState({
     id_categoria: "",
+    destino: "",
     titulo: "",
     descripcion_corta: "",
     descripcion_completa: "",
@@ -48,6 +50,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
     no_incluye: "",
     recomendaciones: "",
     activo: true,
+    destacado: false,
   })
 
   const [loading, setLoading] = useState(false)
@@ -59,6 +62,8 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
   // Datos para selects
   const [categorias, setCategorias] = useState([])
   const [loadingCategorias, setLoadingCategorias] = useState(true)
+  const [destinos, setDestinos] = useState([])
+  const [loadingDestinos, setLoadingDestinos] = useState(true)
 
   // Image management state
   const [selectedImages, setSelectedImages] = useState([])
@@ -132,13 +137,30 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
       }
     }
 
+    const loadDestinos = async () => {
+      try {
+        setLoadingDestinos(true)
+        const response = await viajesAPI.getDestinos()
+        if (response.success && response.data.destinos) {
+          setDestinos(response.data.destinos)
+        }
+      } catch (error) {
+        console.error("Error loading destinos:", error)
+        setDestinos([])
+      } finally {
+        setLoadingDestinos(false)
+      }
+    }
+
     loadCategorias()
+    loadDestinos()
   }, [])
 
   useEffect(() => {
     if (mode === "edit" && viaje) {
       setFormData({
         id_categoria: viaje.id_categoria || "",
+        destino: viaje.destino?.nombre || "",
         titulo: viaje.titulo || "",
         descripcion_corta: viaje.descripcion_corta || "",
         descripcion_completa: viaje.descripcion_completa || "",
@@ -151,6 +173,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
         no_incluye: viaje.no_incluye || "",
         recomendaciones: viaje.recomendaciones || "",
         activo: viaje.activo !== undefined ? viaje.activo : true,
+        destacado: viaje.destacado !== undefined ? viaje.destacado : false,
       })
 
       // Load existing images if in edit mode
@@ -168,6 +191,11 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
       case "id_categoria":
         if (!value || value === "") {
           errorMessage = "Debe seleccionar una categoría"
+        }
+        break
+      case "destino":
+        if (!value || value.trim() === "") {
+          errorMessage = "El destino es requerido"
         }
         break
       case "titulo":
@@ -205,7 +233,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
           errorMessage = "El mínimo de participantes debe ser mayor a 0"
         }
         break
-      case "maximo_participantes":
+      case "maximo_participantes": {
         const minimo = Number(formData.minimo_participantes)
         const maximo = Number(value)
         if (!value || maximo <= 0) {
@@ -214,6 +242,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
           errorMessage = "El máximo debe ser mayor o igual al mínimo"
         }
         break
+      }
       case "incluye":
         if (!value || value.trim() === "") {
           errorMessage = "Debe especificar qué incluye el viaje"
@@ -370,6 +399,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
       // Prepara datos para el backend
       const submitData = {
         id_categoria: formData.id_categoria || null,
+        destino: formData.destino?.trim() || "",
         titulo: formData.titulo?.trim() || "",
         descripcion_corta: formData.descripcion_corta?.trim() || "",
         descripcion_completa: formData.descripcion_completa?.trim() || "",
@@ -382,6 +412,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
         no_incluye: formData.no_incluye?.trim() || "",
         recomendaciones: formData.recomendaciones?.trim() || "",
         activo: formData.activo === true || formData.activo === "true",
+        destacado: formData.destacado === true || formData.destacado === "true",
         equipamiento: formData.equipamiento || [],
         servicios: formData.servicios || [],
       }
@@ -507,6 +538,51 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
               </FormControl>
             </Grid2>
 
+            {/* Destino - full width */}
+            <Grid2 xs={12}>
+              <Autocomplete
+                freeSolo
+                options={destinos}
+                loading={loadingDestinos}
+                getOptionLabel={(option) => {
+                  if (typeof option === "string") return option
+                  if (option.nombre) {
+                    const parts = [option.nombre]
+                    if (option.provincia) parts.push(option.provincia)
+                    if (option.region) parts.push(option.region)
+                    return parts.join(" - ")
+                  }
+                  return ""
+                }}
+                value={formData.destino}
+                onChange={(event, newValue) => {
+                  const destinoValue = typeof newValue === "string" ? newValue : newValue?.nombre || ""
+                  setFormData((prev) => ({
+                    ...prev,
+                    destino: destinoValue,
+                  }))
+                  // Clear error when user selects/types a value
+                  if (destinoValue && fieldErrors.destino) {
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      destino: "",
+                    }))
+                  }
+                }}
+                onBlur={() => handleBlur({ target: { name: "destino", value: formData.destino } })}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Destino"
+                    required
+                    error={Boolean(fieldErrors.destino)}
+                    helperText={fieldErrors.destino || "Seleccione un destino existente o ingrese uno nuevo"}
+                    sx={{ "& .MuiInputBase-root": { minHeight: "56px" } }}
+                  />
+                )}
+              />
+            </Grid2>
+
             {/* Título - full width */}
             <Grid2 xs={12}>
               <TextField
@@ -571,8 +647,8 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
           </Typography>
 
           <Grid2 container spacing={3}>
-            {/* Duración, Precio Base y Estado en la misma fila */}
-            <Grid2 xs={12} md={4}>
+            {/* Duración, Precio Base en la misma fila */}
+            <Grid2 xs={12} md={6}>
               <TextField
                 fullWidth
                 required
@@ -594,7 +670,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
               />
             </Grid2>
 
-            <Grid2 xs={12} md={4}>
+            <Grid2 xs={12} md={6}>
               <TextField
                 fullWidth
                 required
@@ -616,7 +692,8 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
               />
             </Grid2>
 
-            <Grid2 xs={12} md={4}>
+            {/* Estado y Destacado en la misma fila */}
+            <Grid2 xs={12} md={6}>
               <FormControl fullWidth required size="medium">
                 <InputLabel sx={{ fontSize: "1rem" }}>Estado</InputLabel>
                 <Select
@@ -628,6 +705,22 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                 >
                   <MenuItem value={true}>Activo</MenuItem>
                   <MenuItem value={false}>Inactivo</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid2>
+
+            <Grid2 xs={12} md={6}>
+              <FormControl fullWidth size="medium">
+                <InputLabel sx={{ fontSize: "1rem" }}>Destacado</InputLabel>
+                <Select
+                  name="destacado"
+                  value={formData.destacado}
+                  label="Destacado"
+                  onChange={handleChange}
+                  sx={{ minHeight: "56px" }}
+                >
+                  <MenuItem value={false}>No</MenuItem>
+                  <MenuItem value={true}>Sí - Mostrar en "Aventuras Destacadas"</MenuItem>
                 </Select>
               </FormControl>
             </Grid2>

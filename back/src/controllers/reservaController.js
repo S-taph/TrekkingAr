@@ -3,6 +3,8 @@ import { Op } from "sequelize"
 import Reserva from "../models/Reserva.js"
 import Compra from "../models/Compra.js"
 import Usuario from "../models/Usuario.js"
+import FechaViaje from "../models/FechaViaje.js"
+import Viaje from "../models/Viaje.js"
 import sequelize from "../config/database.js"
 
 // Función para generar número de reserva único
@@ -115,6 +117,16 @@ export const getReservasByUser = async (req, res) => {
           model: Compra,
           as: "compra",
           attributes: ["id_compras", "numero_compra", "total_compra", "estado_compra"],
+        },
+        {
+          model: FechaViaje,
+          as: "fecha_viaje",
+          include: [
+            {
+              model: Viaje,
+              as: "viaje",
+            },
+          ],
         },
       ],
       limit: Number.parseInt(limit),

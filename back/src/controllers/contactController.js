@@ -53,9 +53,34 @@ export const sendContactMessage = async (req, res) => {
 
     // Enviar email a administradores
     try {
-      await emailService.sendContactNotificationToAdmins(mensajeContacto);
+      const emailResult = await emailService.sendContactNotificationToAdmins(mensajeContacto);
+      console.log('[Contact] ✅ Notification email sent to admins successfully');
+      console.log('[Contact] Email result:', emailResult);
     } catch (emailError) {
-      console.error('Error enviando email de notificación:', emailError);
+      console.error('[Contact] ❌ CRITICAL: Error sending notification email to admins:', emailError);
+      console.error('[Contact] Email error details:', {
+        contactoId: mensajeContacto.id,
+        from: email,
+        asunto,
+        errorMessage: emailError.message,
+        errorStack: emailError.stack
+      });
+      // No fallar la operación si el email falla
+    }
+
+    // Enviar email de confirmación al usuario
+    try {
+      const confirmationResult = await emailService.sendContactConfirmationToUser(mensajeContacto);
+      console.log('[Contact] ✅ Confirmation email sent to user successfully');
+      console.log('[Contact] Confirmation email result:', confirmationResult);
+    } catch (emailError) {
+      console.error('[Contact] ❌ Error sending confirmation email to user:', emailError);
+      console.error('[Contact] Confirmation email error details:', {
+        contactoId: mensajeContacto.id,
+        to: email,
+        errorMessage: emailError.message,
+        errorStack: emailError.stack
+      });
       // No fallar la operación si el email falla
     }
 

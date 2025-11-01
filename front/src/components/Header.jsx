@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { useCart } from "../context/CartContext"
@@ -56,9 +56,24 @@ export default function Header() {
   const [cartOpen, setCartOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState(null)
+  const [scrolled, setScrolled] = useState(false)
+  const [hovered, setHovered] = useState(false)
 
   const isAdmin = user?.rol === "admin"
   const isInAdminPanel = location.pathname.startsWith("/admin")
+  const isHomePage = location.pathname === "/"
+
+  // Detectar scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20)
+    }
+
+    if (isHomePage) {
+      window.addEventListener("scroll", handleScroll)
+      return () => window.removeEventListener("scroll", handleScroll)
+    }
+  }, [isHomePage])
 
   const toggleDrawer = (open) => () => {
     setDrawerOpen(open)
@@ -86,20 +101,61 @@ export default function Header() {
     { text: "Contacto", icon: <ContactMailIcon />, path: "/contacto" },
   ]
 
+  // Determinar si el header debe ser sólido (con fondo)
+  const isSolid = !isHomePage || scrolled || hovered
+
+  // Determinar colores según estado
+  const getHeaderColors = () => {
+    if (isHomePage && !isSolid) {
+      // Transparente en HOME sin scroll/hover
+      return {
+        bg: "transparent",
+        textColor: "white",
+        iconColor: "white",
+        shadow: "none",
+      }
+    } else if (isHomePage && isSolid) {
+      // Sólido en HOME con scroll/hover
+      return {
+        bg: mode === "dark" ? "rgba(18, 18, 18, 0.95)" : "rgba(255, 255, 255, 0.95)",
+        textColor: mode === "dark" ? "white" : "#1a1a1a",
+        iconColor: mode === "dark" ? "white" : "#1a1a1a",
+        shadow: mode === "dark" ? "0 2px 8px rgba(0,0,0,0.5)" : "0 2px 8px rgba(0,0,0,0.1)",
+      }
+    } else {
+      // Resto de páginas
+      return {
+        bg: mode === "dark" ? "#121212" : "#ffffff",
+        textColor: mode === "dark" ? "white" : "#1a1a1a",
+        iconColor: mode === "dark" ? "white" : "#1a1a1a",
+        shadow: mode === "dark" ? "0 2px 8px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.1)",
+      }
+    }
+  }
+
+  const colors = getHeaderColors()
+
   return (
     <>
       <AppBar
         position="fixed"
-        sx={(theme) => ({
+        elevation={0}
+        onMouseEnter={() => isHomePage && setHovered(true)}
+        onMouseLeave={() => isHomePage && setHovered(false)}
+        sx={{
           top: 0,
           left: 0,
           right: 0,
-          backgroundColor: "#344e41",
-          boxShadow: theme.shadows[4],
-          zIndex: theme.zIndex.appBar,
+          backgroundColor: colors.bg,
+          boxShadow: colors.shadow,
+          zIndex: (theme) => theme.zIndex.appBar,
           padding: "0 1rem",
           margin: 0,
-        })}
+          backdropFilter: isSolid ? "blur(10px)" : "none",
+          transition: "all 0.3s ease-in-out",
+          border: "none",
+          borderBottom: "none",
+        }}
       >
         <Toolbar sx={{ display: "flex", alignItems: "center" }}>
           <IconButton
@@ -110,10 +166,10 @@ export default function Header() {
             sx={{
               mr: 2,
               display: { md: "none" },
-              color: "white",
-              backgroundColor: "rgba(0, 0, 0, 0.3)",
+              color: colors.iconColor,
+              backgroundColor: mode === "dark" ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
               "&:hover": {
-                backgroundColor: "rgba(0, 0, 0, 0.5)",
+                backgroundColor: mode === "dark" ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)",
               },
             }}
           >
@@ -141,7 +197,12 @@ export default function Header() {
                 width: "auto",
                 marginRight: 2,
                 userSelect: "none",
-                filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+                filter: isHomePage && !isSolid
+                  ? "drop-shadow(0 2px 4px rgba(0,0,0,0.5))"
+                  : mode === "dark"
+                    ? "drop-shadow(0 2px 4px rgba(255,255,255,0.1))"
+                    : "drop-shadow(0 2px 4px rgba(0,0,0,0.2))",
+                transition: "filter 0.3s ease-in-out",
               }}
             />
 
@@ -152,8 +213,9 @@ export default function Header() {
                 fontFamily: "'Russo One', sans-serif",
                 fontWeight: "bold",
                 letterSpacing: 1,
-                color: "white",
-                textShadow: "0 2px 4px rgba(0,0,0,0.5)",
+                color: colors.textColor,
+                textShadow: isHomePage && !isSolid ? "0 2px 4px rgba(0,0,0,0.5)" : "none",
+                transition: "all 0.3s ease-in-out",
               }}
             >
               TrekkingAr
@@ -170,12 +232,15 @@ export default function Header() {
                   sx={{
                     textTransform: "none",
                     fontSize: "0.9rem",
-                    fontWeight: 1000,
+                    fontWeight: 600,
                     px: 1.5,
-                    color: "white",
-                    textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+                    color: colors.textColor,
+                    textShadow: isHomePage && !isSolid ? "0 1px 2px rgba(0,0,0,0.5)" : "none",
+                    transition: "all 0.3s ease-in-out",
                     "&:hover": {
-                      bgcolor: "rgba(255, 255, 255, 0.2)",
+                      bgcolor: mode === "dark"
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(0, 0, 0, 0.05)",
                     },
                   }}
                 >
@@ -190,9 +255,12 @@ export default function Header() {
                 onClick={toggleTheme}
                 sx={{
                   ml: 2,
-                  color: "white",
+                  color: colors.iconColor,
+                  transition: "all 0.3s ease-in-out",
                   "&:hover": {
-                    bgcolor: "rgba(255, 255, 255, 0.2)",
+                    bgcolor: mode === "dark"
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(0, 0, 0, 0.05)",
                   },
                 }}
               >
@@ -207,9 +275,12 @@ export default function Header() {
                   <IconButton
                     onClick={() => setCartOpen(true)}
                     sx={{
-                      color: "white",
+                      color: colors.iconColor,
+                      transition: "all 0.3s ease-in-out",
                       "&:hover": {
-                        bgcolor: "rgba(255, 255, 255, 0.2)",
+                        bgcolor: mode === "dark"
+                          ? "rgba(255, 255, 255, 0.1)"
+                          : "rgba(0, 0, 0, 0.05)",
                       },
                     }}
                   >
@@ -225,9 +296,12 @@ export default function Header() {
                     <IconButton
                       onClick={() => setNotificationsOpen(true)}
                       sx={{
-                        color: "white",
+                        color: colors.iconColor,
+                        transition: "all 0.3s ease-in-out",
                         "&:hover": {
-                          bgcolor: "rgba(255, 255, 255, 0.2)",
+                          bgcolor: mode === "dark"
+                            ? "rgba(255, 255, 255, 0.1)"
+                            : "rgba(0, 0, 0, 0.05)",
                         },
                       }}
                     >
@@ -271,7 +345,7 @@ export default function Header() {
                     </Box>
                   </MenuItem>
                   <Divider />
-                  <MenuItem onClick={() => { handleMenuClose(); navigate("/profile"); }}>
+                  <MenuItem onClick={() => { handleMenuClose(); navigate("/perfil"); }}>
                     <AccountCircleIcon sx={{ mr: 1 }} fontSize="small" />
                     Mi Perfil
                   </MenuItem>
@@ -293,12 +367,19 @@ export default function Header() {
                   textTransform: "none",
                   fontWeight: 500,
                   ml: 1,
-                  color: "white",
-                  border: "1px solid rgba(255, 255, 255, 0.5)",
-                  textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+                  color: colors.textColor,
+                  border: mode === "dark"
+                    ? "1px solid rgba(255, 255, 255, 0.3)"
+                    : "1px solid rgba(0, 0, 0, 0.2)",
+                  textShadow: isHomePage && !isSolid ? "0 1px 2px rgba(0,0,0,0.5)" : "none",
+                  transition: "all 0.3s ease-in-out",
                   "&:hover": {
-                    bgcolor: "rgba(255, 255, 255, 0.2)",
-                    borderColor: "rgba(255, 255, 255, 0.7)",
+                    bgcolor: mode === "dark"
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(0, 0, 0, 0.05)",
+                    borderColor: mode === "dark"
+                      ? "rgba(255, 255, 255, 0.5)"
+                      : "rgba(0, 0, 0, 0.3)",
                   },
                 }}
               >

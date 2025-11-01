@@ -88,6 +88,38 @@ const seedDatabase = async () => {
     console.log('   - juan@example.com (cliente)')
     console.log('🔐 Password para todos: password123')
 
+    // Seed métodos de pago
+    const existingMetodosPago = await sequelize.models.metodos_pago.count()
+    if (existingMetodosPago === 0) {
+      await sequelize.models.metodos_pago.bulkCreate([
+        {
+          nombre: 'tarjeta',
+          descripcion: 'Pago con tarjeta de crédito/débito',
+          activo: true,
+          comision_porcentaje: 3.5
+        },
+        {
+          nombre: 'pagar_despues',
+          descripcion: 'Reservar con seña del 30% - Pagar más tarde',
+          activo: true,
+          comision_porcentaje: 0
+        },
+        {
+          nombre: 'transferencia',
+          descripcion: 'Transferencia bancaria',
+          activo: true,
+          comision_porcentaje: 0
+        },
+        {
+          nombre: 'efectivo',
+          descripcion: 'Pago en efectivo',
+          activo: true,
+          comision_porcentaje: 0
+        }
+      ])
+      console.log('✅ Seed completado: 4 métodos de pago creados')
+    }
+
   } catch (error) {
     console.error('❌ Error en el seed:', error.message)
   }

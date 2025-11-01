@@ -159,7 +159,7 @@ export default function TripDetailPage() {
         <Grid container spacing={4}>
           {/* COLUMNA IZQUIERDA: Galería (40%) */}
           <Grid item xs={12} md={5}>
-            <Paper elevation={3} sx={{ overflow: "hidden", borderRadius: 2 }}>
+            <Paper elevation={3} sx={{ overflow: "hidden", borderRadius: 2, width: "100%", maxWidth: "100%" }}>
               <TripGallery
                 images={
                   trip.imagenes?.map(img => typeof img === 'string' ? img : img.url).filter(Boolean) ||
@@ -213,8 +213,10 @@ export default function TripDetailPage() {
               {/* Ubicación */}
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
                 <Place fontSize="small" sx={{ color: "text.primary", opacity: 0.7 }} />
-                <Typography variant="body1" color="text.primary" sx={{ fontWeight: 500 }}>
-                  {trip.destino || "Destino por confirmar"}
+                <Typography variant="body1" color="text.primary" sx={{ fontWeight: 500 }} data-testid="trip-detail-destino">
+                  {typeof trip.destino === 'string'
+                    ? trip.destino
+                    : trip.destino?.nombre || "Destino por confirmar"}
                 </Typography>
               </Stack>
 
@@ -252,16 +254,25 @@ export default function TripDetailPage() {
               elevation={4}
               sx={{
                 p: 3,
-                bgcolor: "primary.main",
+                bgcolor: (theme) => theme.palette.mode === 'dark'
+                  ? 'rgba(48, 130, 86, 0.95)' // Verde más oscuro para modo oscuro
+                  : "primary.main",
                 borderRadius: 2,
               }}
             >
               {/* Precio grande */}
               <Box sx={{ mb: 3 }}>
-                <Typography variant="h3" sx={{ fontWeight: 800, mb: 0.5, color: '#000' }}>
+                <Typography variant="h3" sx={{
+                  fontWeight: 800,
+                  mb: 0.5,
+                  color: (theme) => theme.palette.mode === 'dark' ? '#fff' : '#000'
+                }}>
                   ${precioFinal?.toLocaleString()}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#000', fontWeight: 500 }}>
+                <Typography variant="body2" sx={{
+                  color: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.9)' : '#000',
+                  fontWeight: 500
+                }}>
                   Por persona
                 </Typography>
               </Box>
@@ -269,10 +280,14 @@ export default function TripDetailPage() {
               {/* Selector de fecha */}
               {trip.fechas_disponibles && trip.fechas_disponibles.length > 0 && (
                 <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: '#000' }}>
+                  <Typography variant="subtitle2" sx={{
+                    mb: 1,
+                    fontWeight: 600,
+                    color: (theme) => theme.palette.mode === 'dark' ? '#fff' : '#000'
+                  }}>
                     Fecha de salida
                   </Typography>
-                  <Stack spacing={1}>
+                  <Stack spacing={1} aria-label="Seleccionar fecha de salida">
                     {trip.fechas_disponibles.map((fecha, index) => {
                       const fechaIdNumber = Number(fecha.id)
                       const isSelected = selectedFecha === fechaIdNumber
@@ -282,25 +297,41 @@ export default function TripDetailPage() {
                           key={fecha.id || `fecha-${index}`}
                           variant={isSelected ? "contained" : "outlined"}
                           onClick={() => setSelectedFecha(fechaIdNumber)}
+                          data-testid={`fecha-${fecha.id ?? index}`}
                           aria-label={`Seleccionar fecha del ${new Date(fecha.fecha_inicio).toLocaleDateString()} al ${new Date(fecha.fecha_fin).toLocaleDateString()}`}
                           sx={{
                             justifyContent: "flex-start",
                             textAlign: "left",
-                            bgcolor: isSelected ? "white" : "transparent",
-                            borderColor: isSelected ? "white" : "rgba(0,0,0,0.3)",
+                            bgcolor: (theme) => isSelected
+                              ? (theme.palette.mode === 'dark' ? '#fff' : 'white')
+                              : 'transparent',
+                            borderColor: (theme) => isSelected
+                              ? (theme.palette.mode === 'dark' ? '#fff' : 'white')
+                              : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.5)'),
+                            borderWidth: isSelected ? 2 : 1,
                             "&:hover": {
-                              bgcolor: isSelected ? "white" : "rgba(255,255,255,0.1)",
-                              borderColor: isSelected ? "white" : "rgba(0,0,0,0.5)",
+                              bgcolor: (theme) => isSelected
+                                ? (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.95)')
+                                : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(30, 122, 95, 0.08)'),
+                              borderColor: (theme) => isSelected
+                                ? (theme.palette.mode === 'dark' ? '#fff' : 'white')
+                                : (theme.palette.mode === 'dark' ? '#fff' : 'rgba(255,255,255,0.8)'),
                             }
                           }}
                         >
                           <Box sx={{ flex: 1 }}>
                             <Stack direction="row" spacing={1} alignItems="center">
-                              <CalendarToday fontSize="small" sx={{ color: isSelected ? 'primary.main' : '#000' }} />
+                              <CalendarToday fontSize="small" sx={{
+                                color: (theme) => isSelected
+                                  ? '#000'
+                                  : (theme.palette.mode === 'dark' ? '#fff' : '#fff')
+                              }} />
                               <Typography
                                 variant="body1"
                                 sx={{
-                                  color: isSelected ? 'primary.main' : '#000',
+                                  color: (theme) => isSelected
+                                    ? '#000'
+                                    : (theme.palette.mode === 'dark' ? '#fff' : '#fff'),
                                   fontWeight: 600,
                                   fontSize: '1rem'
                                 }}
@@ -312,8 +343,9 @@ export default function TripDetailPage() {
                               <Typography
                                 variant="body2"
                                 sx={{
-                                  color: isSelected ? 'primary.main' : '#000',
-                                  opacity: isSelected ? 0.8 : 0.9,
+                                  color: (theme) => isSelected
+                                    ? 'rgba(0,0,0,0.7)'
+                                    : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.7)'),
                                   display: "block",
                                   ml: 3.5,
                                   fontSize: '0.9rem'
@@ -332,7 +364,11 @@ export default function TripDetailPage() {
 
               {/* Selector de cantidad */}
               <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: '#000' }}>
+                <Typography variant="subtitle2" sx={{
+                  mb: 1,
+                  fontWeight: 600,
+                  color: (theme) => theme.palette.mode === 'dark' ? '#fff' : '#000'
+                }}>
                   Cantidad de personas
                 </Typography>
                 <Stack direction="row" spacing={2} alignItems="center">
@@ -346,7 +382,12 @@ export default function TripDetailPage() {
                   >
                     <Remove />
                   </IconButton>
-                  <Typography variant="h5" sx={{ fontWeight: 700, minWidth: 40, textAlign: "center", color: '#000' }}>
+                  <Typography variant="h5" sx={{
+                    fontWeight: 700,
+                    minWidth: 40,
+                    textAlign: "center",
+                    color: (theme) => theme.palette.mode === 'dark' ? '#fff' : '#000'
+                  }}>
                     {cantidad}
                   </Typography>
                   <IconButton
@@ -363,18 +404,31 @@ export default function TripDetailPage() {
               </Box>
 
               {/* Total */}
-              <Box sx={{ mb: 3, p: 2, bgcolor: "rgba(255,255,255,0.2)", borderRadius: 1 }}>
+              <Box sx={{
+                mb: 3,
+                p: 2,
+                bgcolor: (theme) => theme.palette.mode === 'dark'
+                  ? "rgba(255,255,255,0.15)"
+                  : "rgba(255,255,255,0.2)",
+                borderRadius: 1
+              }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#000' }}>
+                  <Typography variant="h6" sx={{
+                    fontWeight: 600,
+                    color: (theme) => theme.palette.mode === 'dark' ? '#fff' : '#000'
+                  }}>
                     Total
                   </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 800, color: '#000' }}>
+                  <Typography variant="h4" sx={{
+                    fontWeight: 800,
+                    color: (theme) => theme.palette.mode === 'dark' ? '#fff' : '#000'
+                  }}>
                     ${(precioFinal * cantidad).toLocaleString()}
                   </Typography>
                 </Stack>
               </Box>
 
-              {/* Botón agregar al carrito */}
+              {/* Botón de reserva */}
               <Button
                 variant="contained"
                 size="large"
@@ -383,33 +437,89 @@ export default function TripDetailPage() {
                 onClick={handleAddToCart}
                 disabled={!selectedFecha || addingToCart}
                 aria-disabled={!selectedFecha || addingToCart}
+                data-testid="btn-reservar"
                 title={
                   !selectedFecha
                     ? "Selecciona una fecha primero"
                     : !user
                       ? "Haz clic para iniciar sesión"
                       : addingToCart
-                        ? "Agregando al carrito..."
-                        : "Agregar al carrito"
+                        ? "Procesando reserva..."
+                        : "Reservar este viaje"
                 }
                 sx={{
-                  bgcolor: "#9CCC65", // Verde Lima
-                  color: "white",
+                  bgcolor: (theme) => theme.palette.mode === 'dark'
+                    ? "#AED581" // Verde lima más claro para modo oscuro
+                    : "#9CCC65", // Verde Lima para modo claro
+                  color: (theme) => theme.palette.mode === 'dark'
+                    ? "#000" // Negro para mejor contraste en modo oscuro
+                    : "#000", // Negro en modo claro
                   fontWeight: 700,
                   fontSize: "1.1rem",
                   py: 1.5,
+                  boxShadow: (theme) => theme.palette.mode === 'dark'
+                    ? '0 4px 12px rgba(174, 213, 129, 0.4)' // Sombra verde para destacar
+                    : 3,
                   "&:hover": {
-                    bgcolor: "#8BC34A",
+                    bgcolor: (theme) => theme.palette.mode === 'dark'
+                      ? "#C5E1A5" // Aún más claro al hover
+                      : "#8BC34A",
+                    boxShadow: (theme) => theme.palette.mode === 'dark'
+                      ? '0 6px 16px rgba(174, 213, 129, 0.5)'
+                      : 6,
                   },
                   "&:disabled": {
                     bgcolor: (theme) => theme.palette.mode === "dark" ? "grey.700" : "grey.400",
-                    color: (theme) => theme.palette.mode === "dark" ? "grey.400" : "grey.600",
+                    color: (theme) => theme.palette.mode === "dark" ? "grey.500" : "grey.600",
                     cursor: "not-allowed",
-                    opacity: 0.7,
+                    opacity: 0.6,
+                    boxShadow: 'none',
                   }
                 }}
               >
-                {addingToCart ? "AGREGANDO..." : "AÑADIR AL CARRITO"}
+                {addingToCart ? "PROCESANDO..." : "RESERVAR"}
+              </Button>
+
+              {/* Botón de consulta */}
+              <Button
+                variant="outlined"
+                size="large"
+                fullWidth
+                onClick={() => {
+                  const queryParams = new URLSearchParams({
+                    tripId: id,
+                    tripName: trip.titulo
+                  });
+                  navigate(`/contacto?${queryParams.toString()}`);
+                }}
+                aria-label="Realizar consulta sobre este viaje"
+                data-testid="btn-consultar"
+                sx={{
+                  mt: 2,
+                  fontWeight: 600,
+                  fontSize: "1rem",
+                  py: 1.5,
+                  borderColor: (theme) => theme.palette.mode === 'dark'
+                    ? "#AED581" // Borde verde lima claro
+                    : "rgba(255,255,255,0.9)",
+                  borderWidth: 2,
+                  color: (theme) => theme.palette.mode === 'dark'
+                    ? "#AED581" // Texto verde lima claro
+                    : "white",
+                  "&:hover": {
+                    borderColor: (theme) => theme.palette.mode === 'dark'
+                      ? "#C5E1A5" // Borde más claro al hover
+                      : "#fff",
+                    bgcolor: (theme) => theme.palette.mode === 'dark'
+                      ? "rgba(174, 213, 129, 0.1)" // Fondo verde suave
+                      : "rgba(255, 255, 255, 0.1)",
+                    color: (theme) => theme.palette.mode === 'dark'
+                      ? "#C5E1A5"
+                      : "#fff",
+                  },
+                }}
+              >
+                Realizar Consulta
               </Button>
 
               {!user && (

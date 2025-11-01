@@ -23,7 +23,7 @@ import {
   Select,
   MenuItem,
 } from "@mui/material"
-import { Add, Edit, Delete, Visibility } from "@mui/icons-material"
+import { Add, Edit, Delete, Visibility, Star, StarBorder } from "@mui/icons-material"
 import { viajesAPI } from "../../services/api"
 
 /**
@@ -118,6 +118,26 @@ export default function AdminViajesPage() {
     }
   }
 
+  const handleToggleDestacado = async (viaje) => {
+    try {
+      const nuevoEstadoDestacado = !viaje.destacado
+      await viajesAPI.updateViaje(viaje.id_viaje, {
+        destacado: nuevoEstadoDestacado
+      })
+
+      // Actualizar el estado local para reflejar el cambio inmediatamente
+      setViajes(viajes.map(v =>
+        v.id_viaje === viaje.id_viaje
+          ? { ...v, destacado: nuevoEstadoDestacado }
+          : v
+      ))
+    } catch (error) {
+      console.error("Error actualizando estado destacado:", error)
+      // Recargar viajes si hay error
+      loadViajes()
+    }
+  }
+
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
@@ -138,24 +158,45 @@ export default function AdminViajesPage() {
               <TableCell>Duración</TableCell>
               <TableCell>Dificultad</TableCell>
               <TableCell>Precio Base</TableCell>
+              <TableCell align="center">Destacado</TableCell>
               <TableCell>Acciones</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {viajes.map((viaje) => (
-              <TableRow key={viaje.id}>
+              <TableRow key={viaje.id_viaje || viaje.id}>
                 <TableCell>{viaje.titulo}</TableCell>
-                <TableCell>{viaje.destino}</TableCell>
+                <TableCell>
+                  {typeof viaje.destino === 'string'
+                    ? viaje.destino
+                    : viaje.destino?.nombre || 'Sin destino'}
+                </TableCell>
                 <TableCell>{viaje.duracion_dias} días</TableCell>
                 <TableCell>
                   <Chip label={viaje.dificultad} size="small" />
                 </TableCell>
                 <TableCell>${viaje.precio_base?.toLocaleString()}</TableCell>
+                <TableCell align="center">
+                  <IconButton
+                    size="small"
+                    onClick={() => handleToggleDestacado(viaje)}
+                    color={viaje.destacado ? "warning" : "default"}
+                    sx={{
+                      transition: "all 0.2s",
+                      "&:hover": {
+                        transform: "scale(1.2)",
+                      }
+                    }}
+                    title={viaje.destacado ? "Quitar de destacados" : "Marcar como destacado"}
+                  >
+                    {viaje.destacado ? <Star /> : <StarBorder />}
+                  </IconButton>
+                </TableCell>
                 <TableCell>
                   <IconButton size="small" onClick={() => handleEdit(viaje)}>
                     <Edit />
                   </IconButton>
-                  <IconButton size="small" onClick={() => handleDelete(viaje.id)}>
+                  <IconButton size="small" onClick={() => handleDelete(viaje.id_viaje || viaje.id)}>
                     <Delete />
                   </IconButton>
                 </TableCell>

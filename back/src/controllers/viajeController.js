@@ -8,7 +8,7 @@
 import { validationResult } from "express-validator";
 import { Op } from "sequelize";
 import sequelize from "../config/database.js";
-import { Viaje, FechaViaje, Categoria, ImagenViaje } from "../models/associations.js";
+import { Viaje, FechaViaje, Categoria, Destino, ImagenViaje } from "../models/associations.js";
 import { upload, handleMulterError, getFileUrl } from "../config/multer.js";
 import { processViajeImages } from "../utils/imageUrlHelper.js";
 
@@ -60,6 +60,7 @@ export const getViajes = async (req, res) => {
       precio_max,
       duracion_min,
       duracion_max,
+      mes,
       sortBy = 'fecha_creacion'
     } = req.query;
 
@@ -108,7 +109,8 @@ export const getViajes = async (req, res) => {
       }
     }
 
-    // Construir include para categoría
+    // Construir include para categoría, destino, fechas e imágenes
+    // Usando separate:true para fechas e imágenes para evitar problemas con LIMIT y paginación
     const include = [
       {
         model: Categoria,
@@ -116,17 +118,39 @@ export const getViajes = async (req, res) => {
         required: false
       },
       {
+        model: Destino,
+        as: 'destino',
+        required: false
+      },
+      {
         model: FechaViaje,
         as: 'fechas',
         where: { estado_fecha: 'disponible' },
-        required: false
+        required: false,
+        separate: true, // Hacer consulta separada para evitar problemas con LIMIT
+        order: [['fecha_inicio', 'ASC']]
       },
       {
         model: ImagenViaje,
         as: 'imagenes',
-        required: false
+        required: false,
+        separate: true, // Hacer consulta separada para evitar problemas con LIMIT
+        order: [['orden', 'ASC']]
       }
     ];
+
+    // Filtro de mes - filtrar viajes que tienen fechas en el mes seleccionado
+    if (mes) {
+      const mesNum = parseInt(mes);
+      include[2].where = {
+        ...include[2].where,
+        [Op.and]: [
+          sequelize.where(sequelize.fn('MONTH', sequelize.col('fechas.fecha_inicio')), mesNum)
+        ]
+      };
+      // Hacer el join requerido para que solo muestre viajes con fechas en ese mes
+      include[2].required = true;
+    }
 
     // Filtrar por categoría si se especifica
     if (categoria) {
@@ -134,26 +158,27 @@ export const getViajes = async (req, res) => {
     }
 
     // Determinar orden de resultados
+    // Nota: NO incluimos ordenamiento de fechas aquí porque separate:true hace consultas separadas
     let orderClause;
     switch (sortBy) {
       case 'precio_asc':
-        orderClause = [['precio_base', 'ASC'], [{ model: FechaViaje, as: 'fechas' }, 'fecha_inicio', 'ASC']];
+        orderClause = [['precio_base', 'ASC']];
         break;
       case 'precio_desc':
-        orderClause = [['precio_base', 'DESC'], [{ model: FechaViaje, as: 'fechas' }, 'fecha_inicio', 'ASC']];
+        orderClause = [['precio_base', 'DESC']];
         break;
       case 'duracion_asc':
-        orderClause = [['duracion_dias', 'ASC'], [{ model: FechaViaje, as: 'fechas' }, 'fecha_inicio', 'ASC']];
+        orderClause = [['duracion_dias', 'ASC']];
         break;
       case 'duracion_desc':
-        orderClause = [['duracion_dias', 'DESC'], [{ model: FechaViaje, as: 'fechas' }, 'fecha_inicio', 'ASC']];
+        orderClause = [['duracion_dias', 'DESC']];
         break;
       case 'popularidad':
-        orderClause = [['destacado', 'DESC'], ['fecha_creacion', 'DESC'], [{ model: FechaViaje, as: 'fechas' }, 'fecha_inicio', 'ASC']];
+        orderClause = [['destacado', 'DESC'], ['fecha_creacion', 'DESC']];
         break;
       case 'fecha_creacion':
       default:
-        orderClause = [['fecha_creacion', 'DESC'], [{ model: FechaViaje, as: 'fechas' }, 'fecha_inicio', 'ASC']];
+        orderClause = [['fecha_creacion', 'DESC']];
         break;
     }
 
@@ -201,6 +226,13 @@ export const getViajes = async (req, res) => {
           const totalOcupados = parseInt(reservasConfirmadas[0]?.total_ocupados) || 0;
           const cuposDisponiblesReales = Math.max(0, fecha.cupos_disponibles - totalOcupados);
 
+          console.log(`[Viaje] Cupos para fecha ${fecha.id_fechas_viaje}:`, {
+            maximoParticipantes: fecha.cupos_disponibles + totalOcupados,
+            cuposOcupados: totalOcupados,
+            cuposDisponibles: cuposDisponiblesReales,
+            fechaInicio: fecha.fecha_inicio
+          });
+
           fecha.cupos_disponibles = cuposDisponiblesReales;
           fecha.cupos_ocupados = totalOcupados;
         }
@@ -246,6 +278,10 @@ export const getViajeById = async (req, res) => {
         {
           model: Categoria,
           as: 'categoria'
+        },
+        {
+          model: Destino,
+          as: 'destino'
         },
         {
           model: FechaViaje,
@@ -544,6 +580,7 @@ export const createViaje = async (req, res) => {
       descripcion_corta,
       descripcion_completa,
       destino,
+      id_destino,
       duracion_dias,
       dificultad,
       precio_base,
@@ -554,15 +591,34 @@ export const createViaje = async (req, res) => {
       no_incluye,
       recomendaciones,
       itinerario,
-      activo
+      activo,
+      destacado
     } = req.body;
+
+    // Manejar destino: si se proporciona nombre de destino (nuevo o existente)
+    let destinoId = id_destino ? parseInt(id_destino) : null;
+
+    if (destino && !destinoId) {
+      // Buscar o crear el destino por nombre
+      const [destinoObj, created] = await Destino.findOrCreate({
+        where: { nombre: destino.trim() },
+        defaults: {
+          nombre: destino.trim(),
+          provincia: null,
+          region: null,
+          descripcion: null
+        }
+      });
+      destinoId = destinoObj.id_destino;
+      console.log(`[createViaje] Destino ${created ? 'creado' : 'encontrado'}: ${destinoObj.nombre} (ID: ${destinoId})`);
+    }
 
     // El frontend envía strings, no arrays. No hacer JSON.stringify si ya es string
     const nuevoViaje = await Viaje.create({
       titulo,
       descripcion: descripcion_completa || descripcion, // Frontend envía descripcion_completa
       descripcion_corta,
-      destino,
+      id_destino: destinoId,
       duracion_dias: parseInt(duracion_dias),
       dificultad,
       precio_base: parseFloat(precio_base),
@@ -573,7 +629,8 @@ export const createViaje = async (req, res) => {
       no_incluye: no_incluye || null, // Guardar como string directo
       recomendaciones: recomendaciones || null, // Campo nuevo
       itinerario: itinerario || null,
-      activo: activo !== undefined ? activo : true
+      activo: activo !== undefined ? activo : true,
+      destacado: destacado !== undefined ? destacado : false
     });
 
     res.status(201).json({
@@ -623,6 +680,7 @@ export const updateViaje = async (req, res) => {
       descripcion_corta,
       descripcion_completa,
       destino,
+      id_destino,
       duracion_dias,
       dificultad,
       precio_base,
@@ -633,7 +691,8 @@ export const updateViaje = async (req, res) => {
       no_incluye,
       recomendaciones,
       itinerario,
-      activo
+      activo,
+      destacado
     } = req.body;
 
     console.log('[updateViaje] Datos recibidos:', {
@@ -642,6 +701,24 @@ export const updateViaje = async (req, res) => {
       recomendaciones: recomendaciones ? `${recomendaciones.substring(0, 50)}...` : 'null'
     });
 
+    // Manejar destino: si se proporciona nombre de destino (nuevo o existente)
+    let destinoId = id_destino ? parseInt(id_destino) : null;
+
+    if (destino && !destinoId) {
+      // Buscar o crear el destino por nombre
+      const [destinoObj, created] = await Destino.findOrCreate({
+        where: { nombre: destino.trim() },
+        defaults: {
+          nombre: destino.trim(),
+          provincia: null,
+          region: null,
+          descripcion: null
+        }
+      });
+      destinoId = destinoObj.id_destino;
+      console.log(`[updateViaje] Destino ${created ? 'creado' : 'encontrado'}: ${destinoObj.nombre} (ID: ${destinoId})`);
+    }
+
     // Preparar objeto de actualización solo con campos que vengan definidos
     const updateData = {};
 
@@ -649,7 +726,7 @@ export const updateViaje = async (req, res) => {
     if (descripcion_completa !== undefined) updateData.descripcion = descripcion_completa; // Frontend envía descripcion_completa
     else if (descripcion !== undefined) updateData.descripcion = descripcion;
     if (descripcion_corta !== undefined) updateData.descripcion_corta = descripcion_corta;
-    if (destino !== undefined) updateData.destino = destino;
+    if (destinoId !== null) updateData.id_destino = destinoId;
     if (duracion_dias !== undefined) updateData.duracion_dias = parseInt(duracion_dias);
     if (dificultad !== undefined) updateData.dificultad = dificultad;
     if (precio_base !== undefined) updateData.precio_base = parseFloat(precio_base);
@@ -657,6 +734,7 @@ export const updateViaje = async (req, res) => {
     if (maximo_participantes !== undefined) updateData.maximo_participantes = parseInt(maximo_participantes);
     if (id_categoria !== undefined) updateData.id_categoria = id_categoria ? parseInt(id_categoria) : null;
     if (activo !== undefined) updateData.activo = activo;
+    if (destacado !== undefined) updateData.destacado = destacado;
 
     // Campos de texto: guardar como string directo (no JSON.stringify)
     if (incluye !== undefined) updateData.incluye = incluye;
@@ -710,6 +788,31 @@ export const deleteViaje = async (req, res) => {
 
   } catch (error) {
     console.error('Error eliminando viaje:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+/**
+ * Obtiene todos los destinos disponibles
+ * Para usar en dropdowns/autocomplete del admin panel
+ */
+export const getDestinos = async (req, res) => {
+  try {
+    const destinos = await Destino.findAll({
+      attributes: ['id_destino', 'nombre', 'provincia', 'region', 'descripcion'],
+      order: [['nombre', 'ASC']]
+    });
+
+    res.json({
+      success: true,
+      data: { destinos }
+    });
+
+  } catch (error) {
+    console.error('Error obteniendo destinos:', error);
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor'

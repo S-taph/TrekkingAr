@@ -12,12 +12,18 @@ import {
   useMediaQuery,
   useTheme,
   Fade,
+  ToggleButtonGroup,
+  ToggleButton,
+  Paper,
 } from "@mui/material"
 import {
   Close as CloseIcon,
   NavigateBefore,
   NavigateNext,
   ZoomIn,
+  Photo,
+  VideoLibrary,
+  Collections,
 } from "@mui/icons-material"
 import Header from "../components/Header"
 import { viajesAPI } from "../services/api"
@@ -32,10 +38,73 @@ export default function GaleriaPage() {
   const isTablet = useMediaQuery(theme.breakpoints.down("md"))
 
   const [images, setImages] = useState([])
+  const [allTripsImages, setAllTripsImages] = useState([]) // Images organized by trip ID
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedImage, setSelectedImage] = useState(null)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [mediaFilter, setMediaFilter] = useState("todos") // "todos", "fotos", "videos"
+
+  // Helper function to determine if a URL is a video
+  const isVideo = (url) => {
+    const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.flv']
+    return videoExtensions.some(ext => url.toLowerCase().endsWith(ext))
+  }
+
+  // Determine number of columns based on screen size
+  const cols = isMobile ? 1 : isTablet ? 2 : 4
+
+  // Organize images by trip in rows
+  const organizeImagesByTrip = () => {
+    const organized = []
+    const sortedTripIds = Object.keys(allTripsImages).sort((a, b) => Number(a) - Number(b))
+
+    // Calculate minimum images needed to fill the screen
+    const minImagesForFullGrid = cols * (isMobile ? 6 : isTablet ? 8 : 12)
+
+    // Add images trip by trip, row by row
+    let tripIndex = 0
+    let cycleCount = 0
+    while (organized.length < minImagesForFullGrid && sortedTripIds.length > 0) {
+      const tripId = sortedTripIds[tripIndex % sortedTripIds.length]
+      const tripImages = allTripsImages[tripId] || []
+
+      // Filter by media type
+      const filteredTripImages = tripImages.filter((image) => {
+        if (mediaFilter === "todos") return true
+        if (mediaFilter === "fotos") return !isVideo(image.url)
+        if (mediaFilter === "videos") return isVideo(image.url)
+        return true
+      })
+
+      // Add images from this trip
+      for (const img of filteredTripImages) {
+        organized.push({...img})
+      }
+
+      // Fill remaining slots in the row with images from the same trip if needed
+      const imagesInCurrentRow = organized.length % cols
+      if (imagesInCurrentRow > 0 && imagesInCurrentRow < cols) {
+        const slotsToFill = cols - imagesInCurrentRow
+        for (let i = 0; i < slotsToFill && i < filteredTripImages.length; i++) {
+          organized.push({...filteredTripImages[i]})
+        }
+      }
+
+      tripIndex++
+      // Track cycles to prevent infinite loop
+      if (tripIndex % sortedTripIds.length === 0) {
+        cycleCount++
+      }
+      if (cycleCount > 10) break // Safety limit
+    }
+
+    return organized
+  }
+
+  const filteredImages = allTripsImages && Object.keys(allTripsImages).length > 0
+    ? organizeImagesByTrip()
+    : []
 
   useEffect(() => {
     document.title = "Galería - TrekkingAR"
@@ -51,34 +120,50 @@ export default function GaleriaPage() {
       const response = await viajesAPI.getViajes({ limit: 100, activo: true })
 
       if (response.success) {
-        // Extraer todas las imágenes de todos los viajes
-        const allImages = []
+        // Sort trips by ID to ensure consistent ordering
+        const sortedTrips = [...response.data.viajes].sort((a, b) => a.id_viaje - b.id_viaje)
 
-        response.data.viajes.forEach((viaje) => {
+        // Organize images by trip ID and extract all images
+        const allImages = []
+        const imagesByTrip = {}
+
+        sortedTrips.forEach((viaje) => {
+          const tripImages = []
+
           // Agregar imagen principal si existe
           if (viaje.imagen_principal_url) {
-            allImages.push({
+            const imgData = {
               url: viaje.imagen_principal_url,
               titulo: viaje.titulo,
               destino: viaje.destino,
               id_viaje: viaje.id_viaje,
-            })
+            }
+            tripImages.push(imgData)
+            allImages.push(imgData)
           }
 
           // Agregar imágenes adicionales si existen
           if (viaje.imagenes && Array.isArray(viaje.imagenes)) {
             viaje.imagenes.forEach((imagen) => {
-              allImages.push({
+              const imgData = {
                 url: typeof imagen === 'string' ? imagen : imagen.url,
                 titulo: viaje.titulo,
                 destino: viaje.destino,
                 id_viaje: viaje.id_viaje,
-              })
+              }
+              tripImages.push(imgData)
+              allImages.push(imgData)
             })
+          }
+
+          // Store images organized by trip ID
+          if (tripImages.length > 0) {
+            imagesByTrip[viaje.id_viaje] = tripImages
           }
         })
 
         setImages(allImages)
+        setAllTripsImages(imagesByTrip)
       } else {
         throw new Error(response.message || "Error cargando imágenes")
       }
@@ -113,9 +198,6 @@ export default function GaleriaPage() {
     setSelectedImage(images[newIndex])
   }
 
-  // Determinar número de columnas según tamaño de pantalla
-  const cols = isMobile ? 1 : isTablet ? 2 : 4
-
   return (
     <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
       <Header />
@@ -141,12 +223,61 @@ export default function GaleriaPage() {
           <Typography variant="h6" color="text.secondary">
             Explora los paisajes más increíbles de nuestros trekkings
           </Typography>
-          {images.length > 0 && (
+          {filteredImages.length > 0 && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {images.length} {images.length === 1 ? "imagen" : "imágenes"}
+              {filteredImages.length} {filteredImages.length === 1 ? "imagen" : "imágenes"}
             </Typography>
           )}
         </Box>
+
+        {/* Filter Buttons */}
+        {!loading && images.length > 0 && (
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+            <Paper elevation={2} sx={{ p: 0.5, borderRadius: 2 }}>
+              <ToggleButtonGroup
+                value={mediaFilter}
+                exclusive
+                onChange={(event, newFilter) => {
+                  if (newFilter !== null) {
+                    setMediaFilter(newFilter)
+                  }
+                }}
+                aria-label="Media type filter"
+                size="small"
+                sx={{
+                  "& .MuiToggleButton-root": {
+                    px: 3,
+                    py: 1,
+                    fontSize: "0.875rem",
+                    fontWeight: 600,
+                    textTransform: "none",
+                    border: "none",
+                    "&.Mui-selected": {
+                      bgcolor: "primary.main",
+                      color: "white",
+                      "&:hover": {
+                        bgcolor: "primary.dark",
+                      },
+                    },
+                  },
+                }}
+              >
+                <ToggleButton value="todos" aria-label="Show all media">
+                  <Collections sx={{ mr: 1, fontSize: "1.2rem" }} />
+                  Todos
+                </ToggleButton>
+                <ToggleButton value="fotos" aria-label="Show photos only">
+                  <Photo sx={{ mr: 1, fontSize: "1.2rem" }} />
+                  Fotos
+                </ToggleButton>
+                <ToggleButton value="videos" aria-label="Show videos only">
+                  <VideoLibrary sx={{ mr: 1, fontSize: "1.2rem" }} />
+                  Videos
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Paper>
+          </Box>
+        )}
 
         {/* Loading */}
         {loading && (
@@ -162,32 +293,33 @@ export default function GaleriaPage() {
           </Alert>
         )}
 
-        {/* Galería Masonry */}
-        {!loading && !error && images.length > 0 && (
-          <ImageList
-            variant="masonry"
-            cols={cols}
-            gap={16}
-            sx={{
-              mb: 0,
-              "& .MuiImageListItem-root": {
-                overflow: "hidden",
-                borderRadius: 2,
-                cursor: "pointer",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  transform: "scale(1.03)",
-                  boxShadow: theme.shadows[10],
-                  "& .overlay": {
-                    opacity: 1,
+        {/* Galería Grid */}
+        {!loading && !error && filteredImages.length > 0 && (
+          <Box sx={{ overflow: "hidden" }}>
+            <ImageList
+              cols={cols}
+              gap={16}
+              sx={{
+                mb: 0,
+                "& .MuiImageListItem-root": {
+                  overflow: "hidden",
+                  borderRadius: 2,
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                  height: "250px !important", // Fixed height for consistent rows
+                  "&:hover": {
+                    transform: "translateY(-8px)",
+                    boxShadow: theme.shadows[10],
+                    "& .overlay": {
+                      opacity: 1,
+                    },
                   },
                 },
-              },
-            }}
-          >
-            {images.map((image, index) => (
+              }}
+            >
+            {filteredImages.map((image, index) => (
               <ImageListItem
-                key={index}
+                key={`${image.id_viaje}-${index}`}
                 onClick={() => handleImageClick(image, index)}
               >
                 <img
@@ -197,7 +329,8 @@ export default function GaleriaPage() {
                   style={{
                     display: "block",
                     width: "100%",
-                    height: "auto",
+                    height: "100%",
+                    objectFit: "cover",
                   }}
                 />
                 {/* Overlay con información */}
@@ -218,15 +351,20 @@ export default function GaleriaPage() {
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                     {image.titulo}
                   </Typography>
-                  <Typography variant="caption">{image.destino}</Typography>
+                  <Typography variant="caption" data-testid="gallery-item-destino">
+                    {typeof image.destino === 'string'
+                      ? image.destino
+                      : image.destino?.nombre || 'Destino no especificado'}
+                  </Typography>
                 </Box>
               </ImageListItem>
             ))}
           </ImageList>
+          </Box>
         )}
 
         {/* Sin imágenes */}
-        {!loading && !error && images.length === 0 && (
+        {!loading && !error && filteredImages.length === 0 && (
           <Box sx={{ textAlign: "center", py: 8 }}>
             <Typography variant="h6" color="text.secondary">
               No hay imágenes disponibles
@@ -340,8 +478,10 @@ export default function GaleriaPage() {
                   <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
                     {selectedImage.titulo}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {selectedImage.destino}
+                  <Typography variant="body2" color="text.secondary" data-testid="lightbox-destino">
+                    {typeof selectedImage.destino === 'string'
+                      ? selectedImage.destino
+                      : selectedImage.destino?.nombre || 'Destino no especificado'}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
                     Imagen {currentIndex + 1} de {images.length}
