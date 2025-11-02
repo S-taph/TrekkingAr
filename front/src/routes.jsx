@@ -16,6 +16,7 @@ import AdminUsuariosPage from "./pages/admin/AdminUsuariosPage"
 import AdminReservasPage from "./pages/admin/AdminReservasPage"
 import AdminSuscriptoresPage from "./pages/admin/AdminSuscriptoresPage"
 import AdminCampaniasPage from "./pages/admin/AdminCampaniasPage"
+import NewsletterUnsubscribe from "./pages/NewsletterUnsubscribe"
 
 /**
  * Rutas centralizadas de la aplicación
@@ -32,6 +33,10 @@ export const routes = [
   {
     path: "/verify-email",
     element: <VerifyEmailPage />,
+  },
+  {
+    path: "/newsletter/unsubscribe/:token",
+    element: <NewsletterUnsubscribe />,
   },
   {
     path: "/catalogo",
