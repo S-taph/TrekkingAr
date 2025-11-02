@@ -42,6 +42,8 @@ const getEstadoColor = (estado) => {
       return "error"
     case "completada":
       return "info"
+    case "en_progreso":
+      return "primary"
     default:
       return "default"
   }
@@ -106,7 +108,22 @@ export default function ReservasManager() {
         const response = await reservasAPI.getReservas(params)
 
         if (response.success) {
-          setReservas(response.data.reservas)
+          // Mapear los datos del backend al formato esperado por el frontend
+          const reservasMapeadas = response.data.reservas.map((reserva) => ({
+            id_reserva: reserva.id_reserva,
+            usuario: reserva.usuario,
+            viaje: reserva.fecha_viaje?.viaje,
+            estado: reserva.estado_reserva,
+            fecha_reserva: reserva.fecha_reserva,
+            fecha_viaje: reserva.fecha_viaje?.fecha_inicio,
+            cantidad_personas: reserva.cantidad_personas,
+            precio_total: reserva.compra?.total_compra || reserva.subtotal_reserva,
+            // Mantener campos originales para edición
+            estado_reserva: reserva.estado_reserva,
+            compra: reserva.compra,
+            fecha_viaje_obj: reserva.fecha_viaje,
+          }))
+          setReservas(reservasMapeadas)
           setPagination(response.data.pagination)
         }
       } catch (error) {
@@ -143,13 +160,26 @@ export default function ReservasManager() {
 
   const handleUpdateReserva = async (updatedData) => {
     try {
-      // Here you would call the API to update the reservation
-      // await reservasAPI.updateReserva(selectedReserva.id_reserva, updatedData)
+      // Llamar al API para actualizar la reserva
+      await reservasAPI.updateReservaStatus(
+        selectedReserva.id_reserva,
+        updatedData.estado || updatedData.estado_reserva,
+        updatedData.observaciones_reserva,
+      )
 
-      // For now, just update the local state
+      // Actualizar el estado local
       setReservas((prev) =>
         prev.map((reserva) =>
-          reserva.id_reserva === selectedReserva.id_reserva ? { ...reserva, ...updatedData } : reserva,
+          reserva.id_reserva === selectedReserva.id_reserva
+            ? {
+                ...reserva,
+                estado: updatedData.estado || updatedData.estado_reserva,
+                estado_reserva: updatedData.estado || updatedData.estado_reserva,
+                cantidad_personas: updatedData.cantidad_personas,
+                fecha_viaje: updatedData.fecha_viaje,
+                precio_total: updatedData.precio_total,
+              }
+            : reserva,
         ),
       )
 
@@ -160,36 +190,7 @@ export default function ReservasManager() {
     }
   }
 
-  // Mock data para demostración
-  useEffect(() => {
-    if (reservas.length === 0 && !loading) {
-      const mockReservas = [
-        {
-          id_reserva: 1,
-          usuario: { nombre: "Juan", apellido: "Pérez", email: "juan@example.com" },
-          viaje: { titulo: "Trekking al Aconcagua", duracion_dias: 7 },
-          estado: "confirmada",
-          fecha_reserva: "2024-01-15",
-          fecha_viaje: "2024-02-15",
-          cantidad_personas: 2,
-          precio_total: 150000,
-        },
-        {
-          id_reserva: 2,
-          usuario: { nombre: "María", apellido: "González", email: "maria@example.com" },
-          viaje: { titulo: "Cerro Torre Base Trek", duracion_dias: 5 },
-          estado: "pendiente",
-          fecha_reserva: "2024-01-20",
-          fecha_viaje: "2024-03-10",
-          cantidad_personas: 1,
-          precio_total: 85000,
-        },
-      ]
-      setReservas(mockReservas)
-      setPagination({ currentPage: 1, totalPages: 1, totalItems: 2, itemsPerPage: 12 })
-      setLoading(false)
-    }
-  }, [reservas.length, loading])
+  // Mock data eliminado - ahora usando datos reales del backend
 
   if (loading && reservas.length === 0) {
     return (
@@ -249,8 +250,9 @@ export default function ReservasManager() {
                   <MenuItem value="">Todos</MenuItem>
                   <MenuItem value="pendiente">Pendiente</MenuItem>
                   <MenuItem value="confirmada">Confirmada</MenuItem>
-                  <MenuItem value="cancelada">Cancelada</MenuItem>
+                  <MenuItem value="en_progreso">En Progreso</MenuItem>
                   <MenuItem value="completada">Completada</MenuItem>
+                  <MenuItem value="cancelada">Cancelada</MenuItem>
                 </Select>
               </FormControl>
             </Grid2>
@@ -438,14 +440,21 @@ export default function ReservasManager() {
                   <FormControl fullWidth>
                     <InputLabel>Estado</InputLabel>
                     <Select
-                      value={selectedReserva.estado}
+                      value={selectedReserva.estado || selectedReserva.estado_reserva}
                       label="Estado"
-                      onChange={(e) => setSelectedReserva((prev) => ({ ...prev, estado: e.target.value }))}
+                      onChange={(e) =>
+                        setSelectedReserva((prev) => ({
+                          ...prev,
+                          estado: e.target.value,
+                          estado_reserva: e.target.value,
+                        }))
+                      }
                     >
                       <MenuItem value="pendiente">Pendiente</MenuItem>
                       <MenuItem value="confirmada">Confirmada</MenuItem>
-                      <MenuItem value="cancelada">Cancelada</MenuItem>
+                      <MenuItem value="en_progreso">En Progreso</MenuItem>
                       <MenuItem value="completada">Completada</MenuItem>
+                      <MenuItem value="cancelada">Cancelada</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid2>

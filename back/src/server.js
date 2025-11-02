@@ -27,6 +27,8 @@ import chatbotRoutes from "./routes/chatbotRoutes.js"
 import pagoRoutes from "./routes/pagoRoutes.js"
 import auditRoutes from "./routes/auditRoutes.js"
 import roleRoutes from "./routes/roleRoutes.js"
+import newsletterRoutes from "./routes/newsletterRoutes.js"
+import campaniaRoutes from "./routes/campaniaRoutes.js"
 
 // Importar configuración de BD y modelos
 import sequelize from "./config/database.js"
@@ -211,6 +213,8 @@ app.use("/api/contact", contactRoutes) // Corregido: usar /api/contact para coin
 app.use("/api/pagos", pagoRoutes) // Rutas de pagos
 app.use("/api/audit", auditRoutes) // Rutas de auditoría (solo admin)
 app.use("/api/roles", roleRoutes) // Rutas de gestión de roles (solo admin)
+app.use("/api/newsletter", newsletterRoutes) // Rutas de newsletter
+app.use("/api/campanias", campaniaRoutes) // Rutas de campañas (solo admin)
 
 // Configure Passport Google (después de las rutas para evitar conflictos)
 configurePassportGoogle(app)

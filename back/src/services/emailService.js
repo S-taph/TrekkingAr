@@ -408,6 +408,207 @@ class EmailService {
   }
 
   /**
+   * Envía email de confirmación de suscripción al newsletter
+   */
+  async sendNewsletterConfirmationEmail(suscriptor) {
+    if (!this.transporter) {
+      throw new Error('Email service no configurado');
+    }
+
+    const mailOptions = {
+      from: process.env.GMAIL_SMTP_USER,
+      to: suscriptor.email,
+      subject: '¡Bienvenido al Newsletter de TrekkingAR!',
+      html: this.getNewsletterConfirmationTemplate(suscriptor)
+    };
+
+    try {
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('Email de confirmación de newsletter enviado:', result.messageId);
+      return result;
+    } catch (error) {
+      console.error('Error enviando email de confirmación de newsletter:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Envía campaña de newsletter a un suscriptor
+   */
+  async sendNewsletterCampaign(suscriptor, campania) {
+    if (!this.transporter) {
+      throw new Error('Email service no configurado');
+    }
+
+    const mailOptions = {
+      from: `TrekkingAR <${process.env.GMAIL_SMTP_USER}>`,
+      to: suscriptor.email,
+      subject: campania.asunto,
+      html: this.getNewsletterCampaignTemplate(suscriptor, campania)
+    };
+
+    try {
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log(`Campaña enviada a ${suscriptor.email}:`, result.messageId);
+      return result;
+    } catch (error) {
+      console.error(`Error enviando campaña a ${suscriptor.email}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Plantilla HTML para confirmación de suscripción al newsletter
+   */
+  getNewsletterConfirmationTemplate(suscriptor) {
+    const unsubscribeUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/newsletter/unsubscribe/${suscriptor.token_desuscripcion}`;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 20px auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+          .header { background: linear-gradient(135deg, #1E7A5F 0%, #2a9d7a 100%); color: white; padding: 40px 20px; text-align: center; }
+          .header h1 { margin: 0; font-size: 28px; }
+          .header p { margin: 10px 0 0 0; font-size: 16px; opacity: 0.9; }
+          .content { padding: 40px 30px; }
+          .content p { margin: 15px 0; }
+          .highlight { background-color: #e9f5f0; padding: 20px; margin: 25px 0; border-left: 4px solid #1E7A5F; border-radius: 4px; }
+          .footer { background-color: #f9f9f9; padding: 30px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e0e0e0; }
+          .unsubscribe { margin-top: 15px; }
+          .unsubscribe a { color: #999; text-decoration: none; }
+          .unsubscribe a:hover { text-decoration: underline; }
+          .icon { font-size: 48px; margin-bottom: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="icon">🏔️</div>
+            <h1>¡Bienvenido a TrekkingAR!</h1>
+            <p>Tu newsletter de aventuras</p>
+          </div>
+          <div class="content">
+            <p>Hola${suscriptor.nombre ? ` <strong>${suscriptor.nombre}</strong>` : ''},</p>
+
+            <p>¡Gracias por suscribirte a nuestro newsletter! 🎒</p>
+
+            <p>A partir de ahora recibirás en tu correo:</p>
+
+            <div class="highlight">
+              <ul style="margin: 0; padding-left: 20px;">
+                <li>🗻 Nuevas rutas y destinos de trekking</li>
+                <li>🎁 Ofertas exclusivas y promociones</li>
+                <li>📸 Consejos y guías de aventura</li>
+                <li>🌟 Novedades de la comunidad TrekkingAR</li>
+              </ul>
+            </div>
+
+            <p>Nos alegra que formes parte de nuestra comunidad de aventureros.</p>
+
+            <p style="margin-top: 30px;">¡Nos vemos en la montaña! 🥾</p>
+            <p><strong>El equipo de TrekkingAR</strong></p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} TrekkingAR - San Carlos de Bariloche, Río Negro, Argentina</p>
+            <div class="unsubscribe">
+              <p>Si deseas dejar de recibir estos correos, puedes <a href="${unsubscribeUrl}">darte de baja aquí</a>.</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Plantilla HTML para campaña de newsletter
+   */
+  getNewsletterCampaignTemplate(suscriptor, campania) {
+    const unsubscribeUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/newsletter/unsubscribe/${suscriptor.token_desuscripcion}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    // Procesar el cuerpo para convertir saltos de línea en HTML
+    const cuerpoHTML = campania.cuerpo.replace(/\n/g, '<br>');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 20px auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+          .header { background: linear-gradient(135deg, #1E7A5F 0%, #2a9d7a 100%); color: white; padding: 30px 20px; text-align: center; }
+          .header h1 { margin: 0; font-size: 24px; }
+          .content { padding: 40px 30px; }
+          .content p { margin: 15px 0; }
+          .image-container { text-align: center; margin: 25px 0; }
+          .image-container img { max-width: 100%; height: auto; border-radius: 8px; }
+          .cta-button { display: inline-block; padding: 15px 40px; background-color: #D98B3A; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }
+          .cta-button:hover { background-color: #c47a2f; }
+          .discount-code { background-color: #fff3e0; padding: 20px; margin: 25px 0; border-left: 4px solid #D98B3A; border-radius: 4px; text-align: center; }
+          .discount-code .code { font-size: 24px; font-weight: bold; color: #D98B3A; letter-spacing: 2px; margin: 10px 0; }
+          .footer { background-color: #f9f9f9; padding: 30px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e0e0e0; }
+          .unsubscribe { margin-top: 15px; }
+          .unsubscribe a { color: #999; text-decoration: none; }
+          .unsubscribe a:hover { text-decoration: underline; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🏔️ TrekkingAR</h1>
+          </div>
+          <div class="content">
+            <p>Hola${suscriptor.nombre ? ` <strong>${suscriptor.nombre}</strong>` : ''},</p>
+
+            ${campania.imagen_campania ? `
+              <div class="image-container">
+                <img src="${campania.imagen_campania}" alt="${campania.nombre}">
+              </div>
+            ` : ''}
+
+            <div>
+              ${cuerpoHTML}
+            </div>
+
+            ${campania.codigo_descuento ? `
+              <div class="discount-code">
+                <p style="margin: 0 0 10px 0; font-weight: bold;">¡Aprovecha tu descuento exclusivo!</p>
+                <div class="code">${campania.codigo_descuento}</div>
+                ${campania.descuento_porcentaje ? `
+                  <p style="margin: 10px 0 0 0; color: #D98B3A; font-size: 18px; font-weight: bold;">${campania.descuento_porcentaje}% OFF</p>
+                ` : ''}
+                ${campania.fecha_fin ? `
+                  <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">Válido hasta: ${new Date(campania.fecha_fin).toLocaleDateString('es-AR')}</p>
+                ` : ''}
+              </div>
+            ` : ''}
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${frontendUrl}" class="cta-button">Ver todas las aventuras</a>
+            </div>
+
+            <p style="margin-top: 30px;">¡Nos vemos en la montaña! 🥾</p>
+            <p><strong>El equipo de TrekkingAR</strong></p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} TrekkingAR - San Carlos de Bariloche, Río Negro, Argentina</p>
+            <div class="unsubscribe">
+              <p>Si deseas dejar de recibir estos correos, puedes <a href="${unsubscribeUrl}">darte de baja aquí</a>.</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
    * Plantilla HTML para notificaciones del sistema
    */
   getSystemNotificationTemplate(notificationData) {

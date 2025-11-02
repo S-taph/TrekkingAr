@@ -49,9 +49,13 @@ const CampaniaSuscriptor = sequelize.define(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    error_envio: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
   {
-    timestamps: false,
+    timestamps: true,
   },
 )
 

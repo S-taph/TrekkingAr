@@ -12,24 +12,30 @@ const AventurasDestacadas = () => {
   }
 
   return (
-    <Container sx={{ py: 6 }}>
-      <Typography
-        variant="h4"
-        fontWeight="bold"
-        gutterBottom
-        align="center"
-      >
-        Aventuras Destacadas
-      </Typography>
+    <Box
+      sx={{
+        bgcolor: 'background.paper',
+        py: { xs: 6, md: 8 },
+      }}
+    >
+      <Container maxWidth="lg">
+        <Typography
+          variant="h4"
+          fontWeight="bold"
+          gutterBottom
+          align="center"
+        >
+          Aventuras Destacadas
+        </Typography>
 
-      <Typography
-        variant="body1"
-        color="text.secondary"
-        align="center"
-        sx={{ mb: 4 }}
-      >
-        Descubre nuestras experiencias más populares y recomendadas
-      </Typography>
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          align="center"
+          sx={{ mb: 4 }}
+        >
+          Descubre nuestras experiencias más populares y recomendadas
+        </Typography>
 
       {/* Loading */}
       {loading && (
@@ -59,7 +65,8 @@ const AventurasDestacadas = () => {
           ))}
         </Grid>
       )}
-    </Container>
+      </Container>
+    </Box>
   );
 };
 

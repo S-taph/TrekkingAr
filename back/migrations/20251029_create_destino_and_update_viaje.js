@@ -14,7 +14,6 @@ export const up = async (queryInterface, Sequelize) => {
         nombre: {
           type: Sequelize.STRING(255),
           allowNull: false,
-          unique: true,
         },
         provincia: {
           type: Sequelize.STRING(100),
@@ -40,24 +39,39 @@ export const up = async (queryInterface, Sequelize) => {
       { transaction },
     )
 
-    // Add index on nombre
-    await queryInterface.addIndex("destinos", ["nombre"], {
-      unique: true,
-      transaction,
-    })
+    // Add index on nombre (check if it doesn't exist first)
+    try {
+      await queryInterface.addIndex("destinos", ["nombre"], {
+        unique: true,
+        name: "destinos_nombre",
+        transaction,
+      })
+    } catch (error) {
+      if (error.original?.code !== 'ER_DUP_KEYNAME') {
+        throw error
+      }
+      // Index already exists, continue
+    }
 
     // Insert some default destinos (common Argentine trekking destinations)
-    await queryInterface.bulkInsert(
-      "destinos",
-      [
-        {
-          nombre: "Cerro Aconcagua",
-          provincia: "Mendoza",
-          region: "Cuyo",
-          descripcion: "El pico más alto de América",
-          fecha_creacion: new Date(),
-          fecha_actualizacion: new Date(),
-        },
+    // Check if data already exists first
+    const existingDestinos = await queryInterface.sequelize.query(
+      'SELECT COUNT(*) as count FROM destinos',
+      { type: queryInterface.sequelize.QueryTypes.SELECT, transaction }
+    )
+
+    if (existingDestinos[0].count === 0) {
+      await queryInterface.bulkInsert(
+        "destinos",
+        [
+          {
+            nombre: "Cerro Aconcagua",
+            provincia: "Mendoza",
+            region: "Cuyo",
+            descripcion: "El pico más alto de América",
+            fecha_creacion: new Date(),
+            fecha_actualizacion: new Date(),
+          },
         {
           nombre: "Cerro Fitz Roy",
           provincia: "Santa Cruz",
@@ -133,6 +147,7 @@ export const up = async (queryInterface, Sequelize) => {
       ],
       { transaction },
     )
+    }
 
     // Add id_destino column to viajes table
     await queryInterface.addColumn(

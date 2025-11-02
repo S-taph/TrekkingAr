@@ -29,6 +29,11 @@ const Suscriptor = sequelize.define(
       type: DataTypes.ENUM("web", "landing", "social", "referido"),
       defaultValue: "web",
     },
+    token_desuscripcion: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      unique: true,
+    },
     fecha_suscripcion: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,

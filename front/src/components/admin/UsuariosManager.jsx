@@ -165,15 +165,23 @@ export default function UsuariosManager() {
     { field: "dni", headerName: "DNI", width: 120 },
     {
       field: "rol",
-      headerName: "Rol",
-      width: 120,
-      renderCell: (params) => (
-        <Chip
-          label={params.value}
-          size="small"
-          color={params.value === "admin" ? "primary" : params.value === "guia" ? "secondary" : "default"}
-        />
-      ),
+      headerName: "Roles",
+      width: 200,
+      renderCell: (params) => {
+        const roles = params.row.rolesArray || [params.value]
+        return (
+          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+            {roles.map((rol) => (
+              <Chip
+                key={rol}
+                label={rol}
+                size="small"
+                color={rol === "admin" ? "primary" : rol === "guia" ? "secondary" : "default"}
+              />
+            ))}
+          </Box>
+        )
+      },
     },
     {
       field: "activo",

@@ -14,6 +14,8 @@ import AdminApp from "./pages/AdminApp"
 import AdminViajesPage from "./pages/admin/AdminViajesPage"
 import AdminUsuariosPage from "./pages/admin/AdminUsuariosPage"
 import AdminReservasPage from "./pages/admin/AdminReservasPage"
+import AdminSuscriptoresPage from "./pages/admin/AdminSuscriptoresPage"
+import AdminCampaniasPage from "./pages/admin/AdminCampaniasPage"
 
 /**
  * Rutas centralizadas de la aplicación
@@ -87,6 +89,14 @@ export const routes = [
       {
         path: "reservas",
         element: <AdminReservasPage />,
+      },
+      {
+        path: "suscriptores",
+        element: <AdminSuscriptoresPage />,
+      },
+      {
+        path: "campanias",
+        element: <AdminCampaniasPage />,
       },
     ],
   },

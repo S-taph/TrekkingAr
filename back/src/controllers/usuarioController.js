@@ -1,4 +1,4 @@
-import { Usuario } from "../models/associations.js"
+import { Usuario, UsuarioRol } from "../models/associations.js"
 import { Op } from "sequelize"
 import bcrypt from "bcrypt"
 
@@ -38,14 +38,28 @@ const getUsuarios = async (req, res) => {
     const usuarios = await Usuario.findAll({
       where: whereClause,
       attributes: ["id_usuarios", "nombre", "apellido", "email", "dni", "rol", "activo", "created_at"],
+      include: [{
+        model: UsuarioRol,
+        as: "roles",
+        where: { activo: true },
+        required: false,
+        attributes: ["rol"],
+      }],
       limit: Number.parseInt(limit),
       order: [[orderField, orderDirection]],
     })
 
     console.log("[v0] Found usuarios:", usuarios.length)
 
+    // Map usuarios to include roles array
+    const usuariosWithRoles = usuarios.map(usuario => {
+      const usuarioData = usuario.toJSON()
+      usuarioData.rolesArray = usuario.roles?.map(r => r.rol) || []
+      return usuarioData
+    })
+
     // Return the array directly to match frontend expectations
-    res.json(usuarios)
+    res.json(usuariosWithRoles)
   } catch (error) {
     console.error("[v0] Error in getUsuarios:", error)
     res.status(500).json({

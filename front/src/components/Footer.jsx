@@ -7,6 +7,8 @@ import Link from "@mui/material/Link"
 import IconButton from "@mui/material/IconButton"
 import TextField from "@mui/material/TextField"
 import Button from "@mui/material/Button"
+import Snackbar from "@mui/material/Snackbar"
+import Alert from "@mui/material/Alert"
 import FacebookIcon from "@mui/icons-material/Facebook"
 import InstagramIcon from "@mui/icons-material/Instagram"
 import TwitterIcon from "@mui/icons-material/Twitter"
@@ -15,6 +17,7 @@ import EmailIcon from "@mui/icons-material/Email"
 import PhoneIcon from "@mui/icons-material/Phone"
 import LocationOnIcon from "@mui/icons-material/LocationOn"
 import HikingIcon from "@mui/icons-material/Hiking"
+import { newsletterAPI } from "../services/api"
 
 /**
  * Footer - Diseño moderno de 4 columnas con fondo negro
@@ -23,16 +26,59 @@ import HikingIcon from "@mui/icons-material/Hiking"
 const Footer = () => {
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success"
+  })
 
   const handleSubscribe = async () => {
-    if (!email) return
+    if (!email) {
+      setSnackbar({
+        open: true,
+        message: "Por favor ingresa tu email",
+        severity: "warning"
+      })
+      return
+    }
+
+    // Validación básica de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setSnackbar({
+        open: true,
+        message: "Por favor ingresa un email válido",
+        severity: "error"
+      })
+      return
+    }
+
     setLoading(true)
-    // TODO: Integrar con backend para suscripción
-    setTimeout(() => {
-      console.log("Suscrito:", email)
-      setEmail("")
+
+    try {
+      const response = await newsletterAPI.subscribe(email)
+
+      setSnackbar({
+        open: true,
+        message: response.message || "¡Gracias por suscribirte! Recibirás nuestras novedades en tu email",
+        severity: "success"
+      })
+
+      setEmail("") // Limpiar campo
+    } catch (error) {
+      console.error("Error suscribiendo:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al procesar la suscripción. Intenta de nuevo.",
+        severity: "error"
+      })
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
+  }
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false })
   }
 
   return (
@@ -433,6 +479,23 @@ const Footer = () => {
           </Typography>
         </Box>
       </Container>
+
+      {/* Snackbar para notificaciones */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }

@@ -13,7 +13,6 @@ import ProximosViajes from "../components/ProximosViajes.jsx"
 import AventurasDestacadas from "../components/AventurasDestacadas.jsx"
 import MediosPago from "../components/MediosPago.jsx"
 import SearchBar from "../components/SearchBar.jsx"
-import ExperienciasDestacadas from "../components/ExperienciasDestacadas.jsx"
 import ReviewsList from "../components/ReviewsList.jsx"
 
 export default function Home() {
@@ -92,15 +91,12 @@ export default function Home() {
         <Box sx={{ mt: 12 }}>
           <ProximosViajes />
         </Box>
-
-        {/* AVENTURAS DESTACADAS */}
-        <Box sx={{ mt: 12 }}>
-          <AventurasDestacadas />
-        </Box>
       </Container>
 
-      {/* EXPERIENCIAS DESTACADAS */}
-      <ExperienciasDestacadas />
+      {/* AVENTURAS DESTACADAS */}
+      <Box sx={{ mt: 12 }}>
+        <AventurasDestacadas />
+      </Box>
 
       <Container maxWidth="lg">
         {/* MEDIOS DE PAGO */}

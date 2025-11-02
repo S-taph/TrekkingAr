@@ -27,6 +27,8 @@ import {
   PersonPin as GuideIcon,
   BookOnline as ReservasIcon,
   Logout as LogoutIcon,
+  Email as EmailIcon,
+  Campaign as CampaignIcon,
 } from "@mui/icons-material";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "../ThemeToggle";
@@ -39,6 +41,8 @@ const menuItems = [
   { text: "Viajes", icon: <HikingIcon />, path: "/admin/viajes" },
   { text: "Guías", icon: <GuideIcon />, path: "/admin/guias" },
   { text: "Reservas", icon: <ReservasIcon />, path: "/admin/reservas" },
+  { text: "Suscriptores", icon: <EmailIcon />, path: "/admin/suscriptores" },
+  { text: "Campañas Newsletter", icon: <CampaignIcon />, path: "/admin/campanias" },
 ];
 
 export default function AdminLayout({ children, currentPath = "/admin", onNavigate }) {

@@ -184,6 +184,17 @@ export const getAllReservas = async (req, res) => {
           as: "compra",
           attributes: ["id_compras", "numero_compra", "total_compra", "estado_compra"],
         },
+        {
+          model: FechaViaje,
+          as: "fecha_viaje",
+          include: [
+            {
+              model: Viaje,
+              as: "viaje",
+              attributes: ["id_viaje", "titulo", "descripcion_corta", "duracion_dias", "dificultad"],
+            },
+          ],
+        },
       ],
       limit: Number.parseInt(limit),
       offset: Number.parseInt(offset),

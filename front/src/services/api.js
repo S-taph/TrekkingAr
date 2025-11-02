@@ -407,3 +407,63 @@ export const rolesAPI = {
       body: JSON.stringify(adminData),
     }),
 }
+
+// Newsletter API
+export const newsletterAPI = {
+  // Suscribirse al newsletter (público)
+  subscribe: (email, nombre = null) =>
+    apiRequest("/newsletter/subscribe", {
+      method: "POST",
+      body: JSON.stringify({ email, nombre, origen: "web" }),
+    }),
+
+  // Desuscribirse del newsletter (público)
+  unsubscribe: (token) => apiRequest(`/newsletter/unsubscribe/${token}`),
+
+  // Obtener lista de suscriptores (admin)
+  getSuscriptores: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString()
+    return apiRequest(`/newsletter/suscriptores${queryString ? `?${queryString}` : ""}`)
+  },
+
+  // Obtener estadísticas (admin)
+  getStats: () => apiRequest("/newsletter/stats"),
+}
+
+// Campañas API
+export const campaniasAPI = {
+  // Obtener todas las campañas (admin)
+  getAll: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString()
+    return apiRequest(`/campanias${queryString ? `?${queryString}` : ""}`)
+  },
+
+  // Obtener una campaña por ID (admin)
+  getById: (id) => apiRequest(`/campanias/${id}`),
+
+  // Crear nueva campaña (admin)
+  create: (campaniaData) =>
+    apiRequest("/campanias", {
+      method: "POST",
+      body: JSON.stringify(campaniaData),
+    }),
+
+  // Actualizar campaña (admin)
+  update: (id, campaniaData) =>
+    apiRequest(`/campanias/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(campaniaData),
+    }),
+
+  // Eliminar campaña (admin)
+  delete: (id) => apiDeleteRequest(`/campanias/${id}`),
+
+  // Enviar campaña (admin)
+  send: (id) =>
+    apiRequest(`/campanias/${id}/send`, {
+      method: "POST",
+    }),
+
+  // Obtener estadísticas de campaña (admin)
+  getStats: (id) => apiRequest(`/campanias/${id}/stats`),
+}

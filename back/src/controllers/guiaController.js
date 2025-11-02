@@ -5,6 +5,7 @@ import Usuario from "../models/Usuario.js"
 import GuiaViaje from "../models/GuiaViaje.js"
 import FechaViaje from "../models/FechaViaje.js"
 import Viaje from "../models/Viaje.js"
+import roleService from "../services/roleService.js"
 
 export const getAllGuias = async (req, res) => {
   try {
@@ -174,7 +175,7 @@ export const createGuia = async (req, res) => {
 
     console.log("[v0] Datos recibidos para crear guía:", guiaData)
 
-    // Verificar que el usuario existe y tiene rol de guía
+    // Verificar que el usuario existe
     const usuario = await Usuario.findByPk(guiaData.id_usuario)
     if (!usuario) {
       console.log("[v0] Usuario no encontrado:", guiaData.id_usuario)
@@ -185,13 +186,6 @@ export const createGuia = async (req, res) => {
     }
 
     console.log("[v0] Usuario encontrado:", { id: usuario.id_usuarios, rol: usuario.rol })
-
-    if (process.env.NODE_ENV !== "development" && usuario.rol !== "guia") {
-      return res.status(400).json({
-        success: false,
-        message: "El usuario debe tener rol de guía",
-      })
-    }
 
     // Verificar que no existe ya un perfil de guía para este usuario
     const guiaExistente = await Guia.findOne({
@@ -206,15 +200,33 @@ export const createGuia = async (req, res) => {
       })
     }
 
-    if (guiaData.activo === undefined) {
-      guiaData.activo = true
-    }
+    // Usar roleService.promoteToGuia para sincronizar roles automáticamente
+    console.log("[v0] Promoviendo usuario a guía con roleService")
 
-    console.log("[v0] Creando guía con datos:", guiaData)
-    const guia = await Guia.create(guiaData)
-    console.log("[v0] Guía creado:", guia.toJSON())
+    const adminId = req.user?.id_usuarios || null
+    await roleService.promoteToGuia(
+      guiaData.id_usuario,
+      {
+        matricula: guiaData.matricula,
+        certificaciones: guiaData.certificaciones || null,
+        especialidades: guiaData.especialidades || null,
+        anos_experiencia: guiaData.anos_experiencia || null,
+        idiomas: guiaData.idiomas || "Español",
+        tarifa_por_dia: guiaData.tarifa_por_dia || null,
+        disponible: guiaData.disponible !== undefined ? guiaData.disponible : true,
+        activo: guiaData.activo !== undefined ? guiaData.activo : true,
+        calificacion_promedio: guiaData.calificacion_promedio || 0.0,
+        numero_resenas: guiaData.numero_resenas || 0,
+      },
+      adminId,
+      "Guía creado desde el panel de administración"
+    )
 
-    const guiaCompleto = await Guia.findByPk(guia.id_guia, {
+    console.log("[v0] Guía creado y rol sincronizado exitosamente")
+
+    // Obtener el guía completo recién creado
+    const guia = await Guia.findOne({
+      where: { id_usuario: guiaData.id_usuario },
       include: [
         {
           model: Usuario,
@@ -226,8 +238,8 @@ export const createGuia = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Perfil de guía creado exitosamente",
-      data: { guia: guiaCompleto },
+      message: "Perfil de guía creado exitosamente y rol sincronizado",
+      data: { guia },
     })
   } catch (error) {
     console.error("[v0] Error al crear guía:", error)
