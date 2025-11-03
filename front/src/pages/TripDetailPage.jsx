@@ -17,7 +17,6 @@ import {
   Tabs,
   Tab,
   Divider,
-  Rating,
 } from "@mui/material"
 import {
   AccessTime,
@@ -33,12 +32,28 @@ import {
   Remove,
   People,
   CheckCircle,
+  Info,
+  CheckBox,
+  Cancel,
+  Map,
+  Lightbulb,
+  WhatsApp,
 } from "@mui/icons-material"
 import Header from "../components/Header"
-import { TripGallery } from "../components/TripGallery"
+import HeroImage from "../components/HeroImage"
+import ImageLightbox from "../components/ImageLightbox"
+import SimilarTripsCarousel from "../components/SimilarTripsCarousel"
+import ImmersiveCarousel from "../components/ImmersiveCarousel"
+import TestimonialSection from "../components/TestimonialSection"
+import FloatingWhatsAppButton from "../components/FloatingWhatsAppButton"
+import FomoBadge from "../components/FomoBadge"
+import TotalRow from "../components/TotalRow"
+import TrustBadges from "../components/TrustBadges"
+import PriceBreakdown from "../components/PriceBreakdown"
 import { useTrip } from "../hooks/useTrip"
 import { useCart } from "../context/CartContext"
 import { useAuth } from "../context/AuthContext"
+import { track } from "../services/analytics"
 
 /**
  * TripDetailPage - Página de detalle de un viaje (Estilo Aventura)
@@ -53,8 +68,8 @@ export default function TripDetailPage() {
   const [selectedFecha, setSelectedFecha] = useState(null)
   const [cantidad, setCantidad] = useState(1)
   const [addingToCart, setAddingToCart] = useState(false)
-  const [isFavorite, setIsFavorite] = useState(false)
   const [activeTab, setActiveTab] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   useEffect(() => {
     if (trip) {
@@ -65,6 +80,11 @@ export default function TripDetailPage() {
       }
     }
   }, [trip])
+
+  // Resetear cantidad cuando cambia la fecha seleccionada
+  useEffect(() => {
+    setCantidad(1)
+  }, [selectedFecha])
 
   const handleAddToCart = async () => {
     if (!selectedFecha) return
@@ -90,19 +110,6 @@ export default function TripDetailPage() {
       console.error("Error al agregar al carrito:", err)
     } finally {
       setAddingToCart(false)
-    }
-  }
-
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: trip.titulo,
-        text: trip.descripcion_corta,
-        url: window.location.href,
-      })
-    } else {
-      navigator.clipboard.writeText(window.location.href)
-      console.log("URL copiada al portapapeles")
     }
   }
 
@@ -138,6 +145,8 @@ export default function TripDetailPage() {
     (f) => Number(f.id) === selectedFecha,
   )
   const precioFinal = selectedFechaData?.precio || trip.precio_base
+  const cuposDisponibles = selectedFechaData?.cupos_disponibles || 0
+  const maxPersonas = Math.min(cuposDisponibles, 20) // Límite de 20 personas o cupos disponibles
 
   return (
     <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
@@ -155,77 +164,32 @@ export default function TripDetailPage() {
           <Typography color="text.primary">{trip.titulo}</Typography>
         </Breadcrumbs>
 
-        {/* LAYOUT DE 2 COLUMNAS PRINCIPAL */}
-        <Grid container spacing={4}>
-          {/* COLUMNA IZQUIERDA: Galería (40%) */}
+        {/* HERO IMAGE */}
+        <Box sx={{ mb: 4 }}>
+          <HeroImage
+            images={
+              trip.imagenes?.map(img => typeof img === 'string' ? img : img.url).filter(Boolean) ||
+              (trip.imagen_principal_url ? [trip.imagen_principal_url] : [])
+            }
+            title={trip.titulo}
+            duracion={trip.duracion_dias}
+            dificultad={trip.dificultad}
+            ubicacion={typeof trip.destino === 'string' ? trip.destino : trip.destino?.nombre}
+            onOpenGallery={() => setLightboxOpen(true)}
+          />
+        </Box>
+
+        {/* LAYOUT CONDICIONAL: 1 o 2 columnas según contenido */}
+        <Grid container spacing={4} alignItems="flex-start">
+          {/* COLUMNA IZQUIERDA: Info básica (40%) */}
           <Grid item xs={12} md={5}>
-            <Paper elevation={3} sx={{ overflow: "hidden", borderRadius: 2, width: "100%", maxWidth: "100%" }}>
-              <TripGallery
-                images={
-                  trip.imagenes?.map(img => typeof img === 'string' ? img : img.url).filter(Boolean) ||
-                  (trip.imagen_principal_url ? [trip.imagen_principal_url] : [])
-                }
-              />
-            </Paper>
-          </Grid>
-
-          {/* COLUMNA DERECHA: Info Principal + Booking (60%) */}
-          <Grid item xs={12} md={7}>
-            {/* Título y acciones */}
+            {/* Info básica del viaje */}
             <Box sx={{ mb: 3 }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
-                <Typography
-                  variant="h3"
-                  sx={{
-                    fontWeight: 800,
-                    textTransform: "uppercase",
-                    letterSpacing: 1,
-                    color: "text.primary"
-                  }}
-                >
-                  {trip.titulo}
-                </Typography>
-
-                <Stack direction="row" spacing={1}>
-                  <IconButton
-                    onClick={() => setIsFavorite(!isFavorite)}
-                    sx={{
-                      bgcolor: "background.paper",
-                      boxShadow: 1,
-                      "&:hover": { bgcolor: "action.hover" }
-                    }}
-                  >
-                    {isFavorite ? <Favorite color="error" /> : <FavoriteBorder />}
-                  </IconButton>
-                  <IconButton
-                    onClick={handleShare}
-                    sx={{
-                      bgcolor: "background.paper",
-                      boxShadow: 1,
-                      "&:hover": { bgcolor: "action.hover" }
-                    }}
-                  >
-                    <Share />
-                  </IconButton>
-                </Stack>
-              </Box>
-
-              {/* Ubicación */}
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-                <Place fontSize="small" sx={{ color: "text.primary", opacity: 0.7 }} />
-                <Typography variant="body1" color="text.primary" sx={{ fontWeight: 500 }} data-testid="trip-detail-destino">
-                  {typeof trip.destino === 'string'
-                    ? trip.destino
-                    : trip.destino?.nombre || "Destino por confirmar"}
-                </Typography>
-              </Stack>
-
-              {/* Características clave con iconos */}
-              <Stack direction="row" spacing={2} sx={{ mb: 3 }} flexWrap="wrap">
+              <Stack direction="row" spacing={2} flexWrap="wrap" sx={{ mb: 2 }}>
                 <Chip
                   icon={<AccessTime />}
                   label={`${trip.duracion_dias} días`}
-                  sx={{ fontWeight: 600 }}
+                  sx={{ fontWeight: 600, fontSize: '0.95rem' }}
                 />
                 <Chip
                   icon={<TrendingUp />}
@@ -237,19 +201,78 @@ export default function TripDetailPage() {
                         ? "warning"
                         : "error"
                   }
-                  sx={{ fontWeight: 600 }}
+                  sx={{ fontWeight: 600, fontSize: '0.95rem' }}
                 />
                 {trip.categoria && (
                   <Chip
                     label={trip.categoria.nombre || trip.categoria}
                     variant="outlined"
-                    sx={{ fontWeight: 600 }}
+                    sx={{ fontWeight: 600, fontSize: '0.95rem' }}
                   />
                 )}
               </Stack>
+
+              {/* Descripción corta */}
+              <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                {trip.descripcion_corta || trip.descripcion_completa?.substring(0, 200) + '...' || ""}
+              </Typography>
             </Box>
 
-            {/* CARD DE RESERVA */}
+            {/* Badges de confianza */}
+            <Paper elevation={1} sx={{ p: 2, bgcolor: 'background.paper' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'text.primary' }}>
+                ¿Por qué elegirnos?
+              </Typography>
+              <Stack spacing={1.5}>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <CheckCircle fontSize="small" sx={{ color: 'primary.main' }} />
+                  <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
+                    Guías certificados
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <CheckCircle fontSize="small" sx={{ color: 'primary.main' }} />
+                  <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
+                    Seguro de viaje incluido
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <CheckCircle fontSize="small" sx={{ color: 'primary.main' }} />
+                  <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
+                    Cancelación flexible
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <CheckCircle fontSize="small" sx={{ color: 'primary.main' }} />
+                  <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
+                    Grupos reducidos
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <CheckCircle fontSize="small" sx={{ color: 'primary.main' }} />
+                  <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
+                    Equipamiento incluido
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <CheckCircle fontSize="small" sx={{ color: 'primary.main' }} />
+                  <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
+                    Fotografías del viaje
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <CheckCircle fontSize="small" sx={{ color: 'primary.main' }} />
+                  <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
+                    Pago seguro garantizado
+                  </Typography>
+                </Stack>
+              </Stack>
+            </Paper>
+          </Grid>
+
+          {/* COLUMNA DERECHA: Card de reserva sticky (60%) */}
+          <Grid item xs={12} md={7}>
+            {/* CARD DE RESERVA STICKY */}
             <Paper
               elevation={4}
               sx={{
@@ -258,14 +281,38 @@ export default function TripDetailPage() {
                   ? 'rgba(48, 130, 86, 0.95)' // Verde más oscuro para modo oscuro
                   : "primary.main",
                 borderRadius: 2,
+                // Sticky en desktop
+                position: { xs: 'static', md: 'sticky' },
+                top: { md: 96 },
+                alignSelf: 'flex-start',
               }}
             >
+              {/* FOMO Badge - Urgencia mejorado */}
+              {selectedFechaData && (
+                <Box sx={{ mb: 2 }}>
+                  <FomoBadge
+                    remaining={cuposDisponibles}
+                    capacity={selectedFechaData.cupos_totales || selectedFechaData.cupos_disponibles}
+                    reservasMes={selectedFechaData.cupos_ocupados || 0}
+                    mes={new Date(selectedFechaData.fecha_inicio).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}
+                    tripId={id}
+                    onClickAction={() => {
+                      // Scroll al selector de fechas
+                      const fechaSelector = document.querySelector('[aria-label="Seleccionar fecha de salida"]');
+                      if (fechaSelector) {
+                        fechaSelector.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
+                    }}
+                  />
+                </Box>
+              )}
+
               {/* Precio grande */}
               <Box sx={{ mb: 3 }}>
                 <Typography variant="h3" sx={{
                   fontWeight: 800,
                   mb: 0.5,
-                  color: (theme) => theme.palette.mode === 'dark' ? '#fff' : '#000'
+                  color: (theme) => theme.palette.mode === 'dark' ? '#fff' : '#ffffffff'
                 }}>
                   ${precioFinal?.toLocaleString()}
                 </Typography>
@@ -391,11 +438,13 @@ export default function TripDetailPage() {
                     {cantidad}
                   </Typography>
                   <IconButton
-                    onClick={() => setCantidad(Math.min(10, cantidad + 1))}
+                    onClick={() => setCantidad(Math.min(maxPersonas, cantidad + 1))}
+                    disabled={cantidad >= maxPersonas}
                     sx={{
                       bgcolor: "white",
                       color: "primary.main",
-                      "&:hover": { bgcolor: "grey.200" }
+                      "&:hover": { bgcolor: "grey.200" },
+                      "&:disabled": { bgcolor: "grey.300", color: "grey.500" }
                     }}
                   >
                     <Add />
@@ -403,40 +452,46 @@ export default function TripDetailPage() {
                 </Stack>
               </Box>
 
-              {/* Total */}
-              <Box sx={{
-                mb: 3,
-                p: 2,
-                bgcolor: (theme) => theme.palette.mode === 'dark'
-                  ? "rgba(255,255,255,0.15)"
-                  : "rgba(255,255,255,0.2)",
-                borderRadius: 1
-              }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="h6" sx={{
-                    fontWeight: 600,
-                    color: (theme) => theme.palette.mode === 'dark' ? '#fff' : '#000'
-                  }}>
-                    Total
+              {/* Alerta de cupos limitados */}
+              {cuposDisponibles > 0 && cuposDisponibles <= 5 && (
+                <Alert severity="warning" sx={{ mb: 2, bgcolor: "rgba(255, 152, 0, 0.2)" }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                    ¡Solo quedan {cuposDisponibles} {cuposDisponibles === 1 ? "cupo" : "cupos"}!
                   </Typography>
-                  <Typography variant="h4" sx={{
-                    fontWeight: 800,
-                    color: (theme) => theme.palette.mode === 'dark' ? '#fff' : '#000'
-                  }}>
-                    ${(precioFinal * cantidad).toLocaleString()}
-                  </Typography>
-                </Stack>
-              </Box>
+                </Alert>
+              )}
 
-              {/* Botón de reserva */}
+              {cuposDisponibles === 0 && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                    No hay cupos disponibles para esta fecha
+                  </Typography>
+                </Alert>
+              )}
+
+              {/* Precio desglosado */}
+              <PriceBreakdown pricePerPerson={precioFinal} quantity={cantidad} />
+
+              {/* Total con count-up */}
+              <TotalRow total={precioFinal * cantidad} />
+
+              {/* Botón de reserva - Pill style con gradiente lime */}
               <Button
                 variant="contained"
                 size="large"
                 fullWidth
                 startIcon={<ShoppingCart />}
-                onClick={handleAddToCart}
-                disabled={!selectedFecha || addingToCart}
+                onClick={() => {
+                  track('reserve_click', {
+                    tripId: id,
+                    price: precioFinal * cantidad,
+                    quantity: cantidad,
+                  });
+                  handleAddToCart();
+                }}
+                disabled={!selectedFecha || addingToCart || cuposDisponibles === 0}
                 aria-disabled={!selectedFecha || addingToCart}
+                aria-label="Reservar este viaje"
                 data-testid="btn-reservar"
                 title={
                   !selectedFecha
@@ -448,28 +503,25 @@ export default function TripDetailPage() {
                         : "Reservar este viaje"
                 }
                 sx={{
-                  bgcolor: (theme) => theme.palette.mode === 'dark'
-                    ? "#AED581" // Verde lima más claro para modo oscuro
-                    : "#9CCC65", // Verde Lima para modo claro
-                  color: (theme) => theme.palette.mode === 'dark'
-                    ? "#000" // Negro para mejor contraste en modo oscuro
-                    : "#000", // Negro en modo claro
+                  background: (theme) => theme.palette.mode === 'dark'
+                    ? 'linear-gradient(135deg, #C7F464 0%, #AEEB56 100%)'
+                    : 'linear-gradient(135deg, #C7F464 0%, #AEEB56 100%)',
+                  color: '#07220d',
                   fontWeight: 700,
                   fontSize: "1.1rem",
-                  py: 1.5,
-                  boxShadow: (theme) => theme.palette.mode === 'dark'
-                    ? '0 4px 12px rgba(174, 213, 129, 0.4)' // Sombra verde para destacar
-                    : 3,
+                  py: 1.8,
+                  borderRadius: '999px', // Pill shape
+                  boxShadow: '0 4px 14px rgba(199, 244, 100, 0.4)',
+                  transition: 'all 0.3s ease',
                   "&:hover": {
-                    bgcolor: (theme) => theme.palette.mode === 'dark'
-                      ? "#C5E1A5" // Aún más claro al hover
-                      : "#8BC34A",
-                    boxShadow: (theme) => theme.palette.mode === 'dark'
-                      ? '0 6px 16px rgba(174, 213, 129, 0.5)'
-                      : 6,
+                    background: (theme) => theme.palette.mode === 'dark'
+                      ? 'linear-gradient(135deg, #D4F685 0%, #C7F464 100%)'
+                      : 'linear-gradient(135deg, #D4F685 0%, #C7F464 100%)',
+                    boxShadow: '0 6px 20px rgba(199, 244, 100, 0.5)',
+                    transform: 'scale(1.02)',
                   },
                   "&:disabled": {
-                    bgcolor: (theme) => theme.palette.mode === "dark" ? "grey.700" : "grey.400",
+                    background: (theme) => theme.palette.mode === "dark" ? "grey.700" : "grey.400",
                     color: (theme) => theme.palette.mode === "dark" ? "grey.500" : "grey.600",
                     cursor: "not-allowed",
                     opacity: 0.6,
@@ -480,47 +532,51 @@ export default function TripDetailPage() {
                 {addingToCart ? "PROCESANDO..." : "RESERVAR"}
               </Button>
 
-              {/* Botón de consulta */}
+              {/* Botón de consulta - Solo visible en desktop */}
               <Button
                 variant="outlined"
                 size="large"
                 fullWidth
+                startIcon={<WhatsApp />}
                 onClick={() => {
+                  track('whatsapp_click', { tripId: id });
                   const queryParams = new URLSearchParams({
                     tripId: id,
                     tripName: trip.titulo
                   });
                   navigate(`/contacto?${queryParams.toString()}`);
                 }}
-                aria-label="Realizar consulta sobre este viaje"
+                aria-label="Consultar por WhatsApp sobre este viaje"
                 data-testid="btn-consultar"
                 sx={{
                   mt: 2,
+                  display: { xs: 'none', md: 'flex' }, // Ocultar en mobile
                   fontWeight: 600,
-                  fontSize: "1rem",
-                  py: 1.5,
+                  fontSize: "0.95rem",
+                  py: 1.3,
                   borderColor: (theme) => theme.palette.mode === 'dark'
-                    ? "#AED581" // Borde verde lima claro
-                    : "rgba(255,255,255,0.9)",
+                    ? 'rgba(255, 255, 255, 0.5)'
+                    : 'rgba(255, 255, 255, 0.6)',
                   borderWidth: 2,
-                  color: (theme) => theme.palette.mode === 'dark'
-                    ? "#AED581" // Texto verde lima claro
-                    : "white",
+                  color: (theme) => theme.palette.mode === 'dark' ? '#fff' : '#fff',
+                  backgroundColor: 'transparent',
+                  transition: 'all 0.2s ease',
                   "&:hover": {
                     borderColor: (theme) => theme.palette.mode === 'dark'
-                      ? "#C5E1A5" // Borde más claro al hover
-                      : "#fff",
-                    bgcolor: (theme) => theme.palette.mode === 'dark'
-                      ? "rgba(174, 213, 129, 0.1)" // Fondo verde suave
-                      : "rgba(255, 255, 255, 0.1)",
-                    color: (theme) => theme.palette.mode === 'dark'
-                      ? "#C5E1A5"
-                      : "#fff",
+                      ? '#fff'
+                      : '#fff',
+                    backgroundColor: (theme) => theme.palette.mode === 'dark'
+                      ? 'rgba(255, 255, 255, 0.1)'
+                      : 'rgba(255, 255, 255, 0.15)',
+                    transform: 'translateY(-2px)',
                   },
                 }}
               >
-                Realizar Consulta
+                ¿Tenés dudas? Hablanos
               </Button>
+
+              {/* Trust Badges */}
+              <TrustBadges />
 
               {!user && (
                 <Alert severity="info" sx={{ mt: 2, bgcolor: "white", color: "text.primary" }}>
@@ -555,7 +611,7 @@ export default function TripDetailPage() {
           </Grid>
         </Grid>
 
-        {/* SECCIÓN DE TABS (Ancho Completo) */}
+        {/* SECCIÓN DE TABS (Ancho Completo, Centrados con Iconos) */}
         <Box sx={{ mt: 6 }}>
           <Paper elevation={2}>
             <Tabs
@@ -563,13 +619,25 @@ export default function TripDetailPage() {
               onChange={(e, newValue) => setActiveTab(newValue)}
               variant="scrollable"
               scrollButtons="auto"
-              sx={{ borderBottom: 1, borderColor: "divider" }}
+              sx={{
+                borderBottom: 1,
+                borderColor: "divider",
+                '& .MuiTabs-flexContainer': {
+                  justifyContent: { xs: 'flex-start', md: 'center' },
+                },
+                '& .MuiTab-root': {
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  fontWeight: 600,
+                  minHeight: 64,
+                  textTransform: 'none',
+                }
+              }}
             >
-              <Tab label="Información General" />
-              <Tab label="Incluye" />
-              <Tab label="No Incluye" />
-              <Tab label="Itinerario" />
-              <Tab label="Recomendaciones" />
+              <Tab icon={<Info />} iconPosition="start" label="Información General" />
+              <Tab icon={<CheckBox />} iconPosition="start" label="Incluye" />
+              <Tab icon={<Cancel />} iconPosition="start" label="No Incluye" />
+              <Tab icon={<Map />} iconPosition="start" label="Itinerario" />
+              <Tab icon={<Lightbulb />} iconPosition="start" label="Recomendaciones" />
             </Tabs>
 
             <Box sx={{ p: 4 }}>
@@ -690,33 +758,40 @@ export default function TripDetailPage() {
           </Paper>
         </Box>
 
-        {/* SECCIÓN DE RESEÑAS (Placeholder) */}
-        <Box sx={{ mt: 6 }}>
-          <Paper elevation={2} sx={{ p: 4 }}>
-            <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>
-              Reseñas de viajeros
-            </Typography>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
-              <Rating value={4.5} precision={0.5} readOnly size="large" />
-              <Typography variant="h6">4.5 de 5</Typography>
-              <Typography variant="body2" color="text.secondary">(23 reseñas)</Typography>
-            </Box>
-            <Typography variant="body2" color="text.secondary">
-              Sistema de reseñas próximamente...
-            </Typography>
-          </Paper>
-        </Box>
+        {/* SECCIÓN DE TESTIMONIOS */}
+        <TestimonialSection />
 
-        {/* VIAJES SIMILARES (Placeholder) */}
-        <Box sx={{ mt: 6 }}>
-          <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>
-            Viajes similares
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Carrusel de viajes similares próximamente...
-          </Typography>
-        </Box>
+        {/* CARRUSEL INMERSIVO CON EFECTO KEN BURNS */}
+        <ImmersiveCarousel
+          images={
+            trip.imagenes?.map(img => typeof img === 'string' ? img : img.url).filter(Boolean) ||
+            (trip.imagen_principal_url ? [trip.imagen_principal_url] : [])
+          }
+          height={500}
+        />
+
+        {/* VIAJES SIMILARES */}
+        <SimilarTripsCarousel viajeId={id} limit={6} />
       </Container>
+
+      {/* IMAGE LIGHTBOX */}
+      <ImageLightbox
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        images={
+          trip.imagenes?.map(img => typeof img === 'string' ? img : img.url).filter(Boolean) ||
+          (trip.imagen_principal_url ? [trip.imagen_principal_url] : [])
+        }
+        initialIndex={0}
+        title={trip.titulo}
+      />
+
+      {/* FLOATING WHATSAPP BUTTON - Solo en mobile */}
+      <FloatingWhatsAppButton
+        tripId={id}
+        tripName={trip.titulo}
+        showOnMobile={true}
+      />
     </Box>
   )
 }
