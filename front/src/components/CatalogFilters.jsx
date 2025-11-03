@@ -182,14 +182,26 @@ export const CatalogFilters = ({ onFilterChange, onClear }) => {
               "& .MuiToggleButton-root": {
                 minWidth: 45,
                 py: 0.5,
+                px: 1.5,
                 fontSize: "0.75rem",
                 border: "1px solid",
                 borderColor: "divider",
+                borderRadius: "20px !important",
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  opacity: 0.85,
+                  transform: "translateY(-1px)",
+                  boxShadow: 1,
+                },
                 "&.Mui-selected": {
                   bgcolor: "primary.main",
                   color: "white",
+                  borderColor: "primary.dark",
+                  fontWeight: 600,
+                  boxShadow: 2,
                   "&:hover": {
                     bgcolor: "primary.dark",
+                    opacity: 1,
                   },
                 },
               },
@@ -220,11 +232,22 @@ export const CatalogFilters = ({ onFilterChange, onClear }) => {
                 fontSize: "0.875rem",
                 border: "1px solid",
                 borderColor: "divider",
+                borderRadius: "20px !important",
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  opacity: 0.85,
+                  transform: "translateY(-1px)",
+                  boxShadow: 1,
+                },
                 "&.Mui-selected": {
                   bgcolor: "primary.main",
                   color: "white",
+                  borderColor: "primary.dark",
+                  fontWeight: 600,
+                  boxShadow: 2,
                   "&:hover": {
                     bgcolor: "primary.dark",
+                    opacity: 1,
                   },
                 },
               },
@@ -255,11 +278,22 @@ export const CatalogFilters = ({ onFilterChange, onClear }) => {
                 fontSize: "0.875rem",
                 border: "1px solid",
                 borderColor: "divider",
+                borderRadius: "20px !important",
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  opacity: 0.85,
+                  transform: "translateY(-1px)",
+                  boxShadow: 1,
+                },
                 "&.Mui-selected": {
                   bgcolor: "primary.main",
                   color: "white",
+                  borderColor: "primary.dark",
+                  fontWeight: 600,
+                  boxShadow: 2,
                   "&:hover": {
                     bgcolor: "primary.dark",
+                    opacity: 1,
                   },
                 },
               },
@@ -299,6 +333,20 @@ export const CatalogFilters = ({ onFilterChange, onClear }) => {
               py: 0.75,
               px: 2,
               whiteSpace: "nowrap",
+              borderRadius: "20px",
+              borderWidth: 2,
+              borderColor: "primary.main",
+              color: "primary.main",
+              fontWeight: 600,
+              "&:hover": {
+                borderWidth: 2,
+                borderColor: "primary.dark",
+                bgcolor: "primary.main",
+                color: "white",
+              },
+              "&.Mui-disabled": {
+                borderColor: "action.disabled",
+              },
             }}
           >
             Limpiar

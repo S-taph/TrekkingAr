@@ -108,11 +108,12 @@ export default function CatalogPage() {
       {/* Contenedor con padding-top para no solaparse con el header fijo */}
       <Container maxWidth="xl" sx={{ pt: { xs: 10, md: 12 }, pb: 4 }}>
         {/* Título principal "Salidas" */}
-        <Box sx={{ mb: 4, mt: 2, textAlign: 'center' }}>
+        <Box sx={{ mb: 2, mt: 2, textAlign: 'center' }}>
           <Typography
-            variant="h3"
+            variant="h2"
             sx={{
-              fontWeight: 700,
+              fontWeight: 800,
+              fontSize: { xs: 36, md: 48 },
               mb: 1,
               background: (theme) =>
                 theme.palette.mode === 'dark'
@@ -129,6 +130,32 @@ export default function CatalogPage() {
           </Typography>
         </Box>
 
+        {/* Mini-hero: Imagen panorámica */}
+        <Box
+          sx={{
+            width: '100%',
+            height: { xs: 150, md: 180 },
+            mb: 5,
+            backgroundImage: 'url(/miniHeroCatalog.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            borderRadius: 3,
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: 3,
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.2)',
+              zIndex: 1,
+            }
+          }}
+        />
+
         {/* Filtros */}
         <CatalogFilters
           onFilterChange={handleFilterChange}
@@ -142,6 +169,7 @@ export default function CatalogPage() {
             justifyContent: "space-between",
             alignItems: "center",
             mb: 3,
+            mt: 6,
           }}
         >
           <Typography variant="body1" color="text.secondary">
@@ -189,16 +217,33 @@ export default function CatalogPage() {
           <Box
             sx={{
               textAlign: "center",
-              py: 8,
+              py: 10,
               px: 2,
+              borderRadius: 3,
+              bgcolor: (theme) =>
+                theme.palette.mode === 'dark'
+                  ? 'rgba(255, 255, 255, 0.02)'
+                  : 'rgba(0, 0, 0, 0.02)',
             }}
           >
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No se encontraron viajes
+            <Typography variant="h2" sx={{ mb: 2, fontSize: 48 }}>
+              🏞️
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Intenta ajustar los filtros o buscar con otros términos
+            <Typography variant="h5" color="text.primary" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
+              No encontramos salidas con esos filtros
             </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              ¡Prueba cambiar tu búsqueda!
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              onClick={handleClearFilters}
+              sx={{ mt: 1 }}
+            >
+              Limpiar Filtros
+            </Button>
           </Box>
         ) : (
           // Viajes agrupados por mes

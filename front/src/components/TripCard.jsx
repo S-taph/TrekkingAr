@@ -176,7 +176,8 @@ export const TripCard = ({ trip, loading = false }) => {
       <CardContent
         sx={{
           flex: 1,
-          pb: 1,
+          p: 2.5,
+          pb: 1.5,
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
@@ -185,10 +186,11 @@ export const TripCard = ({ trip, loading = false }) => {
         onClick={handleCardClick}
       >
         <Typography
-          variant="h6"
+          variant="h5"
           gutterBottom
           sx={{
             fontWeight: 700,
+            fontSize: { xs: '1.25rem', md: '1.4rem' },
             minHeight: "64px", // Altura mínima para título
             display: "-webkit-box",
             WebkitLineClamp: 2,
@@ -263,6 +265,18 @@ export const TripCard = ({ trip, loading = false }) => {
                   {fechasDisponibles.map((fecha) => {
                     const fechaId = fecha.id_fechas_viaje || fecha.id
                     const cuposDisp = fecha.cupos_disponibles
+
+                    // Determinar color según disponibilidad de cupos
+                    const getCuposColor = (cupos) => {
+                      if (cupos === undefined || cupos > 5) return 'text.secondary'
+                      if (cupos <= 2) return '#D32F2F' // Rojo
+                      if (cupos <= 5) return '#FF6B35' // Naranja
+                      return 'text.secondary'
+                    }
+
+                    const cuposColor = getCuposColor(cuposDisp)
+                    const showUrgencia = cuposDisp !== undefined && cuposDisp > 0 && cuposDisp <= 3
+
                     return (
                       <MenuItem key={fechaId} value={fechaId}>
                         <Box>
@@ -270,12 +284,33 @@ export const TripCard = ({ trip, loading = false }) => {
                             {new Date(fecha.fecha_inicio).toLocaleDateString()} - {new Date(fecha.fecha_fin).toLocaleDateString()}
                           </Typography>
                           {cuposDisp !== undefined && (
-                            <Typography variant="caption" color="text.secondary">
-                              {cuposDisp > 0
-                                ? `${cuposDisp} cupos disponibles`
-                                : 'Sin cupos'
-                              }
-                            </Typography>
+                            <Box>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: cuposColor,
+                                  fontWeight: cuposDisp <= 5 ? 600 : 400,
+                                }}
+                              >
+                                {cuposDisp > 0
+                                  ? `${cuposDisp} cupos disponibles`
+                                  : 'Sin cupos'
+                                }
+                              </Typography>
+                              {showUrgencia && (
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    display: 'block',
+                                    color: cuposColor,
+                                    fontWeight: 700,
+                                    fontStyle: 'italic',
+                                  }}
+                                >
+                                  ¡Últimos cupos!
+                                </Typography>
+                              )}
+                            </Box>
                           )}
                         </Box>
                       </MenuItem>
@@ -305,10 +340,17 @@ export const TripCard = ({ trip, loading = false }) => {
       >
         {/* Precio arriba */}
         <Box sx={{ mb: 2 }}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
             Desde
           </Typography>
-          <Typography variant="h5" color="primary" sx={{ fontWeight: 700 }}>
+          <Typography
+            variant="h4"
+            color="primary"
+            sx={{
+              fontWeight: 700,
+              fontSize: { xs: '1.5rem', md: '1.75rem' },
+            }}
+          >
             ${precioFinal?.toLocaleString()}
           </Typography>
         </Box>
