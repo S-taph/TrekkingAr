@@ -819,3 +819,131 @@ export const getDestinos = async (req, res) => {
     });
   }
 };
+
+/**
+ * Obtiene viajes similares basándose en dificultad y duración
+ * @param {Number} req.params.id - ID del viaje actual
+ * @param {Number} req.query.limit - Límite de resultados (default: 6)
+ */
+export const getSimilarViajes = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { limit = 6 } = req.query;
+
+    // Obtener el viaje actual para comparar
+    const viajeActual = await Viaje.findByPk(id);
+
+    if (!viajeActual) {
+      return res.status(404).json({
+        success: false,
+        message: 'Viaje no encontrado'
+      });
+    }
+
+    // Construir query de búsqueda de viajes similares
+    // Prioridad 1: Misma dificultad + duración similar (±1 día)
+    // Prioridad 2: Mismo destino
+    // Excluir el viaje actual
+    const where = {
+      id_viaje: { [Op.ne]: parseInt(id) }, // Excluir viaje actual
+      activo: true, // Solo viajes activos
+      [Op.or]: [
+        {
+          // Misma dificultad Y duración similar
+          dificultad: viajeActual.dificultad,
+          duracion_dias: {
+            [Op.between]: [
+              Math.max(1, viajeActual.duracion_dias - 1),
+              viajeActual.duracion_dias + 1
+            ]
+          }
+        },
+        {
+          // Mismo destino
+          id_destino: viajeActual.id_destino
+        }
+      ]
+    };
+
+    // Buscar viajes similares
+    const viajes = await Viaje.findAll({
+      where,
+      include: [
+        {
+          model: Categoria,
+          as: 'categoria',
+          required: false
+        },
+        {
+          model: Destino,
+          as: 'destino',
+          required: false
+        },
+        {
+          model: FechaViaje,
+          as: 'fechas',
+          where: { estado_fecha: 'disponible' },
+          required: false,
+          separate: true,
+          order: [['fecha_inicio', 'ASC']]
+        },
+        {
+          model: ImagenViaje,
+          as: 'imagenes',
+          required: false,
+          separate: true,
+          order: [['orden', 'ASC']]
+        }
+      ],
+      // Ordenar: priorizar viajes con misma dificultad y duración similar
+      order: [
+        [sequelize.literal(`CASE
+          WHEN dificultad = '${viajeActual.dificultad}'
+          AND ABS(duracion_dias - ${viajeActual.duracion_dias}) <= 1
+          THEN 0
+          ELSE 1
+        END`), 'ASC'],
+        ['destacado', 'DESC'],
+        ['fecha_creacion', 'DESC']
+      ],
+      limit: parseInt(limit)
+    });
+
+    // Procesar URLs de imágenes y calcular precio más bajo
+    const viajesConImagenes = await Promise.all(viajes.map(async (viaje) => {
+      const viajeData = viaje.toJSON();
+      const viajeConImagenes = processViajeImages(viajeData, req);
+
+      // Calcular precio más bajo de las fechas disponibles
+      if (viajeConImagenes.fechas && viajeConImagenes.fechas.length > 0) {
+        const precios = viajeConImagenes.fechas
+          .map(fecha => parseFloat(fecha.precio))
+          .filter(precio => !isNaN(precio) && precio > 0);
+
+        viajeConImagenes.precio_mas_bajo = precios.length > 0
+          ? Math.min(...precios)
+          : viajeConImagenes.precio_base;
+      } else {
+        viajeConImagenes.precio_mas_bajo = viajeConImagenes.precio_base;
+      }
+
+      return viajeConImagenes;
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        viajes: viajesConImagenes,
+        total: viajesConImagenes.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error obteniendo viajes similares:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor',
+      error: error.message
+    });
+  }
+};

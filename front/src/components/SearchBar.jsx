@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Box, TextField, MenuItem, Button, Grid, Container, Typography } from "@mui/material"
+import { Box, TextField, MenuItem, Button, Grid, Container, Typography, useTheme } from "@mui/material"
 import SearchIcon from "@mui/icons-material/Search"
 
 const SearchBar = ({ onSearch }) => {
+  const theme = useTheme()
   const [filters, setFilters] = useState({
     fecha: "",
     dificultad: "",
@@ -43,9 +44,9 @@ const SearchBar = ({ onSearch }) => {
         marginLeft: "-50vw",
         marginRight: "-50vw",
         py: 6,
-        backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/public/banner1.jpg")',
+        backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/public/SearchBar.jpg")',
         backgroundSize: "cover",
-        backgroundPosition: "center",
+        backgroundPosition: "center 42%",
         backgroundRepeat: "no-repeat",
         mb: 4,
       }}
@@ -260,7 +261,7 @@ const SearchBar = ({ onSearch }) => {
               sx={{
                 height: "40px",
                 backgroundColor: "primary.main",
-                color: "white",
+                color: theme.palette.mode === "dark" ? "black" : "white",
                 fontWeight: "bold",
                 fontSize: "1rem",
                 "&:hover": {

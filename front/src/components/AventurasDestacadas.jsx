@@ -17,20 +17,14 @@ const AventurasDestacadas = () => {
         position: 'relative',
         py: { xs: 6, md: 8 },
         overflow: 'visible',
-        // Fondo base con color de la paleta
+        // Fondo base neutral
         background: (theme) =>
           theme.palette.mode === 'dark'
-            ? `linear-gradient(180deg,
-                ${theme.palette.accent?.forest || theme.palette.primary.dark} 0%,
-                ${theme.palette.accent?.chartreuse || theme.palette.primary.main} 50%,
-                ${theme.palette.accent?.forest || theme.palette.primary.dark} 100%)`
-            : `linear-gradient(180deg,
-                ${theme.palette.primary.dark} 0%,
-                ${theme.palette.primary.main} 50%,
-                ${theme.palette.primary.dark} 100%)`,
+            ? '#1a1a1a'
+            : '#2d2d2d',
       }}
     >
-      {/* Imagen de montañas con blend para integrarla */}
+      {/* Imagen de montañas */}
       <Box
         sx={{
           position: 'absolute',
@@ -43,8 +37,7 @@ const AventurasDestacadas = () => {
           backgroundSize: 'cover',
           backgroundPosition: 'center bottom',
           backgroundRepeat: 'no-repeat',
-          opacity: (theme) => theme.palette.mode === 'dark' ? 0.3 : 0.6,
-          mixBlendMode: (theme) => theme.palette.mode === 'dark' ? 'screen' : 'multiply',
+          opacity: (theme) => theme.palette.mode === 'dark' ? 0.4 : 0.5,
           imageRendering: '-webkit-optimize-contrast',
           WebkitImageRendering: '-webkit-optimize-contrast',
           MozImageRendering: 'crisp-edges',

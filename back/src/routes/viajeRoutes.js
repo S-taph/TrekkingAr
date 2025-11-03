@@ -10,7 +10,8 @@ import {
   deleteImagen,
   updateImagenOrder,
   getPreciosStats,
-  getDestinos
+  getDestinos,
+  getSimilarViajes
 } from "../controllers/viajeController.js";
 import { authenticateToken, requireAdmin } from "../middleware/auth.js";
 import { upload, handleMulterError } from "../config/multer.js";
@@ -47,6 +48,7 @@ const imagenIdValidation = [
 router.get("/stats/precios", getPreciosStats);
 router.get("/destinos", getDestinos);
 router.get("/", getViajes);
+router.get("/:id/similares", viajeIdValidation, getSimilarViajes); // Debe ir antes de /:id
 router.get("/:id", viajeIdValidation, getViajeById);
 
 // Rutas de administración

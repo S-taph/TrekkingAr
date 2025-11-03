@@ -73,8 +73,9 @@ const ReviewsList = ({ limit = 6, viajeId = null }) => {
   return (
     <Box
       sx={{
-        bgcolor: 'background.default',
+        backgroundColor: '#FFE8DC',
         py: { xs: 6, md: 8 },
+        borderRadius: 2,
       }}
     >
       <Container maxWidth="lg">

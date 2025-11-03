@@ -147,6 +147,12 @@ export const viajesAPI = {
     apiRequest(`/viajes/${viajeId}/fechas/${fechaId}`, {
       method: "DELETE",
     }),
+
+  // Obtener viajes similares
+  getSimilarViajes: (viajeId, limit = 6) => {
+    const queryString = new URLSearchParams({ limit }).toString()
+    return apiRequest(`/viajes/${viajeId}/similares?${queryString}`)
+  },
 }
 
 // ✅ Reservas API - conectado con backend real

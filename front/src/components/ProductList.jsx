@@ -5,7 +5,7 @@ import { Box, Typography, CircularProgress, Alert } from "@mui/material"
 import { TripCard } from "./TripCard"
 import { useViajes } from "../hooks/useViajes"
 
-const ProductList = ({ searchFilters = {}, sidebarFilters = {} }) => {
+const ProductList = ({ searchFilters = {}, sidebarFilters = {}, limit }) => {
   console.log("[ProductList] searchFilters:", searchFilters)
   console.log("[ProductList] sidebarFilters:", sidebarFilters)
 
@@ -14,6 +14,11 @@ const ProductList = ({ searchFilters = {}, sidebarFilters = {} }) => {
   // Combinar todos los filtros para la API
   const apiFilters = useMemo(() => {
     const filters = { activo: true }
+
+    // Agregar límite si se especifica
+    if (limit) {
+      filters.limit = limit
+    }
 
     // Filtros de búsqueda
     if (searchFilters.lugar && searchFilters.lugar.trim() !== "") {
@@ -42,7 +47,7 @@ const ProductList = ({ searchFilters = {}, sidebarFilters = {} }) => {
 
     console.log("[ProductList] Filtros finales para API:", filters)
     return filters
-  }, [searchFilters, sidebarFilters])
+  }, [searchFilters, sidebarFilters, limit])
 
   const { viajes, loading, error, refetch } = useViajes(apiFilters)
 

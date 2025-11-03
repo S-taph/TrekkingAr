@@ -1,3 +1,4 @@
+import { Op } from 'sequelize'
 import Suscriptor from '../models/Suscriptor.js'
 import { generateToken } from '../utils/tokenUtils.js'
 import emailService from '../services/emailService.js'
@@ -212,7 +213,7 @@ export const getStats = async (req, res) => {
     const nuevasSuscripciones = await Suscriptor.count({
       where: {
         fecha_suscripcion: {
-          [Suscriptor.sequelize.Op.gte]: unMesAtras
+          [Op.gte]: unMesAtras
         }
       }
     })

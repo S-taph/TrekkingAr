@@ -9,7 +9,6 @@ import Hero from "../components/Hero.jsx"
 import FilterBar from "../components/FilterBar.jsx"
 import ProductList from "../components/ProductList.jsx"
 import Footer from "../components/Footer.jsx"
-import ProximosViajes from "../components/ProximosViajes.jsx"
 import AventurasDestacadas from "../components/AventurasDestacadas.jsx"
 import MediosPago from "../components/MediosPago.jsx"
 import SearchBar from "../components/SearchBar.jsx"
@@ -81,16 +80,12 @@ export default function Home() {
           {/* PRODUCT LIST */}
           <Box sx={{ flex: 1}}>
             <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
-              Nuestros Viajes
+              Próximas Aventuras
             </Typography>
-            <ProductList searchFilters={searchFilters} sidebarFilters={sidebarFilters} />
+            <ProductList searchFilters={searchFilters} sidebarFilters={sidebarFilters} limit={6} />
           </Box>
         </Box>
 
-        {/* PRÓXIMOS VIAJES */}
-        <Box sx={{ mt: 12 }}>
-          <ProximosViajes />
-        </Box>
       </Container>
 
       {/* AVENTURAS DESTACADAS */}

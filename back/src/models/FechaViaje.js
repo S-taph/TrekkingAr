@@ -25,7 +25,7 @@ const FechaViaje = sequelize.define(
       type: DataTypes.DATE,
       allowNull: false,
     },
-    cupos_disponibles: {
+    cupos_totales: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 10,
@@ -33,6 +33,12 @@ const FechaViaje = sequelize.define(
     cupos_ocupados: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
+    },
+    cupos_disponibles: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        return Math.max(0, (this.getDataValue('cupos_totales') || 10) - (this.getDataValue('cupos_ocupados') || 0));
+      }
     },
     precio_fecha: {
       type: DataTypes.DECIMAL(10, 2),
