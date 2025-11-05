@@ -6,10 +6,13 @@
 
 html {
   overflow-y: scroll; /* Forzar scrollbar siempre visible para evitar "rebote" del layout */
+  overflow-x: hidden; /* Evitar scroll horizontal en html también */
 }
 
 body {
   font-family: Roboto, sans-serif;
   background-color: #fff;
   overflow-x: hidden; /* Evitar scroll horizontal */
+  width: 100%;
+  position: relative;
 }

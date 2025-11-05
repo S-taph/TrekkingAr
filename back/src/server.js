@@ -168,7 +168,8 @@ const limiter = rateLimit({
       '/api/viajes',
       '/api/categorias',
       '/api/health',
-      '/api/reviews'
+      '/api/reviews',
+      '/api/auth/profile'  // Verificación de sesión (necesaria para AuthContext)
     ];
     return skipPaths.some(path => req.path.startsWith(path)) && req.method === 'GET';
   }

@@ -107,14 +107,14 @@ const handleMulterError = (error, req, res, next) => {
   next(error);
 };
 
-// Función para generar URL pública del archivo
+// Función para generar ruta relativa del archivo
+// IMPORTANTE: Guardamos solo rutas relativas en la BD, no URLs absolutas
+// El backend construirá la URL completa dinámicamente según el entorno
 const getFileUrl = (req, filename, viajeId = null) => {
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
-  
   if (viajeId) {
-    return `${baseUrl}/uploads/viajes/${viajeId}/${filename}`;
+    return `/uploads/viajes/${viajeId}/${filename}`;
   } else {
-    return `${baseUrl}/uploads/temp/${filename}`;
+    return `/uploads/temp/${filename}`;
   }
 };
 

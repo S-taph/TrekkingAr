@@ -335,7 +335,7 @@ export default function NosotrosPage() {
                       </Typography>
                       <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
                         <Chip
-                          label={`${guia.años_experiencia || 0} años exp.`}
+                          label={`${guia.anos_experiencia || 0} años exp.`}
                           size="small"
                           color="primary"
                           variant="outlined"
