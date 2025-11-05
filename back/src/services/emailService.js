@@ -435,6 +435,71 @@ class EmailService {
   }
 
   /**
+   * Plantilla HTML para email de recuperación de contraseña
+   */
+  getPasswordResetEmailTemplate(nombre, resetUrl) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #1E7A5F; color: white; padding: 30px; text-align: center; border-radius: 5px 5px 0 0; }
+          .content { background-color: white; padding: 30px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+          .button { display: inline-block; padding: 15px 40px; background-color: #D98B3A; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }
+          .button:hover { background-color: #c47a2f; }
+          .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+          .url-box { background-color: #f0f8f0; padding: 15px; border-left: 4px solid #1E7A5F; margin: 20px 0; word-break: break-all; }
+          .warning { background-color: #fff3e0; padding: 15px; border-left: 4px solid #D98B3A; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🏔️ TrekkingAR</h1>
+            <p style="margin: 0; font-size: 18px;">Recuperación de contraseña</p>
+          </div>
+          <div class="content">
+            <h2>Hola${nombre ? `, ${nombre}` : ''},</h2>
+            <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en TrekkingAR.</p>
+            <p>Si realizaste esta solicitud, haz clic en el botón de abajo para crear una nueva contraseña:</p>
+
+            <div style="text-align: center;">
+              <a href="${resetUrl}" class="button">🔐 Restablecer contraseña</a>
+            </div>
+
+            <p>O copia y pega este enlace en tu navegador:</p>
+            <div class="url-box">
+              <code>${resetUrl}</code>
+            </div>
+
+            <div class="warning">
+              <p><strong>⚠️ Importante:</strong></p>
+              <ul style="margin: 10px 0;">
+                <li>Este enlace expirará en 1 hora por seguridad</li>
+                <li>Si no solicitaste este cambio, ignora este correo</li>
+                <li>Tu contraseña actual seguirá funcionando</li>
+              </ul>
+            </div>
+
+            <p>Si tienes problemas con el enlace o no solicitaste este cambio, contáctanos de inmediato.</p>
+
+            <p style="margin-top: 30px;">Saludos,</p>
+            <p><strong>El equipo de TrekkingAR</strong></p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} TrekkingAR - San Carlos de Bariloche, Río Negro, Argentina</p>
+            <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
    * Envía email de confirmación de suscripción al newsletter
    */
   async sendNewsletterConfirmationEmail(suscriptor) {

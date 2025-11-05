@@ -391,7 +391,131 @@ export const verifyEmail = async (req, res) => {
   }
 }
 
-// TODO: agregar endpoint para cambiar password
+/**
+ * Solicitar recuperación de contraseña
+ */
+export const forgotPassword = async (req, res) => {
+  try {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: "Datos inválidos",
+        errors: errors.array(),
+      })
+    }
+
+    const { email } = req.body
+
+    // Buscar usuario por email
+    const usuario = await Usuario.findOne({ where: { email } })
+
+    // Por seguridad, siempre devolvemos el mismo mensaje aunque el usuario no exista
+    if (!usuario) {
+      return res.json({
+        success: true,
+        message: "Si el email existe en nuestro sistema, recibirás un correo con instrucciones para recuperar tu contraseña.",
+      })
+    }
+
+    // Generar token de recuperación
+    const resetToken = uuidv4()
+    const tokenExpiry = new Date()
+    tokenExpiry.setHours(tokenExpiry.getHours() + 1) // Expira en 1 hora
+
+    // Guardar token en la base de datos
+    await usuario.update({
+      password_reset_token: resetToken,
+      password_reset_expiry: tokenExpiry,
+    })
+
+    // Enviar correo de recuperación
+    try {
+      await emailService.sendPasswordResetEmail(email, resetToken, usuario.nombre)
+      console.log('[Auth] Password reset email sent to:', email)
+    } catch (emailError) {
+      console.error('[Auth] Error sending password reset email:', emailError)
+      return res.status(500).json({
+        success: false,
+        message: "Error al enviar el correo de recuperación. Por favor intenta más tarde.",
+      })
+    }
+
+    res.json({
+      success: true,
+      message: "Si el email existe en nuestro sistema, recibirás un correo con instrucciones para recuperar tu contraseña.",
+    })
+  } catch (error) {
+    console.error('[Auth] Error in forgotPassword:', error)
+    res.status(500).json({
+      success: false,
+      message: "Error interno del servidor",
+    })
+  }
+}
+
+/**
+ * Restablecer contraseña con token
+ */
+export const resetPassword = async (req, res) => {
+  try {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: "Datos inválidos",
+        errors: errors.array(),
+      })
+    }
+
+    const { token, newPassword } = req.body
+
+    // Buscar usuario con el token
+    const usuario = await Usuario.findOne({
+      where: { password_reset_token: token }
+    })
+
+    if (!usuario) {
+      return res.status(400).json({
+        success: false,
+        message: "Token de recuperación inválido o expirado",
+      })
+    }
+
+    // Verificar si el token expiró
+    if (new Date() > new Date(usuario.password_reset_expiry)) {
+      return res.status(400).json({
+        success: false,
+        message: "El token de recuperación ha expirado. Por favor solicita uno nuevo.",
+      })
+    }
+
+    // Hash de la nueva contraseña
+    const saltRounds = 12
+    const password_hash = await bcrypt.hash(newPassword, saltRounds)
+
+    // Actualizar contraseña y limpiar tokens
+    await usuario.update({
+      password_hash,
+      password_reset_token: null,
+      password_reset_expiry: null,
+    })
+
+    console.log('[Auth] Password reset successful for user:', usuario.email)
+
+    res.json({
+      success: true,
+      message: "Contraseña restablecida exitosamente. Ya puedes iniciar sesión con tu nueva contraseña.",
+    })
+  } catch (error) {
+    console.error('[Auth] Error in resetPassword:', error)
+    res.status(500).json({
+      success: false,
+      message: "Error interno del servidor",
+    })
+  }
+}
+
 // TODO: agregar endpoint para actualizar perfil
 // TODO: implementar refresh tokens
 // TODO: agregar endpoint para reenviar email de verificación

@@ -34,14 +34,17 @@ export const createReserva = async (req, res) => {
     const id_usuario = req.user.id_usuarios
 
     // Verificar que la fecha del viaje existe y está disponible
+    // Usar lock para evitar race conditions
     const fechaViaje = await FechaViaje.findByPk(id_fecha_viaje, {
       include: [
         {
           model: Viaje,
           as: "viaje",
-          attributes: ["precio_base", "titulo"],
+          attributes: ["precio_base", "titulo", "maximo_participantes"],
         },
       ],
+      lock: transaction.LOCK.UPDATE,
+      transaction,
     })
 
     if (!fechaViaje) {
@@ -49,6 +52,23 @@ export const createReserva = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Fecha de viaje no encontrada",
+      })
+    }
+
+    // Verificar estado de la fecha
+    if (fechaViaje.estado_fecha === "cancelado") {
+      await transaction.rollback()
+      return res.status(400).json({
+        success: false,
+        message: "Esta fecha de viaje ha sido cancelada",
+      })
+    }
+
+    if (fechaViaje.estado_fecha === "completo") {
+      await transaction.rollback()
+      return res.status(400).json({
+        success: false,
+        message: "Esta fecha de viaje está completa. No hay cupos disponibles",
       })
     }
 
@@ -60,6 +80,18 @@ export const createReserva = async (req, res) => {
         success: false,
         message: `No hay cupos suficientes. Disponibles: ${cuposDisponibles}`,
       })
+    }
+
+    // Verificar que no exceda el máximo de participantes del viaje
+    if (fechaViaje.viaje.maximo_participantes) {
+      const nuevosCuposOcupados = fechaViaje.cupos_ocupados + cantidad_personas
+      if (nuevosCuposOcupados > fechaViaje.viaje.maximo_participantes) {
+        await transaction.rollback()
+        return res.status(400).json({
+          success: false,
+          message: `Esta reserva excedería el máximo de participantes permitidos (${fechaViaje.viaje.maximo_participantes})`,
+        })
+      }
     }
 
     // Obtener el precio: usar precio_fecha si existe, sino precio_base del viaje
@@ -93,7 +125,28 @@ export const createReserva = async (req, res) => {
       { transaction },
     )
 
+    // Actualizar cupos ocupados
+    const nuevosCuposOcupados = fechaViaje.cupos_ocupados + cantidad_personas
+    await fechaViaje.update(
+      {
+        cupos_ocupados: nuevosCuposOcupados,
+      },
+      { transaction },
+    )
+
+    // Si se llenaron todos los cupos, marcar como completo
+    if (nuevosCuposOcupados >= fechaViaje.cupos_totales) {
+      await fechaViaje.update(
+        {
+          estado_fecha: "completo",
+        },
+        { transaction },
+      )
+      console.log(`[Reservas] Fecha de viaje ${id_fecha_viaje} marcada como completa`)
+    }
+
     await transaction.commit()
+    console.log(`[Reservas] Reserva creada exitosamente. Cupos ocupados: ${nuevosCuposOcupados}/${fechaViaje.cupos_totales}`)
 
     // Obtener reserva completa con relaciones
     const reservaCompleta = await Reserva.findByPk(reserva.id_reserva, {
@@ -322,6 +375,7 @@ export const cancelReserva = async (req, res) => {
           as: "compra",
         },
       ],
+      transaction,
     })
 
     if (!reserva) {
@@ -348,11 +402,46 @@ export const cancelReserva = async (req, res) => {
       })
     }
 
+    // Obtener fecha del viaje con lock
+    const fechaViaje = await FechaViaje.findByPk(reserva.id_fecha_viaje, {
+      lock: transaction.LOCK.UPDATE,
+      transaction,
+    })
+
+    if (!fechaViaje) {
+      await transaction.rollback()
+      return res.status(404).json({
+        success: false,
+        message: "Fecha de viaje no encontrada",
+      })
+    }
+
     // Actualizar reserva y compra
     await reserva.update({ estado_reserva: "cancelada" }, { transaction })
     await reserva.compra.update({ estado_compra: "cancelada" }, { transaction })
 
+    // Liberar cupos ocupados
+    const nuevosCuposOcupados = Math.max(0, fechaViaje.cupos_ocupados - reserva.cantidad_personas)
+    await fechaViaje.update(
+      {
+        cupos_ocupados: nuevosCuposOcupados,
+      },
+      { transaction },
+    )
+
+    // Si el estado era "completo" y ahora hay cupos disponibles, cambiar a "disponible"
+    if (fechaViaje.estado_fecha === "completo" && nuevosCuposOcupados < fechaViaje.cupos_totales) {
+      await fechaViaje.update(
+        {
+          estado_fecha: "disponible",
+        },
+        { transaction },
+      )
+      console.log(`[Reservas] Fecha de viaje ${reserva.id_fecha_viaje} marcada como disponible`)
+    }
+
     await transaction.commit()
+    console.log(`[Reservas] Reserva cancelada. Cupos liberados: ${reserva.cantidad_personas}. Cupos ocupados: ${nuevosCuposOcupados}/${fechaViaje.cupos_totales}`)
 
     res.json({
       success: true,

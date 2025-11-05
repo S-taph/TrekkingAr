@@ -1,6 +1,6 @@
 import express from "express"
 import { body } from "express-validator"
-import { register, login, getProfile, logout, googleAuth, googleCallback, getMe, verifyEmail } from "../controllers/authController.js"
+import { register, login, getProfile, logout, googleAuth, googleCallback, getMe, verifyEmail, forgotPassword, resetPassword } from "../controllers/authController.js"
 import passport from "passport"
 import jwt from "jsonwebtoken"
 import { authenticateToken } from "../middleware/auth.js"
@@ -20,6 +20,15 @@ const loginValidation = [
   body("password").notEmpty().withMessage("La contraseña es requerida"),
 ]
 
+const forgotPasswordValidation = [
+  body("email").isEmail().withMessage("Debe ser un email válido").normalizeEmail(),
+]
+
+const resetPasswordValidation = [
+  body("token").notEmpty().withMessage("El token es requerido"),
+  body("newPassword").isLength({ min: 6 }).withMessage("La contraseña debe tener al menos 6 caracteres"),
+]
+
 // Rutas de autenticación
 router.post("/register", registerValidation, register)
 router.post("/login", loginValidation, login)
@@ -29,6 +38,10 @@ router.post("/logout", logout)
 
 // Verificación de email
 router.get("/verify-email", verifyEmail)
+
+// Recuperación de contraseña
+router.post("/forgot-password", forgotPasswordValidation, forgotPassword)
+router.post("/reset-password", resetPasswordValidation, resetPassword)
 
 // Google OAuth2
 router.get('/google', googleAuth)

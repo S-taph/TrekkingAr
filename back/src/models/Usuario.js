@@ -98,6 +98,16 @@ const Usuario = sequelize.define(
       allowNull: true,
       field: "token_expiry",
     },
+    password_reset_token: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: "password_reset_token",
+    },
+    password_reset_expiry: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "password_reset_expiry",
+    },
   },
   {
     timestamps: true,
