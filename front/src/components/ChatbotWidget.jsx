@@ -11,6 +11,8 @@ import {
   Avatar,
   CircularProgress,
   Chip,
+  Button,
+  Divider,
 } from "@mui/material"
 import {
   Chat as ChatIcon,
@@ -18,6 +20,7 @@ import {
   Send as SendIcon,
   SmartToy as BotIcon,
   Person as PersonIcon,
+  WhatsApp as WhatsAppIcon,
 } from "@mui/icons-material"
 
 // ✅ Usar variable de entorno para la API
@@ -126,6 +129,16 @@ export const ChatbotWidget = () => {
 
   const handleSuggestionClick = (suggestion) => {
     setInputValue(suggestion)
+  }
+
+  // Contactar por WhatsApp
+  const handleWhatsAppContact = () => {
+    const phoneNumber = "5492944428765" // +54 9 294 442-8765 (sin espacios ni símbolos)
+    const message = encodeURIComponent(
+      "Hola! Me gustaría hablar con un representante de TrekkingAR."
+    )
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer")
   }
 
   // No mostrar el chatbot en rutas de administración
@@ -309,44 +322,69 @@ export const ChatbotWidget = () => {
             <div ref={messagesEndRef} />
           </Box>
 
-          {/* Input */}
+          {/* Input y botón de WhatsApp */}
           <Box
             sx={{
-              p: 2,
               borderTop: 1,
               borderColor: "divider",
               bgcolor: "background.paper",
             }}
           >
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <TextField
+            {/* Botón de WhatsApp */}
+            <Box sx={{ p: 2, pb: 1 }}>
+              <Button
                 fullWidth
-                multiline
-                maxRows={3}
-                placeholder="Escribe tu mensaje..."
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                disabled={loading}
-                size="small"
-              />
-              <IconButton
-                color="primary"
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim() || loading}
+                variant="outlined"
+                startIcon={<WhatsAppIcon />}
+                onClick={handleWhatsAppContact}
                 sx={{
-                  bgcolor: "primary.main",
-                  color: "white",
+                  borderColor: "#25D366",
+                  color: "#25D366",
+                  textTransform: "none",
                   "&:hover": {
-                    bgcolor: "primary.dark",
-                  },
-                  "&:disabled": {
-                    bgcolor: "action.disabledBackground",
+                    borderColor: "#20BA5A",
+                    bgcolor: "rgba(37, 211, 102, 0.08)",
                   },
                 }}
               >
-                <SendIcon />
-              </IconButton>
+                Hablar con un representante
+              </Button>
+            </Box>
+
+            <Divider sx={{ mx: 2 }} />
+
+            {/* Input de mensaje */}
+            <Box sx={{ p: 2, pt: 1 }}>
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  maxRows={3}
+                  placeholder="Escribe tu mensaje..."
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  disabled={loading}
+                  size="small"
+                />
+                <IconButton
+                  color="primary"
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || loading}
+                  sx={{
+                    bgcolor: "primary.main",
+                    color: "white",
+                    "&:hover": {
+                      bgcolor: "primary.dark",
+                    },
+                    "&:disabled": {
+                      bgcolor: "action.disabledBackground",
+                    },
+                  }}
+                >
+                  <SendIcon />
+                </IconButton>
+              </Box>
             </Box>
           </Box>
         </Paper>
