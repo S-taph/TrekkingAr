@@ -210,7 +210,7 @@ const corsOptions = {
   },
   credentials: true, // Permitir envío de cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'x-bypass-auth'],
   exposedHeaders: ['Set-Cookie'],
   optionsSuccessStatus: 200
 };
