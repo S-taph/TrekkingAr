@@ -168,10 +168,21 @@ export const viajesAPI = {
     const formData = new FormData()
     files.forEach(file => formData.append("imagenes", file))
 
+    // Detectar si estamos en modo cross-origin para incluir token
+    const useFallbackAuth = isCrossOrigin()
+    const token = useFallbackAuth ? safeGetItem('auth_token') : null
+
+    const headers = {
+      "ngrok-skip-browser-warning": "true",
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    }
+    // NO establecer Content-Type para que el browser lo haga automático con boundary correcto
+
     const response = await fetch(`${API_BASE_URL}/viajes/${viajeId}/images`, {
       method: "POST",
       credentials: "include", // Incluir cookies de sesión
-      body: formData, // No establecer Content-Type, el browser lo hace automático
+      headers,
+      body: formData,
     })
 
     if (!response.ok) {
