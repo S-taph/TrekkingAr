@@ -101,7 +101,7 @@ export default function ProfilePage() {
         apellido: user.apellido || "",
         email: user.email || "",
         telefono: user.telefono || "",
-        dni: user.dni || "",
+        dni: user.dni ? String(user.dni) : "",
         contacto_emergencia: user.contacto_emergencia || "",
         telefono_emergencia: user.telefono_emergencia || "",
         experiencia_previa: user.experiencia_previa || "",
@@ -172,18 +172,23 @@ export default function ProfilePage() {
     setError(null)
 
     // Validación del DNI si está presente
-    if (formData.dni && formData.dni.trim() !== "") {
-      // Validar que sea solo números
-      if (!/^\d+$/.test(formData.dni)) {
-        setError("El DNI debe contener solo números")
-        setSaving(false)
-        return
-      }
-      // Validar longitud (DNI argentino: 7-8 dígitos)
-      if (formData.dni.length < 7 || formData.dni.length > 8) {
-        setError("El DNI debe tener entre 7 y 8 dígitos")
-        setSaving(false)
-        return
+    if (formData.dni !== undefined && formData.dni !== null && formData.dni !== "") {
+      // Convertir a string para validación
+      const dniStr = String(formData.dni).trim()
+
+      if (dniStr !== "") {
+        // Validar que sea solo números
+        if (!/^\d+$/.test(dniStr)) {
+          setError("El DNI debe contener solo números")
+          setSaving(false)
+          return
+        }
+        // Validar longitud (DNI argentino: 7-8 dígitos)
+        if (dniStr.length < 7 || dniStr.length > 8) {
+          setError("El DNI debe tener entre 7 y 8 dígitos")
+          setSaving(false)
+          return
+        }
       }
     }
 
