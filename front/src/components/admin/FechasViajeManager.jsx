@@ -25,9 +25,16 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Divider,
+  Autocomplete,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  Collapse,
 } from "@mui/material"
-import { Add, Edit, Delete, CalendarMonth } from "@mui/icons-material"
-import { viajesAPI } from "../../services/api"
+import { Add, Edit, Delete, CalendarMonth, Person, ExpandMore, ExpandLess } from "@mui/icons-material"
+import { viajesAPI, guiasAPI } from "../../services/api"
 
 /**
  * FechasViajeManager - Componente para gestionar múltiples fechas de un viaje
@@ -47,11 +54,56 @@ export default function FechasViajeManager({ viajeId }) {
     observaciones: "",
   })
 
+  // Estado para asignación de guías
+  const [guiasDisponibles, setGuiasDisponibles] = useState([])
+  const [guiasAsignados, setGuiasAsignados] = useState([])
+  const [selectedGuia, setSelectedGuia] = useState(null)
+  const [guiaFormData, setGuiaFormData] = useState({
+    rol_guia: "principal",
+    tarifa_acordada: "",
+    estado_asignacion: "asignado",
+    observaciones: "",
+  })
+  const [showGuiasSection, setShowGuiasSection] = useState(false)
+
   useEffect(() => {
     if (viajeId) {
       loadFechas()
     }
   }, [viajeId])
+
+  // Cargar guías disponibles cuando se abre el diálogo
+  useEffect(() => {
+    if (dialogOpen) {
+      loadGuiasDisponibles()
+      if (editingFecha) {
+        loadGuiasAsignados(editingFecha.id_fechas_viaje)
+      }
+    }
+  }, [dialogOpen, editingFecha])
+
+  const loadGuiasDisponibles = async () => {
+    try {
+      const response = await guiasAPI.getGuias({ disponible: true, activo: true })
+      if (response.success) {
+        setGuiasDisponibles(response.data.guias || [])
+      }
+    } catch (error) {
+      console.error("Error cargando guías:", error)
+    }
+  }
+
+  const loadGuiasAsignados = async (fechaId) => {
+    try {
+      const response = await guiasAPI.getGuiasByFecha(fechaId)
+      if (response.success) {
+        setGuiasAsignados(response.data.asignaciones || [])
+      }
+    } catch (error) {
+      console.error("Error cargando guías asignados:", error)
+      setGuiasAsignados([])
+    }
+  }
 
   const loadFechas = async () => {
     try {
@@ -79,6 +131,9 @@ export default function FechasViajeManager({ viajeId }) {
       estado_fecha: "disponible",
       observaciones: "",
     })
+    setGuiasAsignados([])
+    resetGuiaForm()
+    setShowGuiasSection(false)
     setDialogOpen(true)
   }
 
@@ -92,6 +147,9 @@ export default function FechasViajeManager({ viajeId }) {
       estado_fecha: fecha.estado_fecha || "disponible",
       observaciones: fecha.observaciones || "",
     })
+    setGuiasAsignados([])
+    resetGuiaForm()
+    setShowGuiasSection(false)
     setDialogOpen(true)
   }
 
@@ -125,7 +183,30 @@ export default function FechasViajeManager({ viajeId }) {
       if (editingFecha) {
         await viajesAPI.updateFechaViaje(viajeId, editingFecha.id_fechas_viaje, formData)
       } else {
-        await viajesAPI.createFechaViaje(viajeId, formData)
+        // Crear la fecha primero
+        const response = await viajesAPI.createFechaViaje(viajeId, formData)
+
+        // Si hay guías asignados en estado local, guardarlos
+        if (response.success && guiasAsignados.length > 0) {
+          const fechaId = response.data.fecha.id_fechas_viaje
+
+          // Asignar cada guía a la fecha recién creada
+          for (const asignacion of guiasAsignados) {
+            try {
+              await guiasAPI.asignarGuiaAFecha({
+                id_guia: asignacion.id_guia,
+                id_fecha_viaje: fechaId,
+                rol_guia: asignacion.rol_guia,
+                tarifa_acordada: asignacion.tarifa_acordada,
+                estado_asignacion: asignacion.estado_asignacion,
+                observaciones: asignacion.observaciones,
+              })
+            } catch (guiaError) {
+              console.error("Error asignando guía:", guiaError)
+              // Continuar con los demás guías aunque falle uno
+            }
+          }
+        }
       }
 
       setDialogOpen(false)
@@ -142,6 +223,78 @@ export default function FechasViajeManager({ viajeId }) {
       ...prev,
       [name]: value,
     }))
+  }
+
+  const handleGuiaFormChange = (e) => {
+    const { name, value } = e.target
+    setGuiaFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handleAsignarGuia = async () => {
+    if (!selectedGuia) {
+      setError("Selecciona un guía")
+      return
+    }
+
+    if (!editingFecha) {
+      // Si estamos creando una fecha nueva, agregar al estado local
+      const newAsignacion = {
+        id_guia: selectedGuia.id_guia,
+        guia: selectedGuia,
+        ...guiaFormData,
+        // ID temporal para poder eliminar antes de guardar
+        tempId: Date.now(),
+      }
+      setGuiasAsignados([...guiasAsignados, newAsignacion])
+      resetGuiaForm()
+      return
+    }
+
+    // Si estamos editando, guardar en el backend
+    try {
+      await guiasAPI.asignarGuiaAFecha({
+        id_guia: selectedGuia.id_guia,
+        id_fecha_viaje: editingFecha.id_fechas_viaje,
+        ...guiaFormData,
+      })
+      await loadGuiasAsignados(editingFecha.id_fechas_viaje)
+      resetGuiaForm()
+    } catch (error) {
+      console.error("Error asignando guía:", error)
+      setError(error.message || "Error al asignar guía")
+    }
+  }
+
+  const handleRemoverGuia = async (asignacion) => {
+    if (!editingFecha) {
+      // Si estamos creando, solo remover del estado local
+      setGuiasAsignados(guiasAsignados.filter((a) => a.tempId !== asignacion.tempId))
+      return
+    }
+
+    // Si estamos editando, eliminar del backend
+    if (!window.confirm("¿Eliminar este guía de la fecha?")) return
+
+    try {
+      await guiasAPI.removeGuiaFromFecha(asignacion.id_guia_viaje)
+      await loadGuiasAsignados(editingFecha.id_fechas_viaje)
+    } catch (error) {
+      console.error("Error removiendo guía:", error)
+      setError(error.message || "Error al remover guía")
+    }
+  }
+
+  const resetGuiaForm = () => {
+    setSelectedGuia(null)
+    setGuiaFormData({
+      rol_guia: "principal",
+      tarifa_acordada: "",
+      estado_asignacion: "asignado",
+      observaciones: "",
+    })
   }
 
   const formatDate = (dateString) => {
@@ -161,6 +314,56 @@ export default function FechasViajeManager({ viajeId }) {
     }
     const { label, color } = config[estado] || config.disponible
     return <Chip label={label} color={color} size="small" />
+  }
+
+  // Componente auxiliar para mostrar guías asignados en la tabla
+  const GuiasCell = ({ fechaId }) => {
+    const [guias, setGuias] = useState([])
+    const [loadingGuias, setLoadingGuias] = useState(true)
+
+    useEffect(() => {
+      const loadGuias = async () => {
+        try {
+          setLoadingGuias(true)
+          const response = await guiasAPI.getGuiasByFecha(fechaId)
+          if (response.success) {
+            setGuias(response.data.asignaciones || [])
+          }
+        } catch (error) {
+          console.error("Error cargando guías:", error)
+          setGuias([])
+        } finally {
+          setLoadingGuias(false)
+        }
+      }
+      loadGuias()
+    }, [fechaId])
+
+    if (loadingGuias) {
+      return <CircularProgress size={20} />
+    }
+
+    if (guias.length === 0) {
+      return (
+        <Typography variant="body2" color="text.secondary">
+          Sin asignar
+        </Typography>
+      )
+    }
+
+    return (
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+        {guias.map((asignacion) => (
+          <Chip
+            key={asignacion.id_guia_viaje}
+            icon={<Person />}
+            label={`${asignacion.guia.usuario?.nombre || "Guía"} (${asignacion.rol_guia})`}
+            size="small"
+            variant="outlined"
+          />
+        ))}
+      </Box>
+    )
   }
 
   if (!viajeId) {
@@ -214,6 +417,7 @@ export default function FechasViajeManager({ viajeId }) {
                 <TableCell>Cupos Disponibles</TableCell>
                 <TableCell>Cupos Ocupados</TableCell>
                 <TableCell>Precio</TableCell>
+                <TableCell>Guías</TableCell>
                 <TableCell>Estado</TableCell>
                 <TableCell>Acciones</TableCell>
               </TableRow>
@@ -227,6 +431,9 @@ export default function FechasViajeManager({ viajeId }) {
                   <TableCell>{fecha.cupos_ocupados || 0}</TableCell>
                   <TableCell>
                     {fecha.precio_fecha ? `$${parseFloat(fecha.precio_fecha).toLocaleString()}` : "Precio base"}
+                  </TableCell>
+                  <TableCell>
+                    <GuiasCell fechaId={fecha.id_fechas_viaje} />
                   </TableCell>
                   <TableCell>{getEstadoChip(fecha.estado_fecha)}</TableCell>
                   <TableCell>
@@ -340,6 +547,152 @@ export default function FechasViajeManager({ viajeId }) {
               />
             </Grid2>
           </Grid2>
+
+          {/* Sección de Asignación de Guías */}
+          <Box sx={{ mt: 3 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={showGuiasSection ? <ExpandLess /> : <ExpandMore />}
+              onClick={() => setShowGuiasSection(!showGuiasSection)}
+              sx={{ mb: 2 }}
+            >
+              Asignar Guías ({guiasAsignados.length})
+            </Button>
+
+            <Collapse in={showGuiasSection}>
+              <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
+                {/* Formulario para agregar guía */}
+                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
+                  Agregar Guía
+                </Typography>
+
+                <Grid2 container spacing={2} sx={{ mb: 2 }}>
+                  <Grid2 item xs={12}>
+                    <Autocomplete
+                      options={guiasDisponibles}
+                      value={selectedGuia}
+                      onChange={(e, newValue) => {
+                        setSelectedGuia(newValue)
+                        if (newValue?.tarifa_por_dia) {
+                          setGuiaFormData((prev) => ({
+                            ...prev,
+                            tarifa_acordada: newValue.tarifa_por_dia,
+                          }))
+                        }
+                      }}
+                      getOptionLabel={(option) =>
+                        `${option.usuario?.nombre || ""} ${option.usuario?.apellido || ""} - ${option.especialidades || ""}`
+                      }
+                      renderInput={(params) => <TextField {...params} label="Seleccionar Guía" size="small" />}
+                      isOptionEqualToValue={(option, value) => option.id_guia === value.id_guia}
+                    />
+                  </Grid2>
+
+                  <Grid2 item xs={12} md={4}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Rol</InputLabel>
+                      <Select name="rol_guia" value={guiaFormData.rol_guia} label="Rol" onChange={handleGuiaFormChange}>
+                        <MenuItem value="principal">Principal</MenuItem>
+                        <MenuItem value="asistente">Asistente</MenuItem>
+                        <MenuItem value="especialista">Especialista</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid2>
+
+                  <Grid2 item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      type="number"
+                      name="tarifa_acordada"
+                      label="Tarifa Acordada"
+                      value={guiaFormData.tarifa_acordada}
+                      onChange={handleGuiaFormChange}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      }}
+                    />
+                  </Grid2>
+
+                  <Grid2 item xs={12} md={4}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Estado</InputLabel>
+                      <Select
+                        name="estado_asignacion"
+                        value={guiaFormData.estado_asignacion}
+                        label="Estado"
+                        onChange={handleGuiaFormChange}
+                      >
+                        <MenuItem value="asignado">Asignado</MenuItem>
+                        <MenuItem value="confirmado">Confirmado</MenuItem>
+                        <MenuItem value="cancelado">Cancelado</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid2>
+
+                  <Grid2 item xs={12}>
+                    <Button variant="contained" onClick={handleAsignarGuia} fullWidth size="small" disabled={!selectedGuia}>
+                      Agregar Guía
+                    </Button>
+                  </Grid2>
+                </Grid2>
+
+                <Divider sx={{ my: 2 }} />
+
+                {/* Lista de guías asignados */}
+                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
+                  Guías Asignados
+                </Typography>
+
+                {guiasAsignados.length === 0 ? (
+                  <Alert severity="info" sx={{ mt: 1 }}>
+                    No hay guías asignados aún
+                  </Alert>
+                ) : (
+                  <List dense>
+                    {guiasAsignados.map((asignacion) => (
+                      <ListItem
+                        key={asignacion.id_guia_viaje || asignacion.tempId}
+                        sx={{
+                          border: "1px solid",
+                          borderColor: "divider",
+                          borderRadius: 1,
+                          mb: 1,
+                        }}
+                      >
+                        <ListItemText
+                          primary={
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                              <Person fontSize="small" />
+                              <Typography variant="body2" fontWeight={600}>
+                                {asignacion.guia?.usuario?.nombre || "Guía"}{" "}
+                                {asignacion.guia?.usuario?.apellido || ""}
+                              </Typography>
+                              <Chip label={asignacion.rol_guia} size="small" />
+                            </Box>
+                          }
+                          secondary={
+                            <Box sx={{ display: "flex", gap: 2, mt: 0.5 }}>
+                              <Typography variant="caption">
+                                Tarifa: ${parseFloat(asignacion.tarifa_acordada || 0).toLocaleString()}
+                              </Typography>
+                              <Typography variant="caption">Estado: {asignacion.estado_asignacion}</Typography>
+                            </Box>
+                          }
+                        />
+                        <ListItemSecondaryAction>
+                          <IconButton size="small" onClick={() => handleRemoverGuia(asignacion)} color="error">
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </Box>
+            </Collapse>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Cancelar</Button>

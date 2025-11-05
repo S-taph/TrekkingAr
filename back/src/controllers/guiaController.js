@@ -378,6 +378,141 @@ export const asignarGuiaAViaje = async (req, res) => {
   }
 }
 
+// Obtener guías asignados a una fecha de viaje específica
+export const getGuiasByFechaViaje = async (req, res) => {
+  try {
+    const { fechaId } = req.params
+
+    // Verificar que la fecha existe
+    const fechaViaje = await FechaViaje.findByPk(fechaId)
+    if (!fechaViaje) {
+      return res.status(404).json({
+        success: false,
+        message: "Fecha de viaje no encontrada",
+      })
+    }
+
+    // Obtener todas las asignaciones de guías para esta fecha
+    const asignaciones = await GuiaViaje.findAll({
+      where: { id_fecha_viaje: fechaId },
+      include: [
+        {
+          model: Guia,
+          as: "guia",
+          include: [
+            {
+              model: Usuario,
+              as: "usuario",
+              attributes: ["id_usuarios", "nombre", "apellido", "email", "telefono", "avatar"],
+            },
+          ],
+        },
+      ],
+      order: [["fecha_asignacion", "DESC"]],
+    })
+
+    res.json({
+      success: true,
+      data: { asignaciones },
+    })
+  } catch (error) {
+    console.error("Error al obtener guías de fecha:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error interno del servidor",
+      error: error.message,
+    })
+  }
+}
+
+// Actualizar una asignación de guía existente
+export const updateGuiaAssignment = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { rol_guia, tarifa_acordada, estado_asignacion, observaciones } = req.body
+
+    const asignacion = await GuiaViaje.findByPk(id)
+    if (!asignacion) {
+      return res.status(404).json({
+        success: false,
+        message: "Asignación no encontrada",
+      })
+    }
+
+    // Actualizar solo los campos proporcionados
+    const updateData = {}
+    if (rol_guia !== undefined) updateData.rol_guia = rol_guia
+    if (tarifa_acordada !== undefined) updateData.tarifa_acordada = tarifa_acordada
+    if (estado_asignacion !== undefined) updateData.estado_asignacion = estado_asignacion
+    if (observaciones !== undefined) updateData.observaciones = observaciones
+
+    await asignacion.update(updateData)
+
+    // Obtener la asignación actualizada con todas las relaciones
+    const asignacionActualizada = await GuiaViaje.findByPk(id, {
+      include: [
+        {
+          model: Guia,
+          as: "guia",
+          include: [
+            {
+              model: Usuario,
+              as: "usuario",
+              attributes: ["nombre", "apellido", "email"],
+            },
+          ],
+        },
+        {
+          model: FechaViaje,
+          as: "fechaViaje",
+        },
+      ],
+    })
+
+    res.json({
+      success: true,
+      message: "Asignación actualizada exitosamente",
+      data: { asignacion: asignacionActualizada },
+    })
+  } catch (error) {
+    console.error("Error al actualizar asignación:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error interno del servidor",
+      error: error.message,
+    })
+  }
+}
+
+// Eliminar una asignación de guía
+export const removeGuiaAssignment = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const asignacion = await GuiaViaje.findByPk(id)
+    if (!asignacion) {
+      return res.status(404).json({
+        success: false,
+        message: "Asignación no encontrada",
+      })
+    }
+
+    await asignacion.destroy()
+
+    res.json({
+      success: true,
+      message: "Asignación eliminada exitosamente",
+    })
+  } catch (error) {
+    console.error("Error al eliminar asignación:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error interno del servidor",
+      error: error.message,
+    })
+  }
+}
+
 export const debugAllGuias = async (req, res) => {
   try {
     console.log("[v0] Debug: Obteniendo todos los guías sin filtros")

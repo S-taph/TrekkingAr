@@ -32,6 +32,7 @@ import DeleteIcon from "@mui/icons-material/Delete"
 import ImageIcon from "@mui/icons-material/Image"
 import CloseIcon from "@mui/icons-material/Close"
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong"
+import CalendarMonth from "@mui/icons-material/CalendarMonth"
 import { viajesAPI, categoriasAPI } from "../../services/api"
 import FechasViajeManager from "./FechasViajeManager"
 import ImageFocusControl from "./ImageFocusControl"
@@ -1098,10 +1099,39 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
       </Card>
 
       {/* Gestión de Fechas de Salida */}
-      {mode === "edit" && viaje?.id_viaje && (
+      {mode === "edit" && viaje?.id_viaje ? (
         <Box sx={{ mt: 4 }}>
           <FechasViajeManager viajeId={viaje.id_viaje} />
         </Box>
+      ) : (
+        <Card sx={{ mt: 4, bgcolor: "info.lighter", borderColor: "info.main", borderWidth: 2, borderStyle: "dashed" }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}>
+              <CalendarMonth color="info" />
+              Fechas de Salida
+            </Typography>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Las fechas de salida y la asignación de guías se podrán agregar después de crear el viaje.
+            </Alert>
+            <Typography variant="body2" color="text.secondary">
+              Una vez creado el viaje, podrás:
+            </Typography>
+            <Box component="ul" sx={{ mt: 1, pl: 2 }}>
+              <Typography component="li" variant="body2" color="text.secondary">
+                Agregar múltiples fechas de salida con diferentes rangos
+              </Typography>
+              <Typography component="li" variant="body2" color="text.secondary">
+                Asignar uno o más guías a cada fecha (principal, asistente, especialista)
+              </Typography>
+              <Typography component="li" variant="body2" color="text.secondary">
+                Configurar tarifas específicas para cada guía
+              </Typography>
+              <Typography component="li" variant="body2" color="text.secondary">
+                Gestionar cupos y precios especiales por fecha
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
       )}
 
       {/* Botones */}

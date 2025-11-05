@@ -111,6 +111,26 @@ export const guiasAPI = {
     }),
 
   debugAllGuias: () => apiRequest("/guias/debug/all"),
+
+  // Asignación de guías a fechas de viaje
+  asignarGuiaAFecha: (assignmentData) =>
+    apiRequest("/guias/asignar", {
+      method: "POST",
+      body: JSON.stringify(assignmentData),
+    }),
+
+  getGuiasByFecha: (fechaId) => apiRequest(`/guias/fechas/${fechaId}/guias`),
+
+  updateGuiaAssignment: (assignmentId, data) =>
+    apiRequest(`/guias/asignar/${assignmentId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  removeGuiaFromFecha: (assignmentId) =>
+    apiRequest(`/guias/asignar/${assignmentId}`, {
+      method: "DELETE",
+    }),
 }
 
 // Viajes API
