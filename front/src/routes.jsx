@@ -17,6 +17,9 @@ import AdminReservasPage from "./pages/admin/AdminReservasPage"
 import AdminSuscriptoresPage from "./pages/admin/AdminSuscriptoresPage"
 import AdminCampaniasPage from "./pages/admin/AdminCampaniasPage"
 import NewsletterUnsubscribe from "./pages/NewsletterUnsubscribe"
+import PaymentSuccess from "./pages/PaymentSuccess"
+import PaymentFailure from "./pages/PaymentFailure"
+import PaymentPending from "./pages/PaymentPending"
 
 /**
  * Rutas centralizadas de la aplicación
@@ -71,6 +74,21 @@ export const routes = [
   {
     path: "/mis-reservas",
     element: <MyReservationsPage />,
+    protected: true,
+  },
+  {
+    path: "/pago/success",
+    element: <PaymentSuccess />,
+    protected: true,
+  },
+  {
+    path: "/pago/failure",
+    element: <PaymentFailure />,
+    protected: true,
+  },
+  {
+    path: "/pago/pending",
+    element: <PaymentPending />,
     protected: true,
   },
   {

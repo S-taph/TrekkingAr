@@ -40,12 +40,33 @@ const app = express()
 const server = createServer(app)
 const PORT = process.env.PORT || 3000
 
+// Configurar CORS dinámico para Socket.IO
+const socketCorsOptions = {
+  origin: function (origin, callback) {
+    // Lista de orígenes permitidos para Socket.IO
+    const allowedSocketOrigins = [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:3003',
+      process.env.FRONTEND_URL,
+      process.env.BACKEND_URL,
+    ].filter(Boolean);
+
+    if (!origin || allowedSocketOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else if (origin.includes('ngrok-free.app') || origin.includes('ngrok.io') || origin.includes('.ngrok-free.dev')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Origen no permitido por CORS en Socket.IO'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST']
+};
+
 // Configurar Socket.IO
 const io = new Server(server, {
-  cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
-    credentials: true
-  },
+  cors: socketCorsOptions,
   path: process.env.SOCKET_IO_PATH || "/socket.io"
 })
 
@@ -151,14 +172,50 @@ const limiter = rateLimit({
   }
 })
 
+// Configurar trust proxy para ngrok y otros proxies reversos
+app.set('trust proxy', true)
+
+// Configuración avanzada de CORS para soportar múltiples orígenes
+// Necesario cuando usamos ngrok para backend pero el frontend sigue en localhost
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3003',
+  process.env.FRONTEND_URL,
+  process.env.BACKEND_URL,
+].filter(Boolean); // Remover valores undefined/null
+
+// Función para validar origen dinámicamente
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Permitir requests sin origin (como mobile apps, Postman, curl, etc.)
+    if (!origin) return callback(null, true);
+
+    // Verificar si el origen está en la lista de permitidos
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    }
+    // Permitir dominios de ngrok dinámicamente (para desarrollo)
+    else if (origin.includes('ngrok-free.app') || origin.includes('ngrok.io') || origin.includes('.ngrok-free.dev')) {
+      console.log(`[CORS] ✅ Permitiendo origen ngrok: ${origin}`);
+      callback(null, true);
+    }
+    // Rechazar otros orígenes
+    else {
+      console.warn(`[CORS] ❌ Origen bloqueado: ${origin}`);
+      callback(new Error('Origen no permitido por CORS'));
+    }
+  },
+  credentials: true, // Permitir envío de cookies
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  exposedHeaders: ['Set-Cookie'],
+  optionsSuccessStatus: 200
+};
+
 // Middlewares globales
 app.use(helmet()) // Headers de seguridad
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
-    credentials: true, // Permitir envío de cookies
-  }),
-) // CORS
+app.use(cors(corsOptions)) // CORS configurado dinámicamente
 app.use(limiter) // Rate limiting
 app.use(cookieParser()) // Agregando middleware de cookie-parser
 

@@ -83,8 +83,8 @@ export const register = async (req, res) => {
 
     res.cookie("token", token, {
       httpOnly: true, // No accesible desde JavaScript
-      secure: process.env.NODE_ENV === "production", // Solo HTTPS en producción
-      sameSite: "strict", // Protección CSRF
+      secure: process.env.BACKEND_URL?.startsWith('https') || process.env.NODE_ENV === "production", // HTTPS en producción o con ngrok
+      sameSite: "lax", // Permite cookies en navegación de sitios cruzados (necesario para localhost -> ngrok)
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días en milisegundos
     })
 
@@ -163,8 +163,8 @@ export const login = async (req, res) => {
 
     res.cookie("token", token, {
       httpOnly: true, // No accesible desde JavaScript
-      secure: process.env.NODE_ENV === "production", // Solo HTTPS en producción
-      sameSite: "strict", // Protección CSRF
+      secure: process.env.BACKEND_URL?.startsWith('https') || process.env.NODE_ENV === "production", // HTTPS en producción o con ngrok
+      sameSite: "lax", // Permite cookies en navegación de sitios cruzados (necesario para localhost -> ngrok)
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días en milisegundos
     })
 
@@ -283,18 +283,36 @@ export const googleCallback = async (req, res, next) => {
 
       const token = generateToken(user.id_usuarios);
 
-      // Configurar cookie
+      // Verificar si estamos en modo cross-origin (ngrok backend + localhost frontend)
+      const isCrossOrigin = () => {
+        try {
+          const backendUrl = new URL(process.env.BACKEND_URL || 'http://localhost:3003')
+          const frontendUrl = new URL(process.env.FRONTEND_URL || 'http://localhost:5173')
+          return backendUrl.origin !== frontendUrl.origin
+        } catch {
+          return false
+        }
+      }
+
+      // Configurar cookie (solo funciona si frontend y backend están en el mismo dominio)
       res.cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: process.env.BACKEND_URL?.startsWith('https') || process.env.NODE_ENV === "production", // HTTPS en producción o con ngrok
+        sameSite: "lax", // Permite cookies en navegación de sitios cruzados (necesario para localhost -> ngrok)
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
       });
 
       // Redirigir al frontend según el rol del usuario
-      const redirectUrl = user.rol === 'admin'
+      let redirectUrl = user.rol === 'admin'
         ? `${process.env.FRONTEND_URL}/admin?login=success`
         : `${process.env.FRONTEND_URL}/?login=success`;
+
+      // Si estamos en cross-origin (ej: ngrok backend + localhost frontend),
+      // pasar el token en la URL para que el frontend lo guarde en localStorage
+      if (isCrossOrigin()) {
+        console.log('[OAuth] Modo cross-origin detectado, pasando token en URL')
+        redirectUrl += `&token=${token}`
+      }
 
       res.redirect(redirectUrl);
     } catch (error) {

@@ -44,7 +44,11 @@ export default function NosotrosPage() {
       const response = await guiasAPI.getGuias({ activo: true })
 
       if (response.success) {
-        setGuias(response.data.guias || [])
+        // Filtrar solo guías que tienen foto de perfil
+        const guiasConFoto = (response.data.guias || []).filter(
+          (guia) => guia.usuario?.avatar
+        )
+        setGuias(guiasConFoto)
       }
     } catch (error) {
       console.error("[NosotrosPage] Error cargando guías:", error)
@@ -293,6 +297,8 @@ export default function NosotrosPage() {
                         }}
                       >
                         <Avatar
+                          src={guia.usuario?.avatar}
+                          alt={`${guia.usuario?.nombre} ${guia.usuario?.apellido}`}
                           sx={{
                             width: 120,
                             height: 120,
@@ -302,7 +308,7 @@ export default function NosotrosPage() {
                             bgcolor: "secondary.main",
                           }}
                         >
-                          {guia.nombre?.[0]}{guia.apellido?.[0]}
+                          {guia.usuario?.nombre?.[0]}{guia.usuario?.apellido?.[0]}
                         </Avatar>
                       </CardMedia>
                       {guia.certificaciones && (
@@ -322,7 +328,7 @@ export default function NosotrosPage() {
                     </Box>
                     <CardContent sx={{ flexGrow: 1 }}>
                       <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                        {guia.nombre} {guia.apellido}
+                        {guia.usuario?.nombre} {guia.usuario?.apellido}
                       </Typography>
                       <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
                         <Chip

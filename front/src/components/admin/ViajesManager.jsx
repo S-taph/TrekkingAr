@@ -123,6 +123,7 @@ export default function ViajesManager() {
       const params = {
         page: pagination.currentPage,
         limit: pagination.itemsPerPage,
+        admin: true, // Indicar que es consulta de admin para ver todos los viajes
         ...filters,
       }
 
@@ -576,17 +577,28 @@ export default function ViajesManager() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)}>
-        <DialogTitle>Confirmar Eliminación</DialogTitle>
-        <DialogContent>
-          <Typography>
-            ¿Estás seguro de que deseas eliminar el viaje "{viajeToDelete?.titulo}"? Esta acción no se puede deshacer.
+      <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)} maxWidth="sm">
+        <DialogTitle>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Confirmar Eliminación
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              Esta acción no se puede deshacer.
+            </Typography>
+          </Alert>
+          <Typography variant="body1">
+            ¿Está seguro de que desea borrar el viaje <strong>"{viajeToDelete?.titulo}"</strong>?
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialog(false)}>Cancelar</Button>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteDialog(false)} variant="outlined">
+            Cancelar
+          </Button>
           <Button onClick={confirmDelete} color="error" variant="contained">
-            Eliminar
+            Borrar Viaje
           </Button>
         </DialogActions>
       </Dialog>

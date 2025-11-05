@@ -22,22 +22,13 @@ const HeroImage = ({
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
-
-  // Efecto parallax sutil
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Placeholder SVG si no hay imagen
   const placeholderImage = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1600' height='600'%3E%3Crect fill='%23308256' width='1600' height='600'/%3E%3Ctext fill='rgba(255,255,255,0.5)' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3ESin imagen disponible%3C/text%3E%3C/svg%3E`;
 
-  const currentImage = images[currentImageIndex] || placeholderImage;
+  const currentImageObj = images[currentImageIndex] || { url: placeholderImage, focus_point: 'center' };
+  const currentImage = typeof currentImageObj === 'string' ? currentImageObj : (currentImageObj.url || placeholderImage);
+  const currentFocus = typeof currentImageObj === 'object' ? (currentImageObj.focus_point || 'center') : 'center';
   const hasMultipleImages = images.length > 1;
 
   const handleThumbnailClick = (index) => {
@@ -70,7 +61,7 @@ const HeroImage = ({
           boxShadow: 4,
         }}
       >
-        {/* Main Image con Parallax */}
+        {/* Main Image */}
         <Box
           component="img"
           src={imageError ? placeholderImage : currentImage}
@@ -81,10 +72,9 @@ const HeroImage = ({
             width: '100%',
             height: '100%',
             objectFit: 'cover',
+            objectPosition: currentFocus,
             display: 'block',
-            // Efecto parallax sutil (solo se mueve 30% de lo que scrollea el usuario)
-            transform: `translateY(${scrollY * 0.3}px)`,
-            transition: 'transform 0.1s ease-out',
+            transition: 'object-position 0.3s ease',
           }}
         />
 
@@ -107,7 +97,6 @@ const HeroImage = ({
             right: 0,
             padding: { xs: 2, sm: 3, md: 4 },
             zIndex: 2,
-            color: 'white',
           }}
         >
           {/* Title */}
@@ -117,6 +106,7 @@ const HeroImage = ({
               fontWeight: 800,
               fontSize: { xs: '1.75rem', sm: '2.25rem', md: '2.75rem' },
               marginBottom: 2,
+              color: '#FFFFFF !important', // Blanco forzado para ambos modos
               textShadow: '2px 2px 8px rgba(0,0,0,0.8)',
               lineHeight: 1.2,
             }}
@@ -133,9 +123,10 @@ const HeroImage = ({
                 sx={{
                   backgroundColor: 'rgba(255,255,255,0.25)',
                   backdropFilter: 'blur(10px)',
-                  color: 'white',
+                  color: '#FFFFFF !important',
                   fontWeight: 600,
-                  '& .MuiChip-icon': { color: 'white' }
+                  '& .MuiChip-icon': { color: '#FFFFFF !important' },
+                  '& .MuiChip-label': { color: '#FFFFFF !important' }
                 }}
               />
             )}
@@ -147,9 +138,10 @@ const HeroImage = ({
                 sx={{
                   backgroundColor: 'rgba(255,255,255,0.25)',
                   backdropFilter: 'blur(10px)',
-                  color: 'white',
+                  color: '#FFFFFF !important',
                   fontWeight: 600,
-                  '& .MuiChip-icon': { color: 'white' }
+                  '& .MuiChip-icon': { color: '#FFFFFF !important' },
+                  '& .MuiChip-label': { color: '#FFFFFF !important' }
                 }}
               />
             )}
@@ -160,9 +152,10 @@ const HeroImage = ({
                 sx={{
                   backgroundColor: 'rgba(255,255,255,0.25)',
                   backdropFilter: 'blur(10px)',
-                  color: 'white',
+                  color: '#FFFFFF !important',
                   fontWeight: 600,
-                  '& .MuiChip-icon': { color: 'white' }
+                  '& .MuiChip-icon': { color: '#FFFFFF !important' },
+                  '& .MuiChip-label': { color: '#FFFFFF !important' }
                 }}
               />
             )}
@@ -180,11 +173,14 @@ const HeroImage = ({
               right: 16,
               backgroundColor: 'rgba(0,0,0,0.6)',
               backdropFilter: 'blur(10px)',
-              color: 'white',
+              color: '#FFFFFF !important',
               fontWeight: 600,
               padding: '8px 16px',
               '&:hover': {
                 backgroundColor: 'rgba(0,0,0,0.8)',
+              },
+              '& .MuiButton-startIcon': {
+                color: '#FFFFFF !important'
               }
             }}
           >
@@ -246,13 +242,14 @@ const HeroImage = ({
             >
               <Box
                 component="img"
-                src={image}
+                src={typeof image === 'string' ? image : (image.url || image)}
                 alt={`${title} - Imagen ${index + 1}`}
                 loading="lazy"
                 sx={{
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
+                  objectPosition: typeof image === 'object' ? (image.focus_point || 'center') : 'center',
                 }}
               />
             </Box>

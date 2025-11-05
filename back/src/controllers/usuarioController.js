@@ -181,7 +181,7 @@ const uploadAvatar = async (req, res) => {
     const avatarUrl = `${req.protocol}://${req.get('host')}/uploads/avatars/${req.file.filename}`
 
     await usuario.update({
-      avatar_url: avatarUrl
+      avatar: avatarUrl
     })
 
     res.json({

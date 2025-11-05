@@ -21,6 +21,10 @@ import {
   FormControlLabel,
   FormControl,
   FormLabel,
+  Card,
+  CardMedia,
+  CardContent,
+  Chip,
 } from "@mui/material"
 import {
   ArrowBack,
@@ -31,6 +35,7 @@ import Header from "../components/Header"
 import { useCart } from "../context/CartContext"
 import { useAuth } from "../context/AuthContext"
 import { reservasAPI, pagosAPI } from "../services/api"
+import MercadoPagoButton from "../components/MercadoPagoButton"
 
 const steps = ["Resumen del Carrito", "Datos del Pasajero", "Pago", "Confirmación"]
 
@@ -51,7 +56,7 @@ export default function CheckoutFlow() {
     dni: user?.dni || "",
     direccion: "",
   })
-  const [paymentMethod, setPaymentMethod] = useState("card")
+  const [paymentMethod, setPaymentMethod] = useState("mercadopago")
   const [cardData, setCardData] = useState({
     numero: "",
     nombre: "",
@@ -128,8 +133,12 @@ export default function CheckoutFlow() {
   }
 
   const validatePaymentData = () => {
-    if (paymentMethod === "pay_later") return true
+    // Mercado Pago y "pagar después" no requieren validación de tarjeta
+    if (paymentMethod === "mercadopago" || paymentMethod === "pay_later") {
+      return true
+    }
 
+    // Solo validar datos de tarjeta si el método es "card" (simulación)
     const newErrors = {}
 
     if (!cardData.numero || cardData.numero.length < 16) {
@@ -169,33 +178,39 @@ export default function CheckoutFlow() {
 
       const idCompra = firstReserva.compra.id_compras
       setCompraId(idCompra)
+      setReservationNumber(firstReserva.numero_reserva)
 
-      // Paso 2: Procesar pago
-      const pagoData = {
-        id_compra: idCompra,
-        metodo_pago: paymentMethod === "card" ? "tarjeta" : "pagar_despues",
-      }
+      // Si el método de pago es Mercado Pago, solo crear la compra y mostrar el botón
+      if (paymentMethod === "mercadopago") {
+        // No procesar el pago aún, solo guardar el ID de compra
+        // El usuario será redirigido a Mercado Pago desde el paso de confirmación
+        console.log("Compra creada para Mercado Pago:", idCompra)
+      } else {
+        // Paso 2: Procesar pago (para otros métodos)
+        const pagoData = {
+          id_compra: idCompra,
+          metodo_pago: paymentMethod === "card" ? "tarjeta" : "pagar_despues",
+        }
 
-      // Si es pago con tarjeta, incluir datos de tarjeta
-      if (paymentMethod === "card") {
-        pagoData.card_data = {
-          numero: cardData.numero,
-          nombre: cardData.nombre,
-          vencimiento: cardData.vencimiento,
-          cvv: cardData.cvv,
+        // Si es pago con tarjeta, incluir datos de tarjeta
+        if (paymentMethod === "card") {
+          pagoData.card_data = {
+            numero: cardData.numero,
+            nombre: cardData.nombre,
+            vencimiento: cardData.vencimiento,
+            cvv: cardData.cvv,
+          }
+        }
+
+        const pagoResponse = await pagosAPI.procesarPago(pagoData)
+
+        if (!pagoResponse.success) {
+          throw new Error(pagoResponse.message || "Error procesando el pago")
         }
       }
 
-      const pagoResponse = await pagosAPI.procesarPago(pagoData)
-
-      if (pagoResponse.success) {
-        setReservationNumber(firstReserva.numero_reserva)
-
-        // Limpiar carrito después de pago exitoso
-        await clearCart()
-      } else {
-        throw new Error(pagoResponse.message || "Error procesando el pago")
-      }
+      // Limpiar carrito después de crear la compra
+      await clearCart()
     } catch (error) {
       console.error("Error procesando checkout:", error)
       setErrors({
@@ -251,7 +266,13 @@ export default function CheckoutFlow() {
         )
 
       case 3:
-        return <StepConfirmation reservationNumber={reservationNumber} />
+        return (
+          <StepConfirmation
+            reservationNumber={reservationNumber}
+            compraId={compraId}
+            paymentMethod={paymentMethod}
+          />
+        )
 
       default:
         return null
@@ -327,32 +348,138 @@ export default function CheckoutFlow() {
 function StepCartSummary({ items, totalPrice }) {
   return (
     <Box>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
         Resumen de tu compra
       </Typography>
-      <List>
+      <Grid container spacing={3}>
         {items.map((item) => {
           const fechaViaje = item.fechaViaje || item.fecha_viaje
+          const viaje = fechaViaje?.viaje || item.viaje
+          const subtotal = item.precio_unitario * item.cantidad
+
           return (
-            <ListItem key={item.id} divider>
-              <ListItemText
-                primary={item.viaje?.titulo || "Viaje"}
-                secondary={`Fecha: ${new Date(fechaViaje?.fecha_inicio).toLocaleDateString()} • Cantidad: ${item.cantidad}`}
-              />
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                ${(item.precio_unitario * item.cantidad).toLocaleString()}
-              </Typography>
-            </ListItem>
+            <Grid item xs={12} key={item.id}>
+              <Card
+                sx={{
+                  display: 'flex',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  boxShadow: 2,
+                  '&:hover': { boxShadow: 4 },
+                  transition: 'box-shadow 0.3s ease'
+                }}
+              >
+                {/* Imagen del viaje */}
+                {viaje?.imagen_principal_url && (
+                  <CardMedia
+                    component="img"
+                    sx={{
+                      width: { xs: '100%', sm: 200 },
+                      height: { xs: 200, sm: 'auto' },
+                      objectFit: 'cover'
+                    }}
+                    image={viaje.imagen_principal_url}
+                    alt={viaje.titulo}
+                  />
+                )}
+
+                {/* Contenido de la tarjeta */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                  <CardContent sx={{ flex: '1 0 auto' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h6" component="div" sx={{ fontWeight: 600, mb: 1 }}>
+                          {viaje?.titulo || "Viaje"}
+                        </Typography>
+
+                        {/* Información del viaje */}
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                          {viaje?.dificultad && (
+                            <Chip
+                              label={viaje.dificultad.charAt(0).toUpperCase() + viaje.dificultad.slice(1)}
+                              size="small"
+                              color={
+                                viaje.dificultad === 'facil' ? 'success' :
+                                viaje.dificultad === 'moderado' ? 'warning' :
+                                viaje.dificultad === 'dificil' ? 'error' : 'default'
+                              }
+                            />
+                          )}
+                          {viaje?.duracion_dias && (
+                            <Chip
+                              label={`${viaje.duracion_dias} días`}
+                              size="small"
+                              variant="outlined"
+                            />
+                          )}
+                        </Box>
+
+                        {/* Detalles de la reserva */}
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                          <strong>Fecha de inicio:</strong> {new Date(fechaViaje?.fecha_inicio).toLocaleDateString('es-AR', {
+                            day: '2-digit',
+                            month: 'long',
+                            year: 'numeric'
+                          })}
+                        </Typography>
+
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                          <strong>Cantidad de personas:</strong> {item.cantidad}
+                        </Typography>
+
+                        <Typography variant="body2" color="text.secondary">
+                          <strong>Precio por persona:</strong> ${item.precio_unitario.toLocaleString('es-AR')}
+                        </Typography>
+                      </Box>
+
+                      {/* Precio total del item */}
+                      <Box sx={{ textAlign: 'right', ml: 2 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                          Subtotal
+                        </Typography>
+                        <Typography variant="h5" color="primary" sx={{ fontWeight: 700 }}>
+                          ${subtotal.toLocaleString('es-AR')}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Descripción corta si existe */}
+                    {viaje?.descripcion_corta && (
+                      <Typography variant="body2" color="text.secondary" sx={{
+                        mt: 1,
+                        fontStyle: 'italic',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                      }}>
+                        {viaje.descripcion_corta}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Box>
+              </Card>
+            </Grid>
           )
         })}
-      </List>
-      <Divider sx={{ my: 2 }} />
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      </Grid>
+
+      <Divider sx={{ my: 3 }} />
+
+      {/* Total */}
+      <Box sx={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        bgcolor: 'action.hover',
+        p: 2,
+        borderRadius: 1
+      }}>
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
           Total
         </Typography>
         <Typography variant="h4" color="primary" sx={{ fontWeight: 700 }}>
-          ${totalPrice.toLocaleString()}
+          ${totalPrice.toLocaleString('es-AR')}
         </Typography>
       </Box>
     </Box>
@@ -440,9 +567,14 @@ function StepPayment({ paymentMethod, cardData, errors, tarjetasPrueba, onMethod
       <FormControl component="fieldset" sx={{ mb: 3 }}>
         <RadioGroup value={paymentMethod} onChange={(e) => onMethodChange(e.target.value)}>
           <FormControlLabel
+            value="mercadopago"
+            control={<Radio />}
+            label="Mercado Pago (Todos los medios de pago)"
+          />
+          <FormControlLabel
             value="card"
             control={<Radio />}
-            label="Tarjeta de crédito/débito"
+            label="Tarjeta de crédito/débito (Simulación)"
           />
           <FormControlLabel
             value="pay_later"
@@ -451,6 +583,18 @@ function StepPayment({ paymentMethod, cardData, errors, tarjetasPrueba, onMethod
           />
         </RadioGroup>
       </FormControl>
+
+      {paymentMethod === "mercadopago" && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+            Serás redirigido a Mercado Pago
+          </Typography>
+          <Typography variant="body2">
+            Podrás pagar con tarjeta de crédito, débito, efectivo, transferencia bancaria y más.
+            Acepta cuotas sin interés y todos los medios de pago disponibles en Argentina.
+          </Typography>
+        </Alert>
+      )}
 
       {paymentMethod === "card" && (
         <>
@@ -539,7 +683,58 @@ function StepPayment({ paymentMethod, cardData, errors, tarjetasPrueba, onMethod
   )
 }
 
-function StepConfirmation({ reservationNumber }) {
+function StepConfirmation({ reservationNumber, compraId, paymentMethod }) {
+  const navigate = useNavigate()
+
+  // Si el método de pago es Mercado Pago, mostrar botón de pago
+  if (paymentMethod === "mercadopago") {
+    return (
+      <Box sx={{ textAlign: "center", py: 4 }}>
+        <CheckCircle sx={{ fontSize: 80, color: "success.main", mb: 2 }} />
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>
+          ¡Reserva Creada!
+        </Typography>
+        <Typography variant="body1" color="text.secondary" paragraph>
+          Tu reserva ha sido creada exitosamente. Ahora completa el pago.
+        </Typography>
+        {reservationNumber && (
+          <Paper sx={{ p: 2, bgcolor: "action.hover", display: "inline-block", mb: 3 }}>
+            <Typography variant="body2" color="text.secondary">
+              Número de reserva
+            </Typography>
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>
+              {reservationNumber}
+            </Typography>
+          </Paper>
+        )}
+
+        <Alert severity="info" sx={{ mb: 3, textAlign: "left" }}>
+          <Typography variant="body2">
+            <strong>Importante:</strong> Tu reserva quedará confirmada una vez que completes el pago en Mercado Pago.
+          </Typography>
+        </Alert>
+
+        <Box sx={{ maxWidth: 400, mx: "auto", mb: 3 }}>
+          <MercadoPagoButton
+            compraId={compraId}
+            onError={(error) => {
+              console.error("Error en Mercado Pago:", error)
+            }}
+          />
+        </Box>
+
+        <Button
+          variant="text"
+          onClick={() => navigate("/mis-reservas")}
+          sx={{ mt: 2 }}
+        >
+          Ver Mis Reservas
+        </Button>
+      </Box>
+    )
+  }
+
+  // Para otros métodos de pago, mostrar confirmación normal
   return (
     <Box sx={{ textAlign: "center", py: 4 }}>
       <CheckCircle sx={{ fontSize: 80, color: "success.main", mb: 2 }} />

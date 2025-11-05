@@ -61,7 +61,8 @@ export const getViajes = async (req, res) => {
       duracion_min,
       duracion_max,
       mes,
-      sortBy = 'fecha_creacion'
+      sortBy = 'fecha_creacion',
+      admin = false // Parámetro para indicar si es consulta de admin
     } = req.query;
 
     const offset = (page - 1) * limit;
@@ -125,7 +126,10 @@ export const getViajes = async (req, res) => {
       {
         model: FechaViaje,
         as: 'fechas',
-        where: { estado_fecha: 'disponible' },
+        where: {
+          estado_fecha: 'disponible',
+          fecha_inicio: { [Op.gt]: new Date() } // Solo fechas futuras
+        },
         required: false,
         separate: true, // Hacer consulta separada para evitar problemas con LIMIT
         order: [['fecha_inicio', 'ASC']]
@@ -148,8 +152,6 @@ export const getViajes = async (req, res) => {
           sequelize.where(sequelize.fn('MONTH', sequelize.col('fechas.fecha_inicio')), mesNum)
         ]
       };
-      // Hacer el join requerido para que solo muestre viajes con fechas en ese mes
-      include[2].required = true;
     }
 
     // Filtrar por categoría si se especifica
@@ -194,7 +196,7 @@ export const getViajes = async (req, res) => {
     });
 
     // Procesar URLs de imágenes, calcular precio más bajo y cupos disponibles
-    const viajesConImagenes = await Promise.all(viajes.map(async (viaje) => {
+    let viajesConImagenes = await Promise.all(viajes.map(async (viaje) => {
       const viajeData = viaje.toJSON();
       const viajeConImagenes = processViajeImages(viajeData, req);
 
@@ -243,15 +245,30 @@ export const getViajes = async (req, res) => {
       return viajeConImagenes;
     }));
 
+    // Si activo=true (consulta pública) Y NO es admin, filtrar viajes sin fechas futuras disponibles
+    // Esto previene mostrar viajes sin fechas disponibles en el frontend público
+    // El panel admin necesita ver todos los viajes para poder editarlos y agregar fechas
+    let totalCount = count;
+    const isAdminQuery = admin === 'true' || admin === true;
+    const isActiveQuery = activo === 'true' || activo === true;
+
+    if (isActiveQuery && !isAdminQuery) {
+      viajesConImagenes = viajesConImagenes.filter(viaje =>
+        viaje.fechas && viaje.fechas.length > 0
+      );
+      // Ajustar el count para reflejar el filtrado
+      totalCount = viajesConImagenes.length;
+    }
+
     res.json({
       success: true,
       data: {
         viajes: viajesConImagenes,
         pagination: {
-          total: count,
+          total: totalCount,
           page: parseInt(page),
           limit: parseInt(limit),
-          totalPages: Math.ceil(count / limit)
+          totalPages: Math.ceil(totalCount / limit)
         }
       }
     });
@@ -552,6 +569,80 @@ export const updateImagenOrder = async (req, res) => {
 
   } catch (error) {
     console.error('Error actualizando orden de imágenes:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+/**
+ * Actualiza el punto focal de una imagen
+ */
+export const updateImageFocusPoint = async (req, res) => {
+  try {
+    const { id, imagenId } = req.params;
+    const { focus_point } = req.body;
+
+    // Validar que se proporcionó el focus_point
+    if (!focus_point) {
+      return res.status(400).json({
+        success: false,
+        message: 'El punto focal es requerido'
+      });
+    }
+
+    // Validar que el focus_point tenga un valor válido
+    const validFocusPoints = ['center', 'top', 'bottom', 'left', 'right',
+                              'top left', 'top right', 'bottom left', 'bottom right'];
+    if (!validFocusPoints.includes(focus_point)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Punto focal inválido'
+      });
+    }
+
+    // Verificar que el viaje existe
+    const viaje = await Viaje.findByPk(id);
+    if (!viaje) {
+      return res.status(404).json({
+        success: false,
+        message: 'Viaje no encontrado'
+      });
+    }
+
+    // Buscar la imagen
+    const imagen = await ImagenViaje.findOne({
+      where: {
+        id_imagen_viaje: imagenId,
+        id_viaje: id
+      }
+    });
+
+    if (!imagen) {
+      return res.status(404).json({
+        success: false,
+        message: 'Imagen no encontrada'
+      });
+    }
+
+    // Actualizar el punto focal
+    await imagen.update({ focus_point });
+
+    res.json({
+      success: true,
+      message: 'Punto focal actualizado',
+      data: {
+        imagen: {
+          id_imagen_viaje: imagen.id_imagen_viaje,
+          url: imagen.url,
+          focus_point: imagen.focus_point
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error actualizando punto focal:', error);
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor'

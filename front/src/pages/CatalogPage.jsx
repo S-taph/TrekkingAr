@@ -11,6 +11,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Button,
 } from "@mui/material"
 import Header from "../components/Header"
 import { CatalogFilters } from "../components/CatalogFilters"

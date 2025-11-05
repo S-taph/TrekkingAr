@@ -20,7 +20,16 @@ export const authenticateToken = async (req, res, next) => {
       return next()
     }
 
-    const token = req.cookies.token
+    // Intentar obtener el token de cookies o del header Authorization
+    let token = req.cookies.token
+
+    // Si no hay token en cookies, intentar obtenerlo del header Authorization
+    if (!token && req.headers.authorization) {
+      const authHeader = req.headers.authorization
+      if (authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7) // Remover "Bearer " del inicio
+      }
+    }
 
     if (!token) {
       return res.status(401).json({

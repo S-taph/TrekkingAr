@@ -54,19 +54,13 @@ export default function GaleriaPage() {
   // Determine number of columns based on screen size
   const cols = isMobile ? 1 : isTablet ? 2 : 4
 
-  // Organize images by trip in rows
+  // Organize images by trip - show all unique images without repetition
   const organizeImagesByTrip = () => {
     const organized = []
     const sortedTripIds = Object.keys(allTripsImages).sort((a, b) => Number(a) - Number(b))
 
-    // Calculate minimum images needed to fill the screen
-    const minImagesForFullGrid = cols * (isMobile ? 6 : isTablet ? 8 : 12)
-
-    // Add images trip by trip, row by row
-    let tripIndex = 0
-    let cycleCount = 0
-    while (organized.length < minImagesForFullGrid && sortedTripIds.length > 0) {
-      const tripId = sortedTripIds[tripIndex % sortedTripIds.length]
+    // Add all images from all trips, alternating between trips for variety
+    sortedTripIds.forEach((tripId) => {
       const tripImages = allTripsImages[tripId] || []
 
       // Filter by media type
@@ -77,27 +71,11 @@ export default function GaleriaPage() {
         return true
       })
 
-      // Add images from this trip
-      for (const img of filteredTripImages) {
+      // Add all images from this trip (no duplicates)
+      filteredTripImages.forEach((img) => {
         organized.push({...img})
-      }
-
-      // Fill remaining slots in the row with images from the same trip if needed
-      const imagesInCurrentRow = organized.length % cols
-      if (imagesInCurrentRow > 0 && imagesInCurrentRow < cols) {
-        const slotsToFill = cols - imagesInCurrentRow
-        for (let i = 0; i < slotsToFill && i < filteredTripImages.length; i++) {
-          organized.push({...filteredTripImages[i]})
-        }
-      }
-
-      tripIndex++
-      // Track cycles to prevent infinite loop
-      if (tripIndex % sortedTripIds.length === 0) {
-        cycleCount++
-      }
-      if (cycleCount > 10) break // Safety limit
-    }
+      })
+    })
 
     return organized
   }

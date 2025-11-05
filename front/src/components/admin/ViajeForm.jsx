@@ -23,6 +23,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogActions,
   Divider,
   Autocomplete,
 } from "@mui/material"
@@ -30,8 +31,10 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload"
 import DeleteIcon from "@mui/icons-material/Delete"
 import ImageIcon from "@mui/icons-material/Image"
 import CloseIcon from "@mui/icons-material/Close"
+import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong"
 import { viajesAPI, categoriasAPI } from "../../services/api"
 import FechasViajeManager from "./FechasViajeManager"
+import ImageFocusControl from "./ImageFocusControl"
 
 export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
   // Estado principal del formulario
@@ -71,6 +74,15 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
   const [existingImages, setExistingImages] = useState([])
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxImage, setLightboxImage] = useState(null)
+
+  // Focus control dialog state
+  const [focusDialogOpen, setFocusDialogOpen] = useState(false)
+  const [selectedImageForFocus, setSelectedImageForFocus] = useState(null)
+  const [tempFocusPoint, setTempFocusPoint] = useState('center')
+
+  // Confirmation dialog for creating trip without dates
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+  const [pendingSubmit, setPendingSubmit] = useState(null)
 
   useEffect(() => {
     const loadCategorias = async () => {
@@ -369,6 +381,60 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
     }
   }
 
+  // Handler para abrir el diálogo de control de foco
+  const openFocusDialog = (image) => {
+    setSelectedImageForFocus(image)
+    setTempFocusPoint(image.focus_point || 'center')
+    setFocusDialogOpen(true)
+  }
+
+  // Handler para cerrar el diálogo
+  const closeFocusDialog = () => {
+    setFocusDialogOpen(false)
+    setSelectedImageForFocus(null)
+    setTempFocusPoint('center')
+  }
+
+  // Handler para guardar el punto focal
+  const saveFocusPoint = async () => {
+    if (!selectedImageForFocus) return
+
+    try {
+      // Actualizar vía API
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3003/api"
+      const response = await fetch(
+        `${API_BASE_URL}/viajes/${viaje.id_viaje}/imagenes/${selectedImageForFocus.id_imagen_viaje}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-bypass-auth': 'true',
+          },
+          body: JSON.stringify({ focus_point: tempFocusPoint })
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar el punto focal')
+      }
+
+      // Actualizar el estado local
+      setExistingImages(prev =>
+        prev.map(img =>
+          img.id_imagen_viaje === selectedImageForFocus.id_imagen_viaje
+            ? { ...img, focus_point: tempFocusPoint }
+            : img
+        )
+      )
+
+      closeFocusDialog()
+      setError('')
+    } catch (error) {
+      console.error('Error saving focus point:', error)
+      setError(error.message || 'Error al guardar el punto focal')
+    }
+  }
+
   const uploadImages = async (viajeId, files) => {
     if (!files || files.length === 0) return []
 
@@ -384,18 +450,33 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    // Validar todos los campos antes de enviar
+    const isValid = validateAll()
+    if (!isValid) {
+      setError("Por favor, corrija los errores en el formulario antes de continuar")
+      return
+    }
+
+    // Si es modo creación, verificar si tiene fechas disponibles
+    // En modo edición, no mostramos el diálogo porque se pueden agregar fechas después
+    if (mode === "create") {
+      // Verificar si el viaje tiene fechas disponibles
+      // Como estamos creando, nunca tendrá fechas, así que siempre mostramos confirmación
+      setPendingSubmit(true)
+      setConfirmDialogOpen(true)
+      return
+    }
+
+    // Si es modo edición o el usuario confirmó, proceder normalmente
+    await executeSubmit()
+  }
+
+  const executeSubmit = async () => {
     setLoading(true)
     setError("")
 
     try {
-      // Validar todos los campos antes de enviar
-      const isValid = validateAll()
-      if (!isValid) {
-        setError("Por favor, corrija los errores en el formulario antes de continuar")
-        setLoading(false)
-        return
-      }
-
       // Prepara datos para el backend
       const submitData = {
         id_categoria: formData.id_categoria || null,
@@ -418,14 +499,21 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
       }
 
       console.log("[ViajeForm] Submit data:", submitData)
+      console.log("[ViajeForm] Destino a enviar:", submitData.destino)
 
       // Llamada a API según modo
       let viajeId
       if (mode === "create") {
+        console.log("[ViajeForm] Creando nuevo viaje con destino:", submitData.destino)
         const result = await viajesAPI.createViaje(submitData)
         viajeId = result.data?.viaje?.id_viaje
-        console.log("[ViajeForm] Viaje creado con ID:", viajeId)
+        console.log("[ViajeForm] Viaje creado exitosamente con ID:", viajeId)
+
+        if (result.data?.viaje?.id_destino) {
+          console.log("[ViajeForm] Destino asignado con ID:", result.data.viaje.id_destino)
+        }
       } else {
+        console.log("[ViajeForm] Actualizando viaje ID:", viaje.id_viaje)
         await viajesAPI.updateViaje(viaje.id_viaje, submitData)
         viajeId = viaje.id_viaje
         console.log("[ViajeForm] Viaje actualizado con ID:", viajeId)
@@ -452,11 +540,38 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
 
       onSuccess()
     } catch (error) {
-      console.error("[ViajeForm] Error in handleSubmit:", error)
-      setError(error.message || "Error al guardar el viaje")
+      console.error("[ViajeForm] Error completo:", error)
+      console.error("[ViajeForm] Error message:", error.message)
+      console.error("[ViajeForm] Error response:", error.response?.data)
+
+      // Mostrar mensaje de error más detallado
+      let errorMessage = "Error al guardar el viaje"
+
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      } else if (error.response?.data?.errors) {
+        // Si hay errores de validación específicos
+        const validationErrors = error.response.data.errors
+        errorMessage = validationErrors.map(err => err.msg).join(", ")
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleConfirmNoDatesProceed = async () => {
+    setConfirmDialogOpen(false)
+    setPendingSubmit(false)
+    await executeSubmit()
+  }
+
+  const handleConfirmNoDatesCancel = () => {
+    setConfirmDialogOpen(false)
+    setPendingSubmit(false)
   }
 
 
@@ -482,10 +597,10 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
               <FormControl
                 fullWidth
                 required
-                size="medium"
                 error={Boolean(fieldErrors.id_categoria)}
+                sx={{ minWidth: 200 }}
               >
-                <InputLabel sx={{ fontSize: "1rem" }}>Categoría</InputLabel>
+                <InputLabel>Categoría</InputLabel>
                 <Select
                   name="id_categoria"
                   value={formData.id_categoria}
@@ -493,7 +608,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                   onChange={handleChange}
                   onBlur={handleBlur}
                   disabled={loadingCategorias}
-                  sx={{ minHeight: "56px" }}
+                  displayEmpty
                 >
                   {categorias.map((categoria) => (
                     <MenuItem key={categoria.id_categoria} value={categoria.id_categoria}>
@@ -513,17 +628,17 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
               <FormControl
                 fullWidth
                 required
-                size="medium"
                 error={Boolean(fieldErrors.dificultad)}
+                sx={{ minWidth: 200 }}
               >
-                <InputLabel sx={{ fontSize: "1rem" }}>Dificultad</InputLabel>
+                <InputLabel>Dificultad</InputLabel>
                 <Select
                   name="dificultad"
                   value={formData.dificultad}
                   label="Dificultad"
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  sx={{ minHeight: "56px" }}
+                  displayEmpty
                 >
                   <MenuItem value="facil">Fácil</MenuItem>
                   <MenuItem value="moderado">Moderado</MenuItem>
@@ -539,7 +654,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             </Grid2>
 
             {/* Destino - full width */}
-            <Grid2 xs={12}>
+            <Grid2 xs={12} sx={{ width: "100%" }}>
               <Autocomplete
                 freeSolo
                 options={destinos}
@@ -556,16 +671,27 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                 }}
                 value={formData.destino}
                 onChange={(event, newValue) => {
+                  // Manejar tanto selección de destino existente como texto libre
                   const destinoValue = typeof newValue === "string" ? newValue : newValue?.nombre || ""
                   setFormData((prev) => ({
                     ...prev,
                     destino: destinoValue,
                   }))
-                  // Clear error when user selects/types a value
+                  // Limpiar error cuando el usuario selecciona/escribe un valor
                   if (destinoValue && fieldErrors.destino) {
-                    setFieldErrors((prev) => ({
+                    setFieldErrors((prev) => {
+                      const newErrors = { ...prev }
+                      delete newErrors.destino
+                      return newErrors
+                    })
+                  }
+                }}
+                onInputChange={(event, newInputValue) => {
+                  // Actualizar el valor del input mientras el usuario escribe
+                  if (event && event.type === 'change') {
+                    setFormData((prev) => ({
                       ...prev,
-                      destino: "",
+                      destino: newInputValue,
                     }))
                   }
                 }}
@@ -576,10 +702,11 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                     label="Destino"
                     required
                     error={Boolean(fieldErrors.destino)}
-                    helperText={fieldErrors.destino || "Seleccione un destino existente o ingrese uno nuevo"}
-                    sx={{ "& .MuiInputBase-root": { minHeight: "56px" } }}
+                    helperText={fieldErrors.destino || "Seleccione un destino existente o ingrese uno nuevo (se creará automáticamente)"}
+                    placeholder="Ej: El Chaltén, Bariloche, Aconcagua..."
                   />
                 )}
+                sx={{ width: "100%" }}
               />
             </Grid2>
 
@@ -588,7 +715,6 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
               <TextField
                 fullWidth
                 required
-                size="medium"
                 name="titulo"
                 label="Título del Viaje"
                 value={formData.titulo}
@@ -596,7 +722,6 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                 onBlur={handleBlur}
                 error={Boolean(fieldErrors.titulo)}
                 helperText={fieldErrors.titulo || ""}
-                sx={{ "& .MuiInputBase-root": { minHeight: "56px" } }}
               />
             </Grid2>
 
@@ -607,7 +732,6 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                 required
                 multiline
                 rows={3}
-                size="medium"
                 name="descripcion_corta"
                 label="Descripción Corta"
                 value={formData.descripcion_corta}
@@ -625,7 +749,6 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                 required
                 multiline
                 rows={6}
-                size="medium"
                 name="descripcion_completa"
                 label="Descripción Completa"
                 value={formData.descripcion_completa}
@@ -652,7 +775,6 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
               <TextField
                 fullWidth
                 required
-                size="medium"
                 type="number"
                 name="duracion_dias"
                 label="Duración (días)"
@@ -666,7 +788,6 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                     endAdornment: <InputAdornment position="end">días</InputAdornment>,
                   },
                 }}
-                sx={{ "& .MuiInputBase-root": { minHeight: "56px" } }}
               />
             </Grid2>
 
@@ -674,7 +795,6 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
               <TextField
                 fullWidth
                 required
-                size="medium"
                 type="number"
                 name="precio_base"
                 label="Precio Base"
@@ -688,20 +808,18 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                     startAdornment: <InputAdornment position="start">$</InputAdornment>,
                   },
                 }}
-                sx={{ "& .MuiInputBase-root": { minHeight: "56px" } }}
               />
             </Grid2>
 
             {/* Estado y Destacado en la misma fila */}
             <Grid2 xs={12} md={6}>
-              <FormControl fullWidth required size="medium">
-                <InputLabel sx={{ fontSize: "1rem" }}>Estado</InputLabel>
+              <FormControl fullWidth required sx={{ minWidth: 200 }}>
+                <InputLabel>Estado</InputLabel>
                 <Select
                   name="activo"
                   value={formData.activo}
                   label="Estado"
                   onChange={handleChange}
-                  sx={{ minHeight: "56px" }}
                 >
                   <MenuItem value={true}>Activo</MenuItem>
                   <MenuItem value={false}>Inactivo</MenuItem>
@@ -710,14 +828,13 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             </Grid2>
 
             <Grid2 xs={12} md={6}>
-              <FormControl fullWidth size="medium">
-                <InputLabel sx={{ fontSize: "1rem" }}>Destacado</InputLabel>
+              <FormControl fullWidth sx={{ minWidth: 200 }}>
+                <InputLabel>Destacado</InputLabel>
                 <Select
                   name="destacado"
                   value={formData.destacado}
                   label="Destacado"
                   onChange={handleChange}
-                  sx={{ minHeight: "56px" }}
                 >
                   <MenuItem value={false}>No</MenuItem>
                   <MenuItem value={true}>Sí - Mostrar en "Aventuras Destacadas"</MenuItem>
@@ -730,7 +847,6 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
               <TextField
                 fullWidth
                 required
-                size="medium"
                 type="number"
                 name="minimo_participantes"
                 label="Mínimo de Participantes"
@@ -739,7 +855,6 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                 onBlur={handleBlur}
                 error={Boolean(fieldErrors.minimo_participantes)}
                 helperText={fieldErrors.minimo_participantes || ""}
-                sx={{ "& .MuiInputBase-root": { minHeight: "56px" } }}
               />
             </Grid2>
 
@@ -747,7 +862,6 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
               <TextField
                 fullWidth
                 required
-                size="medium"
                 type="number"
                 name="maximo_participantes"
                 label="Máximo de Participantes"
@@ -756,7 +870,6 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                 onBlur={handleBlur}
                 error={Boolean(fieldErrors.maximo_participantes)}
                 helperText={fieldErrors.maximo_participantes || ""}
-                sx={{ "& .MuiInputBase-root": { minHeight: "56px" } }}
               />
             </Grid2>
           </Grid2>
@@ -778,7 +891,6 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                 required
                 multiline
                 rows={4}
-                size="medium"
                 name="incluye"
                 label="Qué Incluye"
                 value={formData.incluye}
@@ -796,7 +908,6 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                 required
                 multiline
                 rows={4}
-                size="medium"
                 name="no_incluye"
                 label="Qué NO Incluye"
                 value={formData.no_incluye}
@@ -814,7 +925,6 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                 required
                 multiline
                 rows={4}
-                size="medium"
                 name="recomendaciones"
                 label="Recomendaciones"
                 value={formData.recomendaciones}
@@ -903,7 +1013,16 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                           }}
                         />
                       )}
-                      <CardActions sx={{ justifyContent: "center", p: 0.5 }}>
+                      <CardActions sx={{ justifyContent: "center", p: 0.5, gap: 0.5 }}>
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => openFocusDialog(image)}
+                          aria-label="Ajustar punto focal"
+                          title="Ajustar punto focal"
+                        >
+                          <CenterFocusStrongIcon fontSize="small" />
+                        </IconButton>
                         <IconButton
                           size="small"
                           color="error"
@@ -1014,6 +1133,88 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             />
           )}
         </DialogContent>
+      </Dialog>
+
+      {/* Focus Control Dialog */}
+      <Dialog
+        open={focusDialogOpen}
+        onClose={closeFocusDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">
+              Ajustar Punto Focal
+            </Typography>
+            <IconButton onClick={closeFocusDialog} edge="end">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Selecciona el punto focal de la imagen para controlar qué parte se muestra cuando se recorta.
+          </Typography>
+          {selectedImageForFocus && (
+            <ImageFocusControl
+              imageUrl={selectedImageForFocus.url}
+              currentFocus={tempFocusPoint}
+              onChange={setTempFocusPoint}
+            />
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={closeFocusDialog}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={saveFocusPoint}
+            variant="contained"
+            startIcon={<CenterFocusStrongIcon />}
+          >
+            Guardar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirmation Dialog for Creating Trip Without Dates */}
+      <Dialog
+        open={confirmDialogOpen}
+        onClose={handleConfirmNoDatesCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Crear viaje sin fechas disponibles
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              Este viaje no tiene fechas disponibles cargadas. Los viajes sin fechas futuras no se mostrarán en el sitio público.
+            </Typography>
+          </Alert>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            ¿Está seguro que desea crear este viaje sin fechas disponibles?
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Podrá agregar fechas de salida después de crear el viaje desde la sección "Gestión de Fechas de Salida".
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleConfirmNoDatesCancel} variant="outlined">
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleConfirmNoDatesProceed}
+            variant="contained"
+            color="primary"
+          >
+            Crear sin fechas
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   )

@@ -1,10 +1,30 @@
+import { safeGetItem, safeSetItem, safeRemoveItem } from '../utils/safeStorage'
+
 // ✅ URL base de la API - conectado con backend real en puerto 3003
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3003/api"
 
+// Detectar si estamos en modo desarrollo con ngrok (cross-origin)
+// En producción, frontend y backend estarán en el mismo dominio
+const isCrossOrigin = () => {
+  try {
+    const apiUrl = new URL(API_BASE_URL)
+    const currentOrigin = window.location.origin
+    return apiUrl.origin !== currentOrigin
+  } catch {
+    return false
+  }
+}
+
 const apiRequest = async (endpoint, options = {}) => {
+  // Solo usar localStorage en modo cross-origin (desarrollo con ngrok)
+  // En producción (mismo dominio), confiar SOLO en cookies httpOnly (más seguro)
+  const useFallbackAuth = isCrossOrigin()
+  const token = useFallbackAuth ? safeGetItem('auth_token') : null
+
   const config = {
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}), // Solo en cross-origin
       ...options.headers,
     },
     credentials: "include", // Incluir cookies en todas las peticiones
@@ -12,23 +32,33 @@ const apiRequest = async (endpoint, options = {}) => {
   }
 
   try {
-    console.log("[API] Request:", `${API_BASE_URL}${endpoint}`, config.method || 'GET')
+    console.log("[API] Request:", `${API_BASE_URL}${endpoint}`, config.method || 'GET', useFallbackAuth ? '(usando localStorage)' : '(usando cookies)')
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
     const data = await response.json()
 
     console.log("[API] Response:", response.status, data)
 
     if (!response.ok) {
-      // Si es un error de autenticación (401/403), limpiar cookies inválidas
+      // Si es un error de autenticación (401/403), limpiar tokens
       if (response.status === 401 || response.status === 403) {
-        // Limpiar cookie inválida
         if (endpoint !== "/auth/logout" && endpoint !== "/auth/login") {
-          console.log("[API] Token inválido detectado, limpiando cookies...")
+          console.log("[API] Token inválido detectado, limpiando tokens...")
+          // Limpiar cookies
           document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
           document.cookie = "token=; path=/; domain=localhost; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+          // Limpiar localStorage de forma segura (funciona en modo incógnito)
+          if (useFallbackAuth) {
+            safeRemoveItem('auth_token')
+          }
         }
       }
       throw new Error(data.message || `Error ${response.status}: ${response.statusText}`)
+    }
+
+    // Si la respuesta incluye un token, guardarlo de forma segura (funciona en modo incógnito)
+    if (data.data?.token && useFallbackAuth) {
+      safeSetItem('auth_token', data.data.token)
+      console.log("[API] Token guardado en localStorage (modo desarrollo)")
     }
 
     return data
@@ -378,6 +408,16 @@ export const pagosAPI = {
     const queryString = new URLSearchParams(params).toString()
     return apiRequest(`/pagos/mis-pagos?${queryString}`)
   },
+
+  // Mercado Pago - Crear preferencia de pago
+  crearPreferenciaMercadoPago: (id_compra) =>
+    apiRequest("/pagos/mercadopago/crear-preferencia", {
+      method: "POST",
+      body: JSON.stringify({ id_compra }),
+    }),
+
+  // Mercado Pago - Obtener configuración (public key)
+  getConfigMercadoPago: () => apiRequest("/pagos/mercadopago/config"),
 }
 
 // Roles API - Gestión de múltiples roles por usuario

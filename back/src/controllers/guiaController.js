@@ -38,7 +38,7 @@ export const getAllGuias = async (req, res) => {
           {
             model: Usuario,
             as: "usuario",
-            attributes: ["id_usuarios", "nombre", "apellido", "email", "telefono"],
+            attributes: ["id_usuarios", "nombre", "apellido", "email", "telefono", "avatar"],
           },
         ],
         limit: 1,
@@ -50,7 +50,7 @@ export const getAllGuias = async (req, res) => {
         {
           model: Usuario,
           as: "usuario",
-          attributes: ["id_usuarios", "nombre", "apellido", "email", "telefono"],
+          attributes: ["id_usuarios", "nombre", "apellido", "email", "telefono", "avatar"],
           where: search
             ? {
                 [Op.or]: [{ nombre: { [Op.like]: `%${search}%` } }, { apellido: { [Op.like]: `%${search}%` } }],
@@ -118,7 +118,7 @@ export const getGuiaById = async (req, res) => {
         {
           model: Usuario,
           as: "usuario",
-          attributes: ["id_usuarios", "nombre", "apellido", "email", "telefono"],
+          attributes: ["id_usuarios", "nombre", "apellido", "email", "telefono", "avatar"],
         },
         {
           model: GuiaViaje,
@@ -387,7 +387,7 @@ export const debugAllGuias = async (req, res) => {
         {
           model: Usuario,
           as: "usuario",
-          attributes: ["id_usuarios", "nombre", "apellido", "email", "telefono", "rol"],
+          attributes: ["id_usuarios", "nombre", "apellido", "email", "telefono", "rol", "avatar"],
         },
       ],
       order: [["id_guia", "ASC"]],

@@ -33,6 +33,15 @@ const ImagenViaje = sequelize.define(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    focus_point: {
+      type: DataTypes.STRING(50),
+      defaultValue: 'center',
+      allowNull: false,
+      validate: {
+        isIn: [['center', 'top', 'bottom', 'left', 'right',
+                'top left', 'top right', 'bottom left', 'bottom right']]
+      }
+    },
   },
   {
     timestamps: false,

@@ -1,6 +1,13 @@
 import express from "express"
 import { body } from "express-validator"
-import { procesarPago, obtenerPagosUsuario, obtenerTarjetasPrueba } from "../controllers/pagoController.js"
+import {
+  procesarPago,
+  obtenerPagosUsuario,
+  obtenerTarjetasPrueba,
+  crearPreferenciaMercadoPago,
+  webhookMercadoPago,
+  obtenerConfigMercadoPago
+} from "../controllers/pagoController.js"
 import { authenticateToken } from "../middleware/auth.js"
 
 const router = express.Router()
@@ -29,5 +36,15 @@ router.get("/mis-pagos", authenticateToken, obtenerPagosUsuario)
 
 // Ruta pública para obtener tarjetas de prueba (solo desarrollo)
 router.get("/tarjetas-prueba", obtenerTarjetasPrueba)
+
+// Rutas de Mercado Pago
+router.post(
+  "/mercadopago/crear-preferencia",
+  authenticateToken,
+  [body("id_compra").isInt({ min: 1 }).withMessage("ID de compra debe ser un número entero positivo")],
+  crearPreferenciaMercadoPago
+)
+router.post("/webhook", webhookMercadoPago) // Webhook público para Mercado Pago
+router.get("/mercadopago/config", obtenerConfigMercadoPago) // Public key para el frontend
 
 export default router

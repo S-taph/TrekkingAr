@@ -47,7 +47,9 @@ const TestimonialSection = ({ testimonials }) => {
       mt: 6,
       py: 6,
       px: 3,
-      backgroundColor: '#FFE8DC',
+      backgroundColor: (theme) => theme.palette.mode === 'dark'
+        ? theme.palette.background.paper
+        : '#FFE8DC',
       borderRadius: 2,
     }}>
       {/* Título */}

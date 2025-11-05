@@ -168,8 +168,12 @@ export default function TripDetailPage() {
         <Box sx={{ mb: 4 }}>
           <HeroImage
             images={
-              trip.imagenes?.map(img => typeof img === 'string' ? img : img.url).filter(Boolean) ||
-              (trip.imagen_principal_url ? [trip.imagen_principal_url] : [])
+              trip.imagenes?.map(img =>
+                typeof img === 'string'
+                  ? { url: img, focus_point: 'center' }
+                  : { url: img.url, focus_point: img.focus_point || 'center' }
+              ).filter(img => img.url) ||
+              (trip.imagen_principal_url ? [{ url: trip.imagen_principal_url, focus_point: 'center' }] : [])
             }
             title={trip.titulo}
             duracion={trip.duracion_dias}
@@ -764,8 +768,12 @@ export default function TripDetailPage() {
         {/* CARRUSEL INMERSIVO CON EFECTO KEN BURNS */}
         <ImmersiveCarousel
           images={
-            trip.imagenes?.map(img => typeof img === 'string' ? img : img.url).filter(Boolean) ||
-            (trip.imagen_principal_url ? [trip.imagen_principal_url] : [])
+            [...(trip.imagenes?.map(img =>
+              typeof img === 'string'
+                ? { url: img, focus_point: 'center' }
+                : { url: img.url, focus_point: img.focus_point || 'center' }
+            ).filter(img => img.url) ||
+            (trip.imagen_principal_url ? [{ url: trip.imagen_principal_url, focus_point: 'center' }] : []))].reverse()
           }
           height={500}
         />

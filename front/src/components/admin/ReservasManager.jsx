@@ -316,6 +316,9 @@ export default function ReservasManager() {
                           Fecha del viaje
                         </Typography>
                         <Typography variant="body1">{formatDate(reserva.fecha_viaje)}</Typography>
+                        <Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 0.5 }}>
+                          Reservado: {formatDate(reserva.fecha_reserva)}
+                        </Typography>
                       </Grid2>
 
                       <Grid2 item xs={12} md={2}>

@@ -83,10 +83,10 @@ export const TripCard = ({ trip, loading = false }) => {
 
   // Mapa de colores para dificultad
   const dificultadColors = {
-    facil: "success",
-    moderada: "warning",
-    dificil: "error",
-    extrema: "error",
+    facil: "success",     // Verde
+    moderado: "warning",  // Naranja
+    dificil: "error",     // Rojo
+    extremo: "secondary", // Negro/Lila
   }
 
   const handleCardClick = () => {

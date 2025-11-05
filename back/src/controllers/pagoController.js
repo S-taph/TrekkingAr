@@ -7,6 +7,7 @@ import Usuario from "../models/Usuario.js"
 import FechaViaje from "../models/FechaViaje.js"
 import Viaje from "../models/Viaje.js"
 import MetodoPago from "../models/MetodoPago.js"
+import { crearPreferencia, procesarWebhook as procesarWebhookMP, verificarCredenciales } from "../services/mercadopagoService.js"
 
 // Tarjetas de prueba aceptadas
 const TARJETAS_PRUEBA = {
@@ -324,4 +325,186 @@ export const obtenerTarjetasPrueba = async (req, res) => {
       },
     },
   })
+}
+
+/**
+ * Crear preferencia de pago en Mercado Pago
+ */
+export const crearPreferenciaMercadoPago = async (req, res) => {
+  try {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: "Datos inválidos",
+        errors: errors.array(),
+      })
+    }
+
+    const { id_compra } = req.body
+    const id_usuario = req.user.id_usuarios
+
+    // Verificar credenciales de Mercado Pago
+    if (!verificarCredenciales()) {
+      return res.status(500).json({
+        success: false,
+        message: "Mercado Pago no está configurado correctamente",
+      })
+    }
+
+    // Verificar que la compra existe y pertenece al usuario
+    const compra = await Compra.findOne({
+      where: {
+        id_compras: id_compra,
+        id_usuario,
+        estado_compra: "pendiente",
+      },
+      include: [
+        {
+          model: Reserva,
+          as: "reservas",
+          include: [
+            {
+              model: FechaViaje,
+              as: "fecha_viaje",
+              include: [
+                {
+                  model: Viaje,
+                  as: "viaje",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    })
+
+    if (!compra) {
+      return res.status(404).json({
+        success: false,
+        message: "Compra no encontrada o ya fue procesada",
+      })
+    }
+
+    // Preparar datos del usuario
+    const usuario = await Usuario.findByPk(id_usuario)
+
+    const payer = {
+      nombre: usuario.nombre,
+      apellido: usuario.apellido || "",
+      email: usuario.email,
+      telefono: usuario.telefono || "",
+      dni: usuario.dni || "",
+    }
+
+    // Preparar items de la compra
+    const items = compra.reservas.map((reserva) => ({
+      id_fecha_viaje: reserva.id_fecha_viaje,
+      nombre_viaje: reserva.fecha_viaje.viaje.nombre,
+      titulo: `${reserva.fecha_viaje.viaje.nombre} - ${new Date(reserva.fecha_viaje.fecha_inicio).toLocaleDateString()}`,
+      descripcion: `Reserva para ${reserva.cantidad_personas} persona(s)`,
+      cantidad: 1,
+      subtotal: parseFloat(reserva.subtotal_reserva),
+    }))
+
+    // Crear preferencia en Mercado Pago
+    const preferencia = await crearPreferencia({
+      id_compra: compra.id_compras,
+      numero_compra: compra.numero_compra,
+      total_compra: parseFloat(compra.total_compra),
+      items,
+      payer,
+    })
+
+    res.status(200).json({
+      success: true,
+      message: "Preferencia de pago creada exitosamente",
+      data: {
+        preference_id: preferencia.preference_id,
+        init_point: preferencia.init_point,
+        sandbox_init_point: preferencia.sandbox_init_point,
+      },
+    })
+  } catch (error) {
+    console.error("=".repeat(60))
+    console.error("❌ ERROR AL CREAR PREFERENCIA DE MERCADO PAGO")
+    console.error("=".repeat(60))
+    console.error("Error message:", error.message)
+    console.error("Error stack:", error.stack)
+    console.error("=".repeat(60))
+    res.status(500).json({
+      success: false,
+      message: "Error al crear preferencia de pago",
+      error: error.message,
+    })
+  }
+}
+
+/**
+ * Webhook para recibir notificaciones de Mercado Pago
+ */
+export const webhookMercadoPago = async (req, res) => {
+  try {
+    console.log("🔔 Webhook recibido de Mercado Pago")
+    console.log("Query params:", req.query)
+    console.log("Body:", req.body)
+
+    // Mercado Pago envía notificaciones con query params
+    const { topic, id } = req.query
+
+    // También puede venir en el body
+    const webhookData = {
+      type: topic || req.body.type,
+      data: {
+        id: id || req.body.data?.id,
+      },
+    }
+
+    // Responder inmediatamente a Mercado Pago (200 OK)
+    res.status(200).send("OK")
+
+    // Procesar el webhook en segundo plano
+    if (webhookData.type && webhookData.data.id) {
+      procesarWebhookMP(webhookData)
+        .then((result) => {
+          console.log("✅ Webhook procesado:", result)
+        })
+        .catch((error) => {
+          console.error("❌ Error al procesar webhook:", error)
+        })
+    }
+  } catch (error) {
+    console.error("❌ Error en webhook de Mercado Pago:", error)
+    // Aún así responder 200 para evitar reintentos innecesarios
+    res.status(200).send("OK")
+  }
+}
+
+/**
+ * Obtener configuración pública de Mercado Pago (Public Key)
+ */
+export const obtenerConfigMercadoPago = async (req, res) => {
+  try {
+    const publicKey = process.env.MP_PUBLIC_KEY
+
+    if (!publicKey || publicKey === 'TEST-YOUR-PUBLIC-KEY-HERE') {
+      return res.status(500).json({
+        success: false,
+        message: "Mercado Pago no está configurado",
+      })
+    }
+
+    res.json({
+      success: true,
+      data: {
+        publicKey,
+      },
+    })
+  } catch (error) {
+    console.error("Error al obtener config de Mercado Pago:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener configuración",
+    })
+  }
 }

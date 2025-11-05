@@ -33,11 +33,37 @@ export const createReserva = async (req, res) => {
     const { id_fecha_viaje, cantidad_personas, observaciones_reserva } = req.body
     const id_usuario = req.user.id_usuarios
 
-    // TODO: verificar que la fecha del viaje existe y está disponible
-    // TODO: verificar cupos disponibles
+    // Verificar que la fecha del viaje existe y está disponible
+    const fechaViaje = await FechaViaje.findByPk(id_fecha_viaje, {
+      include: [
+        {
+          model: Viaje,
+          as: "viaje",
+          attributes: ["precio_base", "titulo"],
+        },
+      ],
+    })
 
-    // Por ahora simulamos el precio - esto debería venir de FechaViaje
-    const precio_unitario = 50000
+    if (!fechaViaje) {
+      await transaction.rollback()
+      return res.status(404).json({
+        success: false,
+        message: "Fecha de viaje no encontrada",
+      })
+    }
+
+    // Verificar cupos disponibles
+    const cuposDisponibles = fechaViaje.cupos_totales - fechaViaje.cupos_ocupados
+    if (cuposDisponibles < cantidad_personas) {
+      await transaction.rollback()
+      return res.status(400).json({
+        success: false,
+        message: `No hay cupos suficientes. Disponibles: ${cuposDisponibles}`,
+      })
+    }
+
+    // Obtener el precio: usar precio_fecha si existe, sino precio_base del viaje
+    const precio_unitario = fechaViaje.precio_fecha || fechaViaje.viaje.precio_base
     const subtotal_reserva = precio_unitario * cantidad_personas
 
     // Crear compra primero

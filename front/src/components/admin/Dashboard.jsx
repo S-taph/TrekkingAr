@@ -98,17 +98,25 @@ export default function Dashboard({ onNavigate }) {
       const reservas = reservasResponse.data?.reservas || []
       const guias = guiasResponse.data?.guias || []
 
+      // Calcular ingresos del mes basándose en compras únicas
+      const comprasUnicas = new Map()
+      reservas.forEach((reserva) => {
+        if (["confirmada", "completada"].includes(reserva.estado_reserva) && reserva.compra) {
+          const compraId = reserva.compra.id_compras
+          const totalCompra = reserva.compra.total_compra || 0
+          if (!comprasUnicas.has(compraId)) {
+            comprasUnicas.set(compraId, totalCompra)
+          }
+        }
+      })
+      const ingresosMes = Array.from(comprasUnicas.values()).reduce((sum, total) => sum + total, 0)
+
       const estadisticas = {
         totalUsuarios: 0,
         totalViajes: viajes.length,
         totalGuias: guias.length,
         totalReservas: reservas.length,
-        ingresosMes: reservas.reduce((total, reserva) => {
-          if (["confirmada", "completada"].includes(reserva.estado_reserva)) {
-            return total + (reserva.precio_unitario * reserva.cantidad_personas || 0)
-          }
-          return total
-        }, 0),
+        ingresosMes,
       }
 
       const reservasPorEstado = ["pendiente", "confirmada", "cancelada", "completada"].map((estado) => ({

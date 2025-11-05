@@ -30,7 +30,8 @@ export const CartProvider = ({ children }) => {
       setError(null)
       const response = await carritoAPI.getCarrito()
       if (response.success) {
-        setItems(response.data.carrito?.items || [])
+        const cartItems = response.data.carrito?.items || []
+        setItems(cartItems)
       }
     } catch (err) {
       console.error("[CartContext] Error cargando carrito:", err)
@@ -39,6 +40,7 @@ export const CartProvider = ({ children }) => {
       setLoading(false)
     }
   }, [user])
+
 
   // Cargar carrito al montar o cuando cambia el usuario
   useEffect(() => {
@@ -59,7 +61,7 @@ export const CartProvider = ({ children }) => {
 
         const response = await carritoAPI.addItem(itemData)
         if (response.success) {
-          // Recargar carrito para obtener datos actualizados
+          // Recargar carrito para obtener datos actualizados (ahora enriquecidos)
           await loadCart()
           return { success: true, data: response.data }
         }
@@ -73,6 +75,7 @@ export const CartProvider = ({ children }) => {
     },
     [user, loadCart],
   )
+
 
   // Actualizar cantidad de un item
   const updateItemQuantity = useCallback(

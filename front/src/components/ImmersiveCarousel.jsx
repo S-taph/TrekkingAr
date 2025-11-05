@@ -11,7 +11,7 @@ import 'swiper/css/effect-fade';
 /**
  * ImmersiveCarousel - Carrusel inmersivo con efecto Ken Burns
  * @param {Object} props
- * @param {Array} props.images - Array de URLs de imágenes
+ * @param {Array} props.images - Array de URLs de imágenes o objetos {url, focus_point}
  * @param {Number} props.height - Altura del carrusel (default: 500)
  */
 const ImmersiveCarousel = ({ images = [], height = 500 }) => {
@@ -76,50 +76,57 @@ const ImmersiveCarousel = ({ images = [], height = 500 }) => {
           loop={images.length > 1}
           speed={2000}
         >
-          {images.map((image, index) => (
-            <SwiperSlide key={index}>
-              <Box
-                sx={{
-                  width: '100%',
-                  height: '100%',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Imagen con efecto Ken Burns */}
+          {images.map((image, index) => {
+            // Soporte para strings (URLs directas) y objetos {url, focus_point}
+            const imageUrl = typeof image === 'string' ? image : (image.url || image);
+            const focusPoint = typeof image === 'object' ? (image.focus_point || 'center') : 'center';
+
+            return (
+              <SwiperSlide key={index}>
                 <Box
-                  component="img"
-                  src={image}
-                  alt={`Imagen ${index + 1}`}
-                  loading="lazy"
                   sx={{
                     width: '100%',
                     height: '100%',
-                    objectFit: 'cover',
-                    animation: 'kenBurns 12s ease-out infinite alternate',
-                    '@keyframes kenBurns': {
-                      '0%': {
-                        transform: 'scale(1) translateX(0)',
-                      },
-                      '100%': {
-                        transform: 'scale(1.06) translateX(-2%)',
-                      },
-                    },
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}
-                />
+                >
+                  {/* Imagen con efecto Ken Burns */}
+                  <Box
+                    component="img"
+                    src={imageUrl}
+                    alt={`Imagen ${index + 1}`}
+                    loading="lazy"
+                    sx={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: focusPoint,
+                      animation: 'kenBurns 12s ease-out infinite alternate',
+                      '@keyframes kenBurns': {
+                        '0%': {
+                          transform: 'scale(1) translateX(0)',
+                        },
+                        '100%': {
+                          transform: 'scale(1.06) translateX(-2%)',
+                        },
+                      },
+                    }}
+                  />
 
-                {/* Overlay sutil para mejor legibilidad */}
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'linear-gradient(to top, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0) 50%)',
-                    pointerEvents: 'none',
-                  }}
-                />
-              </Box>
-            </SwiperSlide>
-          ))}
+                  {/* Overlay sutil para mejor legibilidad */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'linear-gradient(to top, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0) 50%)',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                </Box>
+              </SwiperSlide>
+            );
+          })}
         </Swiper>
       </Box>
 

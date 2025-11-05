@@ -4,6 +4,7 @@ import { ThemeProvider } from "./context/ThemeContext"
 import { CartProvider } from "./context/CartContext"
 import { ChatbotWidget } from "./components/ChatbotWidget"
 import { ProtectedRoute } from "./components/ProtectedRoute"
+import GuidePhotoAlert from "./components/GuidePhotoAlert"
 import { routes } from "./routes"
 
 export default function App() {
@@ -58,6 +59,9 @@ export default function App() {
                 )
               })}
             </Routes>
+
+            {/* Alerta para guías sin foto de perfil */}
+            <GuidePhotoAlert />
 
             {/* Chatbot flotante global */}
             <ChatbotWidget />

@@ -284,10 +284,23 @@ export default function MyReservationsPage() {
             </Typography>
           </Box>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
             <AttachMoney fontSize="small" color="action" />
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
               ${Number(reservation.subtotal_reserva || 0).toLocaleString("es-AR")}
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <AccessTime fontSize="small" color="action" />
+            <Typography variant="body2" color="text.secondary">
+              Reservado:{" "}
+              {reservation.fecha_reserva &&
+                new Date(reservation.fecha_reserva).toLocaleDateString("es-AR", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                })}
             </Typography>
           </Box>
 

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from "react"
 import { authAPI } from "../services/api"
+import { safeRemoveItem, safeSetItem } from "../utils/safeStorage"
 
 const AuthContext = createContext(null)
 
@@ -37,6 +38,21 @@ export const AuthProvider = ({ children }) => {
 
   // Verificar si hay sesión activa al cargar
   useEffect(() => {
+    // Capturar token de OAuth redirect (si existe en la URL)
+    const urlParams = new URLSearchParams(window.location.search)
+    const tokenFromUrl = urlParams.get('token')
+
+    if (tokenFromUrl) {
+      console.log('[AuthContext] Token de OAuth detectado en URL, guardando...')
+      // Guardar token en localStorage (modo cross-origin)
+      safeSetItem('auth_token', tokenFromUrl)
+
+      // Limpiar el token de la URL por seguridad
+      urlParams.delete('token')
+      const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '') + window.location.hash
+      window.history.replaceState({}, document.title, newUrl)
+    }
+
     checkAuth()
   }, [checkAuth])
 
@@ -68,8 +84,13 @@ export const AuthProvider = ({ children }) => {
     try {
       await authAPI.logout()
       setUser(null)
+      // Limpiar localStorage de forma segura (funciona en modo incógnito)
+      safeRemoveItem('auth_token')
     } catch (error) {
       console.error("[v0] Error en logout:", error)
+      // Limpiar usuario y token incluso si falla la petición
+      setUser(null)
+      safeRemoveItem('auth_token')
     }
   }, [])
 

@@ -9,6 +9,7 @@ import {
   uploadImagenes,
   deleteImagen,
   updateImagenOrder,
+  updateImageFocusPoint,
   getPreciosStats,
   getDestinos,
   getSimilarViajes
@@ -28,10 +29,11 @@ const viajeIdValidation = [
 
 const createViajeValidation = [
   body("titulo").notEmpty().withMessage("El título es requerido"),
-  body("descripcion").notEmpty().withMessage("La descripción es requerida"),
+  body("descripcion").optional().notEmpty().withMessage("La descripción es requerida"),
+  body("descripcion_completa").optional().notEmpty().withMessage("La descripción completa es requerida"),
   body("destino").notEmpty().withMessage("El destino es requerido"),
   body("duracion_dias").isInt({ min: 1 }).withMessage("La duración debe ser al menos 1 día"),
-  body("dificultad").isIn(['facil', 'moderada', 'dificil', 'extrema']).withMessage("Dificultad inválida"),
+  body("dificultad").isIn(['facil', 'moderado', 'dificil', 'extremo']).withMessage("Dificultad inválida"),
   body("precio_base").isFloat({ min: 0 }).withMessage("El precio debe ser mayor o igual a 0")
 ];
 
@@ -71,6 +73,9 @@ router.post(
 
 // Eliminar imagen
 router.delete("/:id/images/:imagenId", imagenIdValidation, deleteImagen);
+
+// Actualizar punto focal de una imagen
+router.patch("/:id/imagenes/:imagenId", imagenIdValidation, updateImageFocusPoint);
 
 // Actualizar orden de imágenes
 router.put("/:id/images/order", viajeIdValidation, updateImagenOrder);

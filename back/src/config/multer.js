@@ -13,8 +13,9 @@ import fs from 'fs';
 const uploadsDir = path.join(process.cwd(), 'uploads');
 const viajesDir = path.join(uploadsDir, 'viajes');
 const tempDir = path.join(uploadsDir, 'temp');
+const avatarsDir = path.join(uploadsDir, 'avatars');
 
-[uploadsDir, viajesDir, tempDir].forEach(dir => {
+[uploadsDir, viajesDir, tempDir, avatarsDir].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -23,8 +24,14 @@ const tempDir = path.join(uploadsDir, 'temp');
 // Configuración de almacenamiento
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    // Detectar si es un avatar por la ruta
+    if (req.path.includes('/avatar')) {
+      cb(null, avatarsDir);
+      return;
+    }
+
     const viajeId = req.params.id || req.params.viajeId;
-    
+
     if (viajeId) {
       // Si hay viajeId, guardar en directorio específico del viaje
       const viajeDir = path.join(viajesDir, viajeId);
