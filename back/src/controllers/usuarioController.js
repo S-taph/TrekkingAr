@@ -106,7 +106,7 @@ const getUsuarioById = async (req, res) => {
 const updateUsuario = async (req, res) => {
   try {
     const { id } = req.params
-    const { nombre, apellido, email, telefono, dni, rol, activo } = req.body
+    const { nombre, apellido, email, telefono, dni, rol, activo, contacto_emergencia, telefono_emergencia, experiencia_previa } = req.body
 
     const usuario = await Usuario.findByPk(id)
 
@@ -151,6 +151,9 @@ const updateUsuario = async (req, res) => {
       email: email || usuario.email,
       telefono: telefono !== undefined ? telefono : usuario.telefono,
       dni: dni !== undefined ? dni : usuario.dni,
+      contacto_emergencia: contacto_emergencia !== undefined ? contacto_emergencia : usuario.contacto_emergencia,
+      telefono_emergencia: telefono_emergencia !== undefined ? telefono_emergencia : usuario.telefono_emergencia,
+      experiencia_previa: experiencia_previa !== undefined ? experiencia_previa : usuario.experiencia_previa,
     }
 
     // Solo admin puede actualizar rol y estado activo

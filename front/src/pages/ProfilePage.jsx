@@ -57,6 +57,9 @@ export default function ProfilePage() {
     email: "",
     telefono: "",
     dni: "",
+    contacto_emergencia: "",
+    telefono_emergencia: "",
+    experiencia_previa: "",
   })
   const [avatarFile, setAvatarFile] = useState(null)
   const [avatarPreview, setAvatarPreview] = useState(null)
@@ -99,6 +102,9 @@ export default function ProfilePage() {
         email: user.email || "",
         telefono: user.telefono || "",
         dni: user.dni || "",
+        contacto_emergencia: user.contacto_emergencia || "",
+        telefono_emergencia: user.telefono_emergencia || "",
+        experiencia_previa: user.experiencia_previa || "",
       })
       loadUserStats()
     }
@@ -504,6 +510,42 @@ export default function ProfilePage() {
                       onChange={(e) => handleChange("dni", e.target.value)}
                       helperText="Ingrese 7 u 8 dígitos sin puntos ni espacios"
                       inputProps={{ maxLength: 8 }}
+                    />
+                  </Grid>
+                </Grid>
+
+                <Divider sx={{ my: 3 }}>
+                  <Chip label="Información de Emergencia" />
+                </Divider>
+
+                <Grid container spacing={3}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Contacto de Emergencia"
+                      value={formData.contacto_emergencia}
+                      onChange={(e) => handleChange("contacto_emergencia", e.target.value)}
+                      helperText="Nombre de la persona a contactar en caso de emergencia"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Teléfono de Emergencia"
+                      value={formData.telefono_emergencia}
+                      onChange={(e) => handleChange("telefono_emergencia", e.target.value)}
+                      helperText="Número de contacto de emergencia"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      label="Experiencia Previa en Trekking"
+                      value={formData.experiencia_previa}
+                      onChange={(e) => handleChange("experiencia_previa", e.target.value)}
+                      helperText="Describa su experiencia previa en trekking o actividades similares (opcional)"
                     />
                   </Grid>
                 </Grid>
