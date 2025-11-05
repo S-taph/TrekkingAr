@@ -685,16 +685,17 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                   }
                   return ""
                 }}
-                value={formData.destino}
-                onChange={(event, newValue) => {
-                  // Manejar tanto selección de destino existente como texto libre
-                  const destinoValue = typeof newValue === "string" ? newValue : newValue?.nombre || ""
-                  setFormData((prev) => ({
-                    ...prev,
-                    destino: destinoValue,
-                  }))
-                  // Limpiar error cuando el usuario selecciona/escribe un valor
-                  if (destinoValue && fieldErrors.destino) {
+                inputValue={formData.destino}
+                onInputChange={(event, newInputValue, reason) => {
+                  // Actualizar el valor del input
+                  if (reason === 'input' || reason === 'clear') {
+                    setFormData((prev) => ({
+                      ...prev,
+                      destino: newInputValue,
+                    }))
+                  }
+                  // Limpiar error cuando el usuario escribe
+                  if (newInputValue && fieldErrors.destino) {
                     setFieldErrors((prev) => {
                       const newErrors = { ...prev }
                       delete newErrors.destino
@@ -702,14 +703,13 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                     })
                   }
                 }}
-                onInputChange={(event, newInputValue) => {
-                  // Actualizar el valor del input mientras el usuario escribe
-                  if (event && event.type === 'change') {
-                    setFormData((prev) => ({
-                      ...prev,
-                      destino: newInputValue,
-                    }))
-                  }
+                onChange={(event, newValue) => {
+                  // Manejar tanto selección de destino existente como texto libre
+                  const destinoValue = typeof newValue === "string" ? newValue : newValue?.nombre || ""
+                  setFormData((prev) => ({
+                    ...prev,
+                    destino: destinoValue,
+                  }))
                 }}
                 onBlur={() => handleBlur({ target: { name: "destino", value: formData.destino } })}
                 renderInput={(params) => (
