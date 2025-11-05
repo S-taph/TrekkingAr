@@ -80,10 +80,20 @@ export default function Dashboard({ onNavigate }) {
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-  const [dateRange, setDateRange] = useState({
-    fecha_desde: "",
-    fecha_hasta: "",
-  })
+
+  // Inicializar con el mes actual por defecto
+  const getDefaultDateRange = () => {
+    const now = new Date()
+    const primerDiaMes = new Date(now.getFullYear(), now.getMonth(), 1)
+    const ultimoDiaMes = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+
+    return {
+      fecha_desde: primerDiaMes.toISOString().split('T')[0],
+      fecha_hasta: ultimoDiaMes.toISOString().split('T')[0],
+    }
+  }
+
+  const [dateRange, setDateRange] = useState(getDefaultDateRange())
 
   useEffect(() => {
     loadDashboardData()
@@ -198,9 +208,16 @@ export default function Dashboard({ onNavigate }) {
       {/* Filtros de fecha */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Filtrar por rango de fechas
-          </Typography>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h6">
+              Filtrar por rango de fechas
+            </Typography>
+            <Chip
+              label={dateRange.fecha_desde && dateRange.fecha_hasta ? "Mes actual" : "Todo el histórico"}
+              color={dateRange.fecha_desde && dateRange.fecha_hasta ? "primary" : "default"}
+              size="small"
+            />
+          </Box>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={4}>
               <TextField
@@ -223,14 +240,23 @@ export default function Dashboard({ onNavigate }) {
               />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <Button
-                fullWidth
-                variant="outlined"
-                onClick={() => setDateRange({ fecha_desde: "", fecha_hasta: "" })}
-                sx={{ height: "56px", color: "#64b5f6", borderColor: "#64b5f6" }}
-              >
-                Limpiar filtros
-              </Button>
+              <Box display="flex" gap={1} height="100%">
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={() => setDateRange({ fecha_desde: "", fecha_hasta: "" })}
+                  sx={{ height: "56px", color: "#64b5f6", borderColor: "#64b5f6" }}
+                >
+                  Ver todo
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={() => setDateRange(getDefaultDateRange())}
+                  sx={{ height: "56px", bgcolor: "#64b5f6", minWidth: "120px" }}
+                >
+                  Mes actual
+                </Button>
+              </Box>
             </Grid>
           </Grid>
         </CardContent>

@@ -221,14 +221,14 @@ export default function ReservasManager() {
       )}
 
       {/* Filtros */}
-      <Card sx={{ mb: 3 }}>
+      <Card sx={{ mb: 3, width: '100%' }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             <FilterIcon sx={{ mr: 1, verticalAlign: "middle" }} />
             Filtros
           </Typography>
-          <Grid2 container spacing={2}>
-            <Grid2 xs={12} md={3}>
+          <Grid2 container spacing={2} sx={{ width: '100%' }}>
+            <Grid2 size={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
                 label="Buscar reservas"
@@ -239,7 +239,7 @@ export default function ReservasManager() {
                 }}
               />
             </Grid2>
-            <Grid2 xs={12} md={3}>
+            <Grid2 size={{ xs: 12, md: 3 }}>
               <FormControl fullWidth sx={{ minWidth: 200 }}>
                 <InputLabel>Estado</InputLabel>
                 <Select
@@ -256,7 +256,7 @@ export default function ReservasManager() {
                 </Select>
               </FormControl>
             </Grid2>
-            <Grid2 xs={12} md={3}>
+            <Grid2 size={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
                 label="Fecha desde"
@@ -266,7 +266,7 @@ export default function ReservasManager() {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid2>
-            <Grid2 xs={12} md={3}>
+            <Grid2 size={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
                 label="Fecha hasta"
@@ -287,77 +287,75 @@ export default function ReservasManager() {
         </Box>
       ) : (
         <>
-          <Grid2 container spacing={3}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, width: '100%' }}>
             {reservas.map((reserva) => (
-              <Grid2 xs={12} key={reserva.id_reserva}>
-                <Card elevation={2}>
-                  <CardContent>
-                    <Grid2 container spacing={2} alignItems="center">
-                      <Grid2 xs={12} md={3}>
-                        <Typography variant="h6" gutterBottom>
-                          {reserva.usuario?.nombre} {reserva.usuario?.apellido}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {reserva.usuario?.email}
-                        </Typography>
-                      </Grid2>
-
-                      <Grid2 xs={12} md={3}>
-                        <Typography variant="subtitle1" gutterBottom>
-                          {reserva.viaje?.titulo}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {reserva.viaje?.duracion_dias} días
-                        </Typography>
-                      </Grid2>
-
-                      <Grid2 xs={12} md={2}>
-                        <Typography variant="body2" color="textSecondary" gutterBottom>
-                          Fecha del viaje
-                        </Typography>
-                        <Typography variant="body1">{formatDate(reserva.fecha_viaje)}</Typography>
-                        <Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 0.5 }}>
-                          Reservado: {formatDate(reserva.fecha_reserva)}
-                        </Typography>
-                      </Grid2>
-
-                      <Grid2 xs={12} md={2}>
-                        <Typography variant="body2" color="textSecondary" gutterBottom>
-                          Personas
-                        </Typography>
-                        <Typography variant="body1">{reserva.cantidad_personas}</Typography>
-                        <Typography variant="h6" color="primary.main">
-                          {formatCurrency(reserva.precio_total)}
-                        </Typography>
-                      </Grid2>
-
-                      <Grid2 xs={12} md={2}>
-                        <Box display="flex" flexDirection="column" alignItems="flex-end" gap={1}>
-                          <Chip
-                            label={reserva.estado}
-                            color={getEstadoColor(reserva.estado)}
-                            sx={{ textTransform: "capitalize" }}
-                          />
-                          <Box>
-                            <Tooltip title="Ver detalles">
-                              <IconButton size="small" onClick={() => handleViewReserva(reserva)}>
-                                <ViewIcon />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Editar">
-                              <IconButton size="small" onClick={() => handleEditReserva(reserva)}>
-                                <EditIcon />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        </Box>
-                      </Grid2>
+              <Card key={reserva.id_reserva} elevation={2} sx={{ width: '100%' }}>
+                <CardContent>
+                  <Grid2 container spacing={2} alignItems="center">
+                    <Grid2 size={{ xs: 12, md: 3 }}>
+                      <Typography variant="h6" gutterBottom>
+                        {reserva.usuario?.nombre} {reserva.usuario?.apellido}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {reserva.usuario?.email}
+                      </Typography>
                     </Grid2>
-                  </CardContent>
-                </Card>
-              </Grid2>
+
+                    <Grid2 size={{ xs: 12, md: 3 }}>
+                      <Typography variant="subtitle1" gutterBottom>
+                        {reserva.viaje?.titulo}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {reserva.viaje?.duracion_dias} días
+                      </Typography>
+                    </Grid2>
+
+                    <Grid2 size={{ xs: 12, md: 2 }}>
+                      <Typography variant="body2" color="textSecondary" gutterBottom>
+                        Fecha del viaje
+                      </Typography>
+                      <Typography variant="body1">{formatDate(reserva.fecha_viaje)}</Typography>
+                      <Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 0.5 }}>
+                        Reservado: {formatDate(reserva.fecha_reserva)}
+                      </Typography>
+                    </Grid2>
+
+                    <Grid2 size={{ xs: 12, md: 2 }}>
+                      <Typography variant="body2" color="textSecondary" gutterBottom>
+                        Personas
+                      </Typography>
+                      <Typography variant="body1">{reserva.cantidad_personas}</Typography>
+                      <Typography variant="h6" color="primary.main">
+                        {formatCurrency(reserva.precio_total)}
+                      </Typography>
+                    </Grid2>
+
+                    <Grid2 size={{ xs: 12, md: 2 }}>
+                      <Box display="flex" flexDirection="column" alignItems="flex-end" gap={1}>
+                        <Chip
+                          label={reserva.estado}
+                          color={getEstadoColor(reserva.estado)}
+                          sx={{ textTransform: "capitalize" }}
+                        />
+                        <Box>
+                          <Tooltip title="Ver detalles">
+                            <IconButton size="small" onClick={() => handleViewReserva(reserva)}>
+                              <ViewIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Editar">
+                            <IconButton size="small" onClick={() => handleEditReserva(reserva)}>
+                              <EditIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                    </Grid2>
+                  </Grid2>
+                </CardContent>
+              </Card>
             ))}
-          </Grid2>
+          </Box>
 
           {/* Paginación */}
           {pagination.totalPages > 1 && (
@@ -439,7 +437,7 @@ export default function ReservasManager() {
           {selectedReserva && (
             <Box sx={{ mt: 2 }}>
               <Grid2 container spacing={2}>
-                <Grid2 item xs={12}>
+                <Grid2 size={12}>
                   <FormControl fullWidth>
                     <InputLabel>Estado</InputLabel>
                     <Select
@@ -461,7 +459,7 @@ export default function ReservasManager() {
                     </Select>
                   </FormControl>
                 </Grid2>
-                <Grid2 item xs={12}>
+                <Grid2 size={12}>
                   <TextField
                     fullWidth
                     label="Cantidad de personas"
@@ -475,7 +473,7 @@ export default function ReservasManager() {
                     }
                   />
                 </Grid2>
-                <Grid2 item xs={12}>
+                <Grid2 size={12}>
                   <TextField
                     fullWidth
                     label="Fecha del viaje"
@@ -490,7 +488,7 @@ export default function ReservasManager() {
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid2>
-                <Grid2 item xs={12}>
+                <Grid2 size={12}>
                   <TextField
                     fullWidth
                     label="Precio total"
