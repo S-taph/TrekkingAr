@@ -29,12 +29,14 @@ const fechaIdValidation = [
 const createFechaValidation = [
   body("fecha_inicio")
     .notEmpty()
-    .isISO8601()
-    .withMessage("La fecha de inicio es requerida y debe ser válida"),
+    .withMessage("La fecha de inicio es requerida")
+    .isDate({ format: 'YYYY-MM-DD', strictMode: false })
+    .withMessage("La fecha de inicio debe ser válida (formato: YYYY-MM-DD)"),
   body("fecha_fin")
     .notEmpty()
-    .isISO8601()
-    .withMessage("La fecha de fin es requerida y debe ser válida"),
+    .withMessage("La fecha de fin es requerida")
+    .isDate({ format: 'YYYY-MM-DD', strictMode: false })
+    .withMessage("La fecha de fin debe ser válida (formato: YYYY-MM-DD)"),
   body("cupos_disponibles")
     .optional()
     .isInt({ min: 1 })

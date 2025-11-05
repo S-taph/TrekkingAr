@@ -1,6 +1,8 @@
 import { Navigate } from "react-router-dom"
 import Home from "./pages/Home"
 import Login from "./pages/Login"
+import ForgotPassword from "./pages/ForgotPassword"
+import ResetPassword from "./pages/ResetPassword"
 import CatalogPage from "./pages/CatalogPage"
 import TripDetailPage from "./pages/TripDetailPage"
 import CheckoutFlow from "./pages/CheckoutFlow"
@@ -32,6 +34,14 @@ export const routes = [
   {
     path: "/login",
     element: <Login />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPassword />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPassword />,
   },
   {
     path: "/verify-email",

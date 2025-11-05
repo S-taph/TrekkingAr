@@ -16,6 +16,7 @@ import {
   Alert,
   CircularProgress,
   Divider,
+  TextField,
 } from "@mui/material"
 import {
   People as PeopleIcon,
@@ -79,10 +80,14 @@ export default function Dashboard({ onNavigate }) {
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [dateRange, setDateRange] = useState({
+    fecha_desde: "",
+    fecha_hasta: "",
+  })
 
   useEffect(() => {
     loadDashboardData()
-  }, [])
+  }, [dateRange])
 
   const loadDashboardData = async () => {
     try {
@@ -90,20 +95,38 @@ export default function Dashboard({ onNavigate }) {
 
       const [viajesResponse, reservasResponse, guiasResponse] = await Promise.all([
         viajesAPI.getViajes().catch(() => ({ data: { viajes: [] } })),
-        reservasAPI.getReservas().catch(() => ({ data: { reservas: [] } })),
+        reservasAPI.getReservas({ limit: 1000 }).catch(() => ({ data: { reservas: [] } })),
         guiasAPI.getGuias().catch(() => ({ data: { guias: [] } })),
       ])
 
       const viajes = viajesResponse.data?.viajes || []
-      const reservas = reservasResponse.data?.reservas || []
+      let reservas = reservasResponse.data?.reservas || []
       const guias = guiasResponse.data?.guias || []
 
-      // Calcular ingresos del mes basándose en compras únicas
+      // Filtrar reservas por rango de fechas si se especifica
+      if (dateRange.fecha_desde || dateRange.fecha_hasta) {
+        reservas = reservas.filter((reserva) => {
+          const fechaReserva = new Date(reserva.fecha_reserva)
+          const desde = dateRange.fecha_desde ? new Date(dateRange.fecha_desde) : null
+          const hasta = dateRange.fecha_hasta ? new Date(dateRange.fecha_hasta) : null
+
+          if (desde && fechaReserva < desde) return false
+          if (hasta) {
+            // Agregar 23:59:59 al día final
+            const hastaFinal = new Date(hasta)
+            hastaFinal.setHours(23, 59, 59, 999)
+            if (fechaReserva > hastaFinal) return false
+          }
+          return true
+        })
+      }
+
+      // Calcular ingresos basándose en compras únicas
       const comprasUnicas = new Map()
       reservas.forEach((reserva) => {
         if (["confirmada", "completada"].includes(reserva.estado_reserva) && reserva.compra) {
           const compraId = reserva.compra.id_compras
-          const totalCompra = reserva.compra.total_compra || 0
+          const totalCompra = Number(reserva.compra.total_compra) || 0
           if (!comprasUnicas.has(compraId)) {
             comprasUnicas.set(compraId, totalCompra)
           }
@@ -171,6 +194,47 @@ export default function Dashboard({ onNavigate }) {
       <Typography variant="subtitle1" color="textSecondary" gutterBottom>
         Resumen general del sistema
       </Typography>
+
+      {/* Filtros de fecha */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Filtrar por rango de fechas
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                fullWidth
+                label="Fecha desde"
+                type="date"
+                value={dateRange.fecha_desde}
+                onChange={(e) => setDateRange({ ...dateRange, fecha_desde: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                fullWidth
+                label="Fecha hasta"
+                type="date"
+                value={dateRange.fecha_hasta}
+                onChange={(e) => setDateRange({ ...dateRange, fecha_hasta: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => setDateRange({ fecha_desde: "", fecha_hasta: "" })}
+                sx={{ height: "56px", color: "#64b5f6", borderColor: "#64b5f6" }}
+              >
+                Limpiar filtros
+              </Button>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>

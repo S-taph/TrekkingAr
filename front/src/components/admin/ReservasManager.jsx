@@ -228,7 +228,7 @@ export default function ReservasManager() {
             Filtros
           </Typography>
           <Grid2 container spacing={2}>
-            <Grid2 item xs={12} md={3}>
+            <Grid2 xs={12} md={3}>
               <TextField
                 fullWidth
                 label="Buscar reservas"
@@ -239,8 +239,8 @@ export default function ReservasManager() {
                 }}
               />
             </Grid2>
-            <Grid2 item xs={12} md={3}>
-              <FormControl fullWidth>
+            <Grid2 xs={12} md={3}>
+              <FormControl fullWidth sx={{ minWidth: 200 }}>
                 <InputLabel>Estado</InputLabel>
                 <Select
                   value={filters.estado}
@@ -256,7 +256,7 @@ export default function ReservasManager() {
                 </Select>
               </FormControl>
             </Grid2>
-            <Grid2 item xs={12} md={3}>
+            <Grid2 xs={12} md={3}>
               <TextField
                 fullWidth
                 label="Fecha desde"
@@ -266,7 +266,7 @@ export default function ReservasManager() {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid2>
-            <Grid2 item xs={12} md={3}>
+            <Grid2 xs={12} md={3}>
               <TextField
                 fullWidth
                 label="Fecha hasta"
@@ -289,11 +289,11 @@ export default function ReservasManager() {
         <>
           <Grid2 container spacing={3}>
             {reservas.map((reserva) => (
-              <Grid2 item xs={12} key={reserva.id_reserva}>
+              <Grid2 xs={12} key={reserva.id_reserva}>
                 <Card elevation={2}>
                   <CardContent>
                     <Grid2 container spacing={2} alignItems="center">
-                      <Grid2 item xs={12} md={3}>
+                      <Grid2 xs={12} md={3}>
                         <Typography variant="h6" gutterBottom>
                           {reserva.usuario?.nombre} {reserva.usuario?.apellido}
                         </Typography>
@@ -302,7 +302,7 @@ export default function ReservasManager() {
                         </Typography>
                       </Grid2>
 
-                      <Grid2 item xs={12} md={3}>
+                      <Grid2 xs={12} md={3}>
                         <Typography variant="subtitle1" gutterBottom>
                           {reserva.viaje?.titulo}
                         </Typography>
@@ -311,7 +311,7 @@ export default function ReservasManager() {
                         </Typography>
                       </Grid2>
 
-                      <Grid2 item xs={12} md={2}>
+                      <Grid2 xs={12} md={2}>
                         <Typography variant="body2" color="textSecondary" gutterBottom>
                           Fecha del viaje
                         </Typography>
@@ -321,7 +321,7 @@ export default function ReservasManager() {
                         </Typography>
                       </Grid2>
 
-                      <Grid2 item xs={12} md={2}>
+                      <Grid2 xs={12} md={2}>
                         <Typography variant="body2" color="textSecondary" gutterBottom>
                           Personas
                         </Typography>
@@ -331,7 +331,7 @@ export default function ReservasManager() {
                         </Typography>
                       </Grid2>
 
-                      <Grid2 item xs={12} md={2}>
+                      <Grid2 xs={12} md={2}>
                         <Box display="flex" flexDirection="column" alignItems="flex-end" gap={1}>
                           <Chip
                             label={reserva.estado}

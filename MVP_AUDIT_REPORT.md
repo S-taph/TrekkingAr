@@ -614,6 +614,78 @@ import { sanitizeHtml } from '@/utils/sanitize';
 - Tracking de intentos fallidos en audit logs
 - Logging de accesos de admin
 
+### 🤖 Sistema de Chatbot con IA
+
+**Implementación:** Integración con Groq API (Llama 3.1-8b-instant)
+
+**Archivos:**
+- Frontend: [front/src/components/ChatbotWidget.jsx](front/src/components/ChatbotWidget.jsx)
+- Backend: [back/src/controllers/chatbotController.js](back/src/controllers/chatbotController.js)
+- Rutas: [back/src/routes/chatbotRoutes.js](back/src/routes/chatbotRoutes.js)
+
+**Características Implementadas:**
+- ✅ Widget flotante en todas las páginas (excepto admin)
+- ✅ Interfaz Material-UI con historial de conversación
+- ✅ Sugerencias rápidas para usuarios
+- ✅ Integración con base de datos para información de viajes
+- ✅ Sistema de prompts con contexto empresarial
+
+**Contexto Accesible al Chatbot:**
+1. **Información de Viajes Públicos** (máximo 10 activos):
+   - Título, descripción, dificultad, duración, precio, destino
+   - Consulta con filtro: `WHERE activo = true LIMIT 10`
+
+2. **Información de Contacto Hardcodeada:**
+   - Email, teléfono, WhatsApp, dirección
+   - Horarios de atención
+
+3. **Historial de Conversación:** Últimas 5 mensajes
+
+**Seguridad del Chatbot:**
+✅ **Datos NO Accesibles:**
+- Usuarios y contraseñas (no incluidos en consultas)
+- Información personal de clientes
+- Datos de pagos o tarjetas
+- Configuraciones del sistema
+- Datos internos de la empresa
+
+✅ **Medidas de Protección:**
+- **Prompt del Sistema con Límites Claros:**
+  ```
+  NO debes:
+  - Compartir información sensible de usuarios, contraseñas o datos internos
+  - Inventar viajes o información no disponible
+  - Procesar pagos o reservas directamente
+  ```
+- **Consultas de BD Limitadas:** Solo viajes activos, campos específicos
+- **Arquitectura de Seguridad:** Sin permisos a tablas sensibles
+- **Rate Limiting:** Protección contra abuso (500 req/15min)
+- **Sanitización de Inputs:** XSS y NoSQL injection prevention
+- **Bypass Auth en DEV:** Correctamente protegido con `NODE_ENV !== 'production'`
+
+✅ **Configuración del Modelo:**
+- Temperature: 0.7 (balance creatividad/consistencia)
+- Max tokens: 500 (respuestas concisas)
+- Top_p: 1 (distribución de probabilidad completa)
+
+**Fortalezas:**
+- ✅ Implementación segura con límites claros
+- ✅ Opera solo con datos públicos
+- ✅ Mejora experiencia de usuario (asistencia 24/7)
+- ✅ Reduce carga de atención al cliente
+- ✅ Guía a usuarios hacia conversión (reservas)
+
+**Áreas de Mejora Identificadas:**
+- ⚠️ Sin monitoreo de conversaciones
+- ⚠️ Sin análisis de satisfacción del usuario
+- ⚠️ Sin fallback a humano para casos complejos
+- ⚠️ Sin caché de respuestas frecuentes
+- ⚠️ Sin logging estructurado de interacciones
+
+**Evaluación:** ✅ **SEGURO Y FUNCIONAL** - El chatbot está correctamente implementado con garantías de seguridad adecuadas. No compromete información confidencial.
+
+---
+
 ### 🚨 VULNERABILIDADES CRÍTICAS DE SEGURIDAD
 
 #### SEC-001: Bypass de Autenticación en Desarrollo (CRÍTICO)
@@ -1906,7 +1978,273 @@ const imageUrl = cloudinary.url('viaje-patagonia.jpg', {
 
 ---
 
-#### 13-15. Otras Features P2
+#### 13. 🤖 MEJORAS AL CHATBOT CON IA
+- **Prioridad:** P2
+- **Actual:** Funcional y seguro, pero sin analytics
+- **Esfuerzo:** 1 semana
+
+**Objetivo:** Mejorar la efectividad y monitoreo del chatbot para maximizar conversiones
+
+**Tareas de Mejora:**
+
+**A. Monitoreo y Analytics (2-3 días):**
+- [ ] **Crear tabla `chatbot_conversations`:**
+  - Campos: id, session_id, usuario_id (nullable), fecha, duracion_segundos, num_mensajes, resuelto (boolean)
+- [ ] **Crear tabla `chatbot_messages`:**
+  - Campos: id, conversation_id, role (user/assistant), mensaje, timestamp
+- [ ] **Logging estructurado** de todas las interacciones
+- [ ] **Dashboard de métricas** en admin:
+  - Conversaciones totales/día
+  - Duración promedio de conversación
+  - Tasa de resolución
+  - Top 5 preguntas frecuentes
+  - Horarios de mayor uso
+  - Conversiones generadas (usuarios que reservaron después del chat)
+
+**B. Mejoras de Experiencia (2 días):**
+- [ ] **Botón "Hablar con humano":**
+  - Crear ticket en sistema de soporte
+  - Enviar notificación a admin
+  - Transferir contexto de conversación
+- [ ] **Sistema de feedback post-conversación:**
+  - "¿Te fue útil esta conversación?" (👍/👎)
+  - Campo opcional de comentario
+  - Almacenar en BD para análisis
+- [ ] **Indicadores de typing/loading** más informativos
+- [ ] **Detectar frustración del usuario:**
+  - Si repite pregunta > 2 veces → Ofrecer contacto humano
+  - Si escribe mensajes largos enojados → Escalar automáticamente
+
+**C. Optimización de Rendimiento (2 días):**
+- [ ] **Sistema de caché de respuestas frecuentes:**
+  - Identificar top 20 preguntas
+  - Cachear respuestas en Redis (TTL: 1 hora)
+  - Reducir llamadas a Groq API
+- [ ] **Rate limiting específico para chatbot:**
+  - 30 mensajes por sesión por hora
+  - 10 conversaciones por IP por día
+- [ ] **Fallback si Groq API falla:**
+  - Respuestas pre-programadas para preguntas comunes
+  - Mensaje: "Estoy teniendo problemas técnicos. Por favor contacta a..."
+
+**D. Mejoras de Contexto (1-2 días):**
+- [ ] **Aumentar información disponible:**
+  - Incluir reviews de viajes (top 3 por viaje)
+  - Incluir información de guías disponibles
+  - Políticas de cancelación detalladas
+- [ ] **Contexto de usuario autenticado:**
+  - Si usuario está logueado, incluir:
+    - Historial de reservas previas
+    - Viajes favoritos/vistos
+    - Permitir personalización: "¿Qué viajes me recomiendas basado en mi historial?"
+- [ ] **Mejora del prompt del sistema:**
+  - Añadir ejemplos de conversaciones exitosas
+  - Instrucciones para detectar intención de compra
+  - Trigger para ofrecer descuentos/promociones vigentes
+
+**E. Seguridad Adicional (1 día):**
+- [ ] **Content filtering output:**
+  - Validar respuestas antes de enviar
+  - Detectar si el modelo "alucinó" información no provista
+  - Bloquear respuestas con datos sensibles (emails personales, números de tarjeta)
+- [ ] **Audit logging mejorado:**
+  - Registrar todas las conversaciones con flag de riesgo
+  - Alertar si se detecta intento de jailbreak del prompt
+- [ ] **CAPTCHA después de 10 mensajes por sesión** (anti-bot)
+
+**F. Integración con Otras Features (1 día):**
+- [ ] **Integración con sistema de reservas:**
+  - Permitir que el chatbot cree pre-reservas
+  - "¿Quieres que reserve este viaje para ti?"
+  - Redirigir a checkout con carrito pre-llenado
+- [ ] **Integración con newsletter:**
+  - Detectar interés del usuario
+  - Ofrecer suscripción: "¿Quieres recibir ofertas especiales?"
+- [ ] **Botones de acción rápida:**
+  - "Ver este viaje" (link directo)
+  - "Agregar al carrito"
+  - "Contactar por WhatsApp"
+
+**Métricas de Éxito:**
+- Incremento del 20% en conversiones generadas por chatbot
+- 90% de satisfacción en feedback post-conversación
+- Reducción del 30% en consultas de atención al cliente
+- Tiempo de respuesta promedio < 3 segundos
+
+**Costos Estimados:**
+- **Groq API:** Gratis (tier actual suficiente para <10k usuarios/mes)
+- **Redis para caché:** $10-20/mes (Upstash o Redis Cloud)
+- **Storage para conversaciones:** Incluido en BD actual
+
+**Riesgo:** Bajo - Mejoras incrementales sin afectar funcionalidad existente
+
+**ROI Esperado:** Alto - Mejora significativa en conversión y satisfacción del usuario
+
+---
+
+### 🎯 ORDEN DE PRIORIDAD PARA IMPLEMENTACIÓN DEL CHATBOT
+
+**Criterios de priorización:**
+1. 🔒 Seguridad y estabilidad del sistema
+2. 💰 Impacto en conversiones y negocio
+3. ⚡ Esfuerzo vs resultado (quick wins)
+4. 📊 Capacidad de medición y mejora continua
+5. 🔗 Dependencias entre funcionalidades
+
+---
+
+#### 🚨 FASE 1: CRÍTICO (Pre-Lanzamiento o Inmediato) - 2 días
+
+**Objetivo:** Asegurar estabilidad, seguridad y disponibilidad del chatbot
+
+| # | Mejora | Categoría | Esfuerzo | Impacto | Por qué es prioritario |
+|---|--------|-----------|----------|---------|------------------------|
+| 1️⃣ | **Content filtering output** | E - Seguridad | 4h | 🔴 ALTO | Prevenir filtración de datos sensibles |
+| 2️⃣ | **Audit logging mejorado** | E - Seguridad | 2h | 🔴 ALTO | Detectar intentos de exploit del prompt |
+| 3️⃣ | **Rate limiting específico** | C - Performance | 2h | 🟡 MEDIO | Prevenir abuso/spam del chatbot |
+| 4️⃣ | **Fallback si API falla** | C - Performance | 4h | 🟢 ALTO | Garantizar disponibilidad 24/7 |
+
+**Resultado esperado:** Chatbot seguro y resiliente, listo para tráfico de producción
+
+---
+
+#### ⚡ FASE 2: ALTO (Primera Semana Post-Lanzamiento) - 4-5 días
+
+**Objetivo:** Medir efectividad y mejorar experiencia de usuario
+
+| # | Mejora | Categoría | Esfuerzo | Impacto | Por qué es prioritario |
+|---|--------|-----------|----------|---------|------------------------|
+| 5️⃣ | **Crear tablas de conversaciones** | A - Analytics | 2h | 🔴 CRÍTICO | Base para todas las métricas |
+| 6️⃣ | **Logging estructurado** | A - Analytics | 4h | 🔴 CRÍTICO | Sin esto no hay visibilidad del chatbot |
+| 7️⃣ | **Dashboard básico en admin** | A - Analytics | 1-2 días | 🔴 ALTO | Identificar problemas y oportunidades |
+| 8️⃣ | **Sistema de feedback (👍/👎)** | B - Experiencia | 4h | 🟢 ALTO | Quick win, datos valiosos inmediatos |
+| 9️⃣ | **Botón "Hablar con humano"** | B - Experiencia | 1 día | 🟢 ALTO | Evita frustración, mejora satisfacción |
+| 🔟 | **Detectar frustración** | B - Experiencia | 4h | 🟡 MEDIO | Automatiza escalación a humano |
+
+**Resultado esperado:** Visibilidad completa del chatbot + usuarios satisfechos
+
+**Métricas a validar después de Fase 2:**
+- ¿Cuáles son las top 5 preguntas?
+- ¿Qué % de conversaciones necesita humano?
+- ¿Qué % de usuarios está satisfecho?
+- ¿Cuántas conversiones genera el chatbot?
+
+---
+
+#### 💰 FASE 3: CONVERSIONES (Segunda Semana) - 2-3 días
+
+**Objetivo:** Maximizar conversiones del chatbot a reservas
+
+| # | Mejora | Categoría | Esfuerzo | Impacto | Por qué es prioritario |
+|---|--------|-----------|----------|---------|------------------------|
+| 1️⃣1️⃣ | **Integración con reservas** | F - Integración | 1 día | 🔴 MUY ALTO | ROI inmediato, facilita conversión |
+| 1️⃣2️⃣ | **Botones de acción rápida** | F - Integración | 4h | 🟢 ALTO | Reduce fricción, aumenta conversiones |
+| 1️⃣3️⃣ | **Mejorar prompt del sistema** | D - Contexto | 4h | 🟢 ALTO | Detectar intención de compra |
+| 1️⃣4️⃣ | **Incluir reviews en contexto** | D - Contexto | 2h | 🟡 MEDIO | Aumenta confianza del usuario |
+
+**Resultado esperado:** Chatbot como herramienta activa de ventas
+
+**KPI crítico a medir:** % de conversaciones que terminan en reserva (meta: >15%)
+
+---
+
+#### 🎨 FASE 4: PERSONALIZACIÓN (Tercera Semana) - 2 días
+
+**Objetivo:** Experiencia personalizada para usuarios autenticados
+
+| # | Mejora | Categoría | Esfuerzo | Impacto | Por qué es prioritario |
+|---|--------|-----------|----------|---------|------------------------|
+| 1️⃣5️⃣ | **Contexto de usuario autenticado** | D - Contexto | 1 día | 🟢 ALTO | Recomendaciones personalizadas |
+| 1️⃣6️⃣ | **Incluir guías e info detallada** | D - Contexto | 4h | 🟡 MEDIO | Respuestas más completas |
+| 1️⃣7️⃣ | **Integración con newsletter** | F - Integración | 2h | 🟡 MEDIO | Captura leads interesados |
+
+**Resultado esperado:** Chatbot que "conoce" al usuario y hace recomendaciones inteligentes
+
+---
+
+#### ⚙️ FASE 5: OPTIMIZACIÓN (Post-Lanzamiento, cuando hay tráfico) - 2 días
+
+**Objetivo:** Reducir costos y mejorar velocidad
+
+| # | Mejora | Categoría | Esfuerzo | Impacto | Por qué es prioritario |
+|---|--------|-----------|----------|---------|------------------------|
+| 1️⃣8️⃣ | **Identificar top 20 preguntas** | C - Performance | 2h | 🟡 MEDIO | Requiere datos de Fase 2 |
+| 1️⃣9️⃣ | **Sistema de caché con Redis** | C - Performance | 1 día | 🟢 ALTO | Reduce latencia y costos de API |
+| 2️⃣0️⃣ | **CAPTCHA anti-bot** | E - Seguridad | 2h | 🟡 MEDIO | Solo si hay evidencia de abuso |
+
+**Resultado esperado:** Chatbot rápido (<1seg) y económico
+
+**Pre-requisito:** Necesitas Analytics de Fase 2 para identificar qué cachear
+
+---
+
+#### ⏭️ FASE 6: FUTURO (Opcional, según necesidad)
+
+**Mejoras que NO son prioritarias ahora:**
+- ❌ **Indicadores de typing mejorados** - Nice to have, bajo impacto
+- ❌ **Dashboard avanzado de analytics** - Hacer después de validar métricas básicas
+- ❌ **Conversaciones multi-idioma** - Requiere i18n del sitio completo primero
+
+---
+
+### 📅 TIMELINE RECOMENDADO DE IMPLEMENTACIÓN
+
+```
+Semana 1 (Pre-lanzamiento):
+├─ Día 1-2: FASE 1 (Seguridad + Estabilidad)
+└─ Validación: Pruebas de carga y seguridad
+
+Semana 2 (Primera semana con usuarios reales):
+├─ Día 1-3: FASE 2 (Analytics + Feedback)
+├─ Día 4-5: FASE 3 (Integración con reservas)
+└─ Validación: Revisar métricas diariamente
+
+Semana 3-4 (Optimización basada en datos):
+├─ FASE 4: Personalización (si hay usuarios recurrentes)
+├─ FASE 5: Caché (si hay > 100 conversaciones/día)
+└─ Iteración basada en feedback real
+```
+
+---
+
+### 🎯 QUICK WINS (Implementar PRIMERO si tienes poco tiempo)
+
+Si solo tienes **1-2 días**, implementa en este orden:
+
+1. **Content filtering** (4h) - Seguridad
+2. **Fallback API** (4h) - Estabilidad
+3. **Logging de conversaciones** (4h) - Analytics básico
+4. **Botón feedback (👍/👎)** (4h) - Medición de satisfacción
+
+**Resultado:** Chatbot seguro, estable y medible en 2 días
+
+---
+
+### 📊 MÉTRICAS A TRACKEAR POR FASE
+
+**Después de Fase 1:**
+- ✅ 0 incidentes de seguridad
+- ✅ 99.9% uptime del chatbot
+
+**Después de Fase 2:**
+- 📈 # conversaciones/día
+- 📈 % satisfacción (meta: >80%)
+- 📈 Top 5 preguntas frecuentes
+- 📈 % que necesita escalar a humano (meta: <20%)
+
+**Después de Fase 3:**
+- 💰 % conversiones desde chatbot (meta: >15%)
+- 💰 Ingresos atribuidos al chatbot
+- 💰 Costo por conversación (meta: <$0.01)
+
+**Después de Fase 5:**
+- ⚡ Tiempo de respuesta promedio (meta: <2seg)
+- 💸 % respuestas desde caché (meta: >60%)
+- 💸 Costo mensual de API (meta: <$50)
+
+---
+
+#### 14-16. Otras Features P2
 - 🔔 Mejoras al Centro de Notificaciones (push notifications)
 - 🆚 Feature de Comparación de Viajes
 - ❤️ Wishlist/Favoritos

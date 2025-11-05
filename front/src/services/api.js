@@ -52,6 +52,13 @@ const apiRequest = async (endpoint, options = {}) => {
           }
         }
       }
+
+      // Si hay errores de validación específicos, mostrarlos
+      if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+        const errorMessages = data.errors.map(err => err.msg).join(', ')
+        throw new Error(`${data.message}: ${errorMessages}`)
+      }
+
       throw new Error(data.message || `Error ${response.status}: ${response.statusText}`)
     }
 
