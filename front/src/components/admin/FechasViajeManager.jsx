@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, memo } from "react"
 import {
   Box,
   Typography,
@@ -35,6 +35,61 @@ import {
 } from "@mui/material"
 import { Add, Edit, Delete, CalendarMonth, Person, ExpandMore, ExpandLess } from "@mui/icons-material"
 import { viajesAPI, guiasAPI } from "../../services/api"
+
+/**
+ * Componente auxiliar para mostrar guías asignados en la tabla
+ * Memoizado para evitar re-renders innecesarios
+ */
+const GuiasCell = memo(({ fechaId }) => {
+  const [guias, setGuias] = useState([])
+  const [loadingGuias, setLoadingGuias] = useState(true)
+
+  useEffect(() => {
+    const loadGuias = async () => {
+      try {
+        setLoadingGuias(true)
+        const response = await guiasAPI.getGuiasByFecha(fechaId)
+        if (response.success) {
+          setGuias(response.data.asignaciones || [])
+        }
+      } catch (error) {
+        console.error("Error cargando guías:", error)
+        setGuias([])
+      } finally {
+        setLoadingGuias(false)
+      }
+    }
+    loadGuias()
+  }, [fechaId])
+
+  if (loadingGuias) {
+    return <CircularProgress size={20} />
+  }
+
+  if (guias.length === 0) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        Sin asignar
+      </Typography>
+    )
+  }
+
+  return (
+    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+      {guias.map((asignacion) => (
+        <Chip
+          key={asignacion.id_guia_viaje}
+          icon={<Person />}
+          label={`${asignacion.guia.usuario?.nombre || "Guía"} (${asignacion.rol_guia})`}
+          size="small"
+          variant="outlined"
+        />
+      ))}
+    </Box>
+  )
+})
+
+GuiasCell.displayName = 'GuiasCell'
 
 /**
  * FechasViajeManager - Componente para gestionar múltiples fechas de un viaje
@@ -314,56 +369,6 @@ export default function FechasViajeManager({ viajeId }) {
     }
     const { label, color } = config[estado] || config.disponible
     return <Chip label={label} color={color} size="small" />
-  }
-
-  // Componente auxiliar para mostrar guías asignados en la tabla
-  const GuiasCell = ({ fechaId }) => {
-    const [guias, setGuias] = useState([])
-    const [loadingGuias, setLoadingGuias] = useState(true)
-
-    useEffect(() => {
-      const loadGuias = async () => {
-        try {
-          setLoadingGuias(true)
-          const response = await guiasAPI.getGuiasByFecha(fechaId)
-          if (response.success) {
-            setGuias(response.data.asignaciones || [])
-          }
-        } catch (error) {
-          console.error("Error cargando guías:", error)
-          setGuias([])
-        } finally {
-          setLoadingGuias(false)
-        }
-      }
-      loadGuias()
-    }, [fechaId])
-
-    if (loadingGuias) {
-      return <CircularProgress size={20} />
-    }
-
-    if (guias.length === 0) {
-      return (
-        <Typography variant="body2" color="text.secondary">
-          Sin asignar
-        </Typography>
-      )
-    }
-
-    return (
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-        {guias.map((asignacion) => (
-          <Chip
-            key={asignacion.id_guia_viaje}
-            icon={<Person />}
-            label={`${asignacion.guia.usuario?.nombre || "Guía"} (${asignacion.rol_guia})`}
-            size="small"
-            variant="outlined"
-          />
-        ))}
-      </Box>
-    )
   }
 
   if (!viajeId) {
