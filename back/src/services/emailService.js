@@ -352,6 +352,33 @@ class EmailService {
   }
 
   /**
+   * Envía email de recuperación de contraseña
+   */
+  async sendPasswordResetEmail(email, token, nombre) {
+    if (!this.transporter) {
+      throw new Error('Email service no configurado');
+    }
+
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
+
+    const mailOptions = {
+      from: process.env.GMAIL_SMTP_USER,
+      to: email,
+      subject: 'Recuperación de contraseña - TrekkingAR',
+      html: this.getPasswordResetEmailTemplate(nombre, resetUrl)
+    };
+
+    try {
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('Email de recuperación de contraseña enviado:', result.messageId);
+      return result;
+    } catch (error) {
+      console.error('Error enviando email de recuperación de contraseña:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Plantilla HTML para email de verificación
    */
   getVerificationEmailTemplate(nombre, verificationUrl) {
@@ -601,6 +628,162 @@ class EmailService {
             <div class="unsubscribe">
               <p>Si deseas dejar de recibir estos correos, puedes <a href="${unsubscribeUrl}">darte de baja aquí</a>.</p>
             </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Envía email de confirmación de pago
+   */
+  async sendPaymentConfirmationEmail(paymentData) {
+    if (!this.transporter) {
+      throw new Error('Email service no configurado');
+    }
+
+    const { usuario, compra, pago, reservas } = paymentData;
+
+    if (!usuario || !usuario.email) {
+      console.warn('No se puede enviar email de confirmación: usuario sin email');
+      return;
+    }
+
+    const mailOptions = {
+      from: process.env.GMAIL_SMTP_USER,
+      to: usuario.email,
+      subject: `Confirmación de Pago - Compra #${compra.numero_compra}`,
+      html: this.getPaymentConfirmationTemplate(paymentData)
+    };
+
+    try {
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('Email de confirmación de pago enviado:', result.messageId);
+      return result;
+    } catch (error) {
+      console.error('Error enviando email de confirmación de pago:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Plantilla HTML para confirmación de pago
+   */
+  getPaymentConfirmationTemplate(paymentData) {
+    const { usuario, compra, pago, reservas } = paymentData;
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    // Formatear fecha de pago
+    const fechaPago = new Date(pago.fecha_pago).toLocaleString('es-AR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    // Generar lista de reservas
+    let reservasHTML = '';
+    if (reservas && reservas.length > 0) {
+      reservasHTML = reservas.map(reserva => `
+        <div style="background-color: #f9f9f9; padding: 15px; margin: 10px 0; border-left: 4px solid #1E7A5F; border-radius: 4px;">
+          <p style="margin: 5px 0;"><strong>Viaje:</strong> ${reserva.viaje_nombre || 'Viaje de aventura'}</p>
+          <p style="margin: 5px 0;"><strong>Fecha:</strong> ${reserva.fecha_viaje ? new Date(reserva.fecha_viaje).toLocaleDateString('es-AR') : 'Fecha a confirmar'}</p>
+          <p style="margin: 5px 0;"><strong>Personas:</strong> ${reserva.cantidad_personas || 1}</p>
+          <p style="margin: 5px 0;"><strong>Estado:</strong> <span style="color: #1E7A5F; font-weight: bold;">✓ CONFIRMADA</span></p>
+        </div>
+      `).join('');
+    }
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; margin: 0; padding: 0; }
+          .container { max-width: 650px; margin: 20px auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+          .header { background: linear-gradient(135deg, #1E7A5F 0%, #2a9d7a 100%); color: white; padding: 40px 20px; text-align: center; }
+          .header h1 { margin: 0; font-size: 28px; }
+          .header p { margin: 10px 0 0 0; font-size: 16px; opacity: 0.9; }
+          .success-badge { background-color: #4CAF50; color: white; padding: 10px 20px; border-radius: 25px; display: inline-block; margin: 15px 0; font-weight: bold; }
+          .content { padding: 40px 30px; }
+          .content p { margin: 15px 0; }
+          .info-box { background-color: #e9f5f0; padding: 20px; margin: 25px 0; border-left: 4px solid #1E7A5F; border-radius: 4px; }
+          .info-row { display: flex; justify-content: space-between; margin: 10px 0; }
+          .info-label { font-weight: bold; color: #1E7A5F; }
+          .info-value { color: #333; }
+          .total-box { background-color: #fff3e0; padding: 20px; margin: 25px 0; border-left: 4px solid #D98B3A; border-radius: 4px; text-align: center; }
+          .total-amount { font-size: 32px; font-weight: bold; color: #D98B3A; margin: 10px 0; }
+          .button { display: inline-block; padding: 15px 40px; background-color: #1E7A5F; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }
+          .button:hover { background-color: #176a50; }
+          .footer { background-color: #f9f9f9; padding: 30px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e0e0e0; }
+          .divider { border-top: 2px solid #e0e0e0; margin: 30px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🏔️ TrekkingAR</h1>
+            <p>Confirmación de Pago</p>
+            <div class="success-badge">✓ PAGO APROBADO</div>
+          </div>
+          <div class="content">
+            <h2>¡Gracias por tu compra, ${usuario.nombre}!</h2>
+            <p>Tu pago ha sido procesado exitosamente. A continuación encontrarás los detalles de tu compra:</p>
+
+            <div class="info-box">
+              <h3 style="margin-top: 0; color: #1E7A5F;">📋 Información de la Compra</h3>
+              <div class="info-row">
+                <span class="info-label">Número de Compra:</span>
+                <span class="info-value"><strong>#${compra.numero_compra}</strong></span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Fecha de Pago:</span>
+                <span class="info-value">${fechaPago}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Método de Pago:</span>
+                <span class="info-value">Mercado Pago</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">ID de Transacción:</span>
+                <span class="info-value">${pago.referencia_externa || 'N/A'}</span>
+              </div>
+            </div>
+
+            ${reservas && reservas.length > 0 ? `
+              <h3 style="color: #1E7A5F;">🎒 Tus Reservas Confirmadas</h3>
+              ${reservasHTML}
+            ` : ''}
+
+            <div class="total-box">
+              <p style="margin: 0 0 10px 0; font-weight: bold; color: #666;">Total Pagado</p>
+              <div class="total-amount">$${Number(pago.monto).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            </div>
+
+            <div class="divider"></div>
+
+            <h3 style="color: #1E7A5F;">📌 Próximos Pasos</h3>
+            <ul style="line-height: 2;">
+              <li>Recibirás más información sobre tu viaje por email antes de la fecha de salida</li>
+              <li>Puedes revisar tus reservas en cualquier momento desde tu perfil</li>
+              <li>Si tienes alguna consulta, no dudes en contactarnos</li>
+            </ul>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${frontendUrl}/mis-reservas" class="button">Ver Mis Reservas</a>
+            </div>
+
+            <p style="margin-top: 30px;">¡Nos vemos en la montaña! 🥾</p>
+            <p><strong>El equipo de TrekkingAR</strong></p>
+          </div>
+          <div class="footer">
+            <p><strong>¿Necesitas ayuda?</strong></p>
+            <p>Contáctanos en ${process.env.GMAIL_SMTP_USER || 'info@trekkingar.com'}</p>
+            <p style="margin-top: 20px;">© ${new Date().getFullYear()} TrekkingAR - San Carlos de Bariloche, Río Negro, Argentina</p>
+            <p>Este es un correo automático de confirmación. Por favor, guárdalo para tus registros.</p>
           </div>
         </div>
       </body>

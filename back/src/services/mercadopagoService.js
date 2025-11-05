@@ -4,6 +4,8 @@ import Compra from '../models/Compra.js';
 import Reserva from '../models/Reserva.js';
 import FechaViaje from '../models/FechaViaje.js';
 import Viaje from '../models/Viaje.js';
+import Usuario from '../models/Usuario.js';
+import emailService from './emailService.js';
 
 // Detectar tipo de credenciales (test o producción)
 const accessToken = process.env.MP_ACCESS_TOKEN;
@@ -483,6 +485,71 @@ async function procesarPagoInfo(paymentId, externalRefOverride = null) {
       compra_id: compra.id_compras,
       numero_compra: numeroCompra
     });
+
+    // Enviar email de confirmación si el pago fue aprobado
+    if (status === 'approved') {
+      try {
+        console.log('📧 Enviando email de confirmación de pago...');
+
+        // Obtener datos del usuario
+        const usuario = await Usuario.findByPk(compra.id_usuario);
+
+        if (!usuario) {
+          console.warn('⚠️ Usuario no encontrado para enviar email de confirmación');
+        } else {
+          // Obtener reservas con información de viajes
+          const reservas = await Reserva.findAll({
+            where: { id_compra: compra.id_compras },
+            include: [
+              {
+                model: FechaViaje,
+                as: 'fecha_viaje',
+                include: [
+                  {
+                    model: Viaje,
+                    as: 'viaje'
+                  }
+                ]
+              }
+            ]
+          });
+
+          // Formatear datos de reservas para el email
+          const reservasFormateadas = reservas.map(reserva => ({
+            viaje_nombre: reserva.fecha_viaje?.viaje?.titulo || 'Viaje de aventura',
+            fecha_viaje: reserva.fecha_viaje?.fecha_inicio,
+            cantidad_personas: reserva.cantidad_personas,
+            estado: reserva.estado_reserva
+          }));
+
+          // Enviar email de confirmación
+          await emailService.sendPaymentConfirmationEmail({
+            usuario: {
+              nombre: usuario.nombre,
+              apellido: usuario.apellido,
+              email: usuario.email
+            },
+            compra: {
+              numero_compra: compra.numero_compra,
+              total_compra: compra.total_compra,
+              fecha_compra: compra.fecha_compra
+            },
+            pago: {
+              monto: pagoRecord.monto,
+              fecha_pago: pagoRecord.fecha_pago,
+              referencia_externa: pagoRecord.referencia_externa
+            },
+            reservas: reservasFormateadas
+          });
+
+          console.log('✅ Email de confirmación de pago enviado exitosamente');
+        }
+      } catch (emailError) {
+        console.error('❌ Error al enviar email de confirmación (no crítico):', emailError);
+        // No lanzamos el error porque el pago ya fue procesado correctamente
+        // El email es una notificación adicional, no debe bloquear el flujo
+      }
+    }
 
     return {
       success: true,
