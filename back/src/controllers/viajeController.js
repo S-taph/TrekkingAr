@@ -54,7 +54,7 @@ export const getViajes = async (req, res) => {
       search,
       page = 1,
       limit = 12,
-      activo = true,
+      activo,
       destacado,
       precio_min,
       precio_max,
@@ -66,11 +66,17 @@ export const getViajes = async (req, res) => {
     } = req.query;
 
     const offset = (page - 1) * limit;
+    const isAdminQuery = admin === 'true' || admin === true;
 
     // Construir filtros
     const where = {};
+    // Para consultas de admin: solo filtrar por activo si se especifica
+    // Para consultas públicas: filtrar por activo=true si no se especifica
     if (activo !== undefined) {
       where.activo = activo === 'true';
+    } else if (!isAdminQuery) {
+      // Si no es admin y no se especifica activo, mostrar solo activos por defecto
+      where.activo = true;
     }
 
     if (destacado !== undefined) {
@@ -149,7 +155,7 @@ export const getViajes = async (req, res) => {
       include[2].where = {
         ...include[2].where,
         [Op.and]: [
-          sequelize.where(sequelize.fn('MONTH', sequelize.col('fechas.fecha_inicio')), mesNum)
+          sequelize.where(sequelize.fn('MONTH', sequelize.col('fecha_inicio')), mesNum)
         ]
       };
     }
@@ -249,7 +255,6 @@ export const getViajes = async (req, res) => {
     // Esto previene mostrar viajes sin fechas disponibles en el frontend público
     // El panel admin necesita ver todos los viajes para poder editarlos y agregar fechas
     let totalCount = count;
-    const isAdminQuery = admin === 'true' || admin === true;
     const isActiveQuery = activo === 'true' || activo === true;
 
     if (isActiveQuery && !isAdminQuery) {

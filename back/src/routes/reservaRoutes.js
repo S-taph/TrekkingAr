@@ -6,6 +6,9 @@ import {
   getAllReservas,
   updateReservaStatus,
   cancelReserva,
+  syncCuposOcupados,
+  diagnosticoCupos,
+  resetAllReservas,
 } from "../controllers/reservaController.js"
 import { authenticateToken, requireRole } from "../middleware/auth.js"
 
@@ -42,5 +45,16 @@ router.put(
   updateStatusValidation,
   updateReservaStatus,
 )
+router.post("/sync-cupos", authenticateToken, requireRole(["admin"]), syncCuposOcupados)
+router.get(
+  "/diagnostico-cupos/:idFechaViaje",
+  authenticateToken,
+  requireRole(["admin"]),
+  param("idFechaViaje").isInt({ min: 1 }).withMessage("ID de fecha de viaje debe ser un número entero positivo"),
+  diagnosticoCupos
+)
+
+// ⚠️ RUTA PELIGROSA - Solo para desarrollo/limpieza
+router.post("/reset-all", authenticateToken, requireRole(["admin"]), resetAllReservas)
 
 export default router

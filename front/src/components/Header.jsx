@@ -322,6 +322,7 @@ export default function Header() {
                     }}
                   >
                     <Avatar
+                      src={user?.avatar}
                       sx={{
                         width: 36,
                         height: 36,

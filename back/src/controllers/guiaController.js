@@ -396,7 +396,7 @@ export const debugAllGuias = async (req, res) => {
     console.log(`[v0] Debug: Encontrados ${guias.length} guías en total`)
 
     const usuarios = await Usuario.findAll({
-      attributes: ["id_usuarios", "nombre", "apellido", "email", "rol"],
+      attributes: ["id_usuarios", "nombre", "apellido", "email", "rol", "avatar"],
       order: [["id_usuarios", "ASC"]],
     })
 

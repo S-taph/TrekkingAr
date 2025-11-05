@@ -14,6 +14,7 @@ import {
   Button,
 } from "@mui/material"
 import Header from "../components/Header"
+import Footer from "../components/Footer"
 import { CatalogFilters } from "../components/CatalogFilters"
 import { TripCard } from "../components/TripCard"
 import { useViajes } from "../hooks/useViajes"
@@ -315,6 +316,8 @@ export default function CatalogPage() {
           </Box>
         )}
       </Container>
+
+      <Footer />
     </Box>
   )
 }

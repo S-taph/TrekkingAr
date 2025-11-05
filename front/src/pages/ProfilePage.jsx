@@ -35,6 +35,7 @@ import {
   CheckCircle,
 } from "@mui/icons-material"
 import Header from "../components/Header"
+import Footer from "../components/Footer"
 import { useAuth } from "../context/AuthContext"
 import { usuariosAPI, reservasAPI } from "../services/api"
 
@@ -108,7 +109,7 @@ export default function ProfilePage() {
       const response = await reservasAPI.getMisReservas()
 
       if (response.success) {
-        const reservas = response.data || []
+        const reservas = Array.isArray(response.data?.reservas) ? response.data.reservas : []
 
         // Calcular estadísticas
         const totalReservas = reservas.length
@@ -162,6 +163,22 @@ export default function ProfilePage() {
     setSuccess(false)
     setError(null)
 
+    // Validación del DNI si está presente
+    if (formData.dni && formData.dni.trim() !== "") {
+      // Validar que sea solo números
+      if (!/^\d+$/.test(formData.dni)) {
+        setError("El DNI debe contener solo números")
+        setSaving(false)
+        return
+      }
+      // Validar longitud (DNI argentino: 7-8 dígitos)
+      if (formData.dni.length < 7 || formData.dni.length > 8) {
+        setError("El DNI debe tener entre 7 y 8 dígitos")
+        setSaving(false)
+        return
+      }
+    }
+
     try {
       // ✅ Conectado con PUT /api/usuarios/:id
       const response = await usuariosAPI.updateUsuario(user.id_usuarios, formData)
@@ -172,7 +189,7 @@ export default function ProfilePage() {
           const avatarResponse = await usuariosAPI.uploadAvatar(user.id_usuarios, avatarFile)
           if (avatarResponse.success) {
             // Actualizar el contexto con el nuevo avatar
-            updateUser({ ...user, ...formData, avatar_url: avatarResponse.data.avatarUrl })
+            updateUser({ ...user, ...formData, avatar: avatarResponse.data.avatarUrl })
           }
         } else {
           // Solo actualizar los datos del usuario
@@ -482,6 +499,8 @@ export default function ProfilePage() {
                       label="DNI"
                       value={formData.dni}
                       onChange={(e) => handleChange("dni", e.target.value)}
+                      helperText="Ingrese 7 u 8 dígitos sin puntos ni espacios"
+                      inputProps={{ maxLength: 8 }}
                     />
                   </Grid>
                 </Grid>
@@ -634,6 +653,8 @@ export default function ProfilePage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Footer />
     </Box>
   )
 }

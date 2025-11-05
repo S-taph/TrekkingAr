@@ -122,11 +122,18 @@ export const addItem = async (req, res) => {
       });
     }
 
+    // Calcular cupos realmente disponibles teniendo en cuenta items en carritos
+    const itemsEnCarritos = await CarritoItem.sum('cantidad', {
+      where: { fechaViajeId: fechaViajeId }
+    }) || 0;
+
+    const cuposRealesDisponibles = fechaViaje.cupos_totales - fechaViaje.cupos_ocupados - itemsEnCarritos;
+
     // Verificar cupos disponibles
-    if (fechaViaje.cupos_disponibles < cantidad) {
+    if (cuposRealesDisponibles < cantidad) {
       return res.status(400).json({
         success: false,
-        message: `Solo hay ${fechaViaje.cupos_disponibles} cupos disponibles`
+        message: `Solo hay ${Math.max(0, cuposRealesDisponibles)} cupos disponibles`
       });
     }
 
@@ -156,12 +163,16 @@ export const addItem = async (req, res) => {
     if (carritoItem) {
       // Actualizar cantidad existente
       const nuevaCantidad = carritoItem.cantidad + cantidad;
-      
+
+      // Recalcular cupos disponibles excluyendo la cantidad actual de este item
+      const itemsEnCarritosSinEste = itemsEnCarritos - carritoItem.cantidad;
+      const cuposRealesParaActualizar = fechaViaje.cupos_totales - fechaViaje.cupos_ocupados - itemsEnCarritosSinEste;
+
       // Verificar cupos nuevamente
-      if (fechaViaje.cupos_disponibles < nuevaCantidad) {
+      if (cuposRealesParaActualizar < nuevaCantidad) {
         return res.status(400).json({
           success: false,
-          message: `No hay suficientes cupos. Disponibles: ${fechaViaje.cupos_disponibles}, solicitados: ${nuevaCantidad}`
+          message: `No hay suficientes cupos. Disponibles: ${Math.max(0, cuposRealesParaActualizar)}, solicitados: ${nuevaCantidad}`
         });
       }
 
@@ -260,11 +271,22 @@ export const updateItem = async (req, res) => {
       });
     }
 
+    // Calcular cupos realmente disponibles teniendo en cuenta items en carritos
+    const itemsEnCarritos = await CarritoItem.sum('cantidad', {
+      where: { fechaViajeId: carritoItem.fechaViaje.id_fechas_viaje }
+    }) || 0;
+
+    // Restar la cantidad actual de este item para calcular cupos disponibles
+    const itemsEnCarritosSinEste = itemsEnCarritos - carritoItem.cantidad;
+    const cuposRealesDisponibles = carritoItem.fechaViaje.cupos_totales -
+                                    carritoItem.fechaViaje.cupos_ocupados -
+                                    itemsEnCarritosSinEste;
+
     // Verificar cupos disponibles
-    if (carritoItem.fechaViaje.cupos_disponibles < cantidad) {
+    if (cuposRealesDisponibles < cantidad) {
       return res.status(400).json({
         success: false,
-        message: `Solo hay ${carritoItem.fechaViaje.cupos_disponibles} cupos disponibles`
+        message: `Solo hay ${Math.max(0, cuposRealesDisponibles)} cupos disponibles`
       });
     }
 

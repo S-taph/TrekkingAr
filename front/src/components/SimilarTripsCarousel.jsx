@@ -60,6 +60,7 @@ const SimilarTripsCarousel = ({ viajeId, limit = 6 }) => {
       <Box
         sx={{
           position: 'relative',
+          px: { xs: '50px', sm: '60px' }, // Padding horizontal para dar espacio a las flechas
           '& .swiper': {
             paddingBottom: '20px',
           },
@@ -84,10 +85,10 @@ const SimilarTripsCarousel = ({ viajeId, limit = 6 }) => {
             transition: 'all 0.2s ease',
           },
           '& .swiper-button-prev': {
-            left: { xs: '-10px', sm: '-20px' },
+            left: { xs: '0px', sm: '5px' },
           },
           '& .swiper-button-next': {
-            right: { xs: '-10px', sm: '-20px' },
+            right: { xs: '0px', sm: '5px' },
           },
         }}
       >

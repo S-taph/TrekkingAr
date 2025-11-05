@@ -102,6 +102,7 @@ export default function ViajesManager() {
     search: "",
     dificultad: "",
     activo: "true",
+    destacado: "",
     precio_min: "",
     precio_max: "",
   })
@@ -320,7 +321,7 @@ export default function ViajesManager() {
             Filtros
           </Typography>
           <Grid2 container spacing={2}>
-            <Grid2 item xs={12} md={4}>
+            <Grid2 xs={12} md={2}>
               <TextField
                 fullWidth
                 size="medium"
@@ -332,17 +333,13 @@ export default function ViajesManager() {
                 }}
               />
             </Grid2>
-            <Grid2 item xs={12} md={2}>
-              <FormControl fullWidth size="medium">
-                <InputLabel sx={{ fontSize: "1rem" }}>Dificultad</InputLabel>
+            <Grid2 xs={12} md={2}>
+              <FormControl fullWidth size="medium" sx={{ minWidth: 120 }}>
+                <InputLabel>Dificultad</InputLabel>
                 <Select
                   value={filters.dificultad}
                   label="Dificultad"
                   onChange={(e) => handleFilterChange("dificultad", e.target.value)}
-                  sx={{
-                    minHeight: "56px",
-                    fontSize: "1rem",
-                  }}
                 >
                   <MenuItem value="">Todas</MenuItem>
                   <MenuItem value="facil">Fácil</MenuItem>
@@ -352,17 +349,13 @@ export default function ViajesManager() {
                 </Select>
               </FormControl>
             </Grid2>
-            <Grid2 item xs={12} md={2}>
-              <FormControl fullWidth size="medium">
-                <InputLabel sx={{ fontSize: "1rem" }}>Estado</InputLabel>
+            <Grid2 xs={12} md={2}>
+              <FormControl fullWidth size="medium" sx={{ minWidth: 120 }}>
+                <InputLabel>Estado</InputLabel>
                 <Select
                   value={filters.activo}
                   label="Estado"
                   onChange={(e) => handleFilterChange("activo", e.target.value)}
-                  sx={{
-                    minHeight: "56px",
-                    fontSize: "1rem",
-                  }}
                 >
                   <MenuItem value="">Todos</MenuItem>
                   <MenuItem value="true">Activos</MenuItem>
@@ -370,21 +363,35 @@ export default function ViajesManager() {
                 </Select>
               </FormControl>
             </Grid2>
-            <Grid2 item xs={12} md={2}>
+            <Grid2 xs={12} md={2}>
+              <FormControl fullWidth size="medium" sx={{ minWidth: 120 }}>
+                <InputLabel>Destacado</InputLabel>
+                <Select
+                  value={filters.destacado}
+                  label="Destacado"
+                  onChange={(e) => handleFilterChange("destacado", e.target.value)}
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  <MenuItem value="true">Destacados</MenuItem>
+                  <MenuItem value="false">No destacados</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid2>
+            <Grid2 xs={12} md={2}>
               <TextField
                 fullWidth
                 size="medium"
-                label="Precio mínimo"
+                label="Precio mín"
                 type="number"
                 value={filters.precio_min}
                 onChange={(e) => handleFilterChange("precio_min", e.target.value)}
               />
             </Grid2>
-            <Grid2 item xs={12} md={2}>
+            <Grid2 xs={12} md={2}>
               <TextField
                 fullWidth
                 size="medium"
-                label="Precio máximo"
+                label="Precio máx"
                 type="number"
                 value={filters.precio_max}
                 onChange={(e) => handleFilterChange("precio_max", e.target.value)}

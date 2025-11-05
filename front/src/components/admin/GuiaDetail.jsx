@@ -12,7 +12,7 @@ const GuiaDetail = ({ guia }) => {
     <Box>
       {/* Header: Avatar y Nombre */}
       <Box display="flex" flexDirection="column" alignItems="center" mb={4}>
-        <Avatar sx={{ width: 80, height: 80, bgcolor: "primary.main", mb: 2 }}>
+        <Avatar src={guia.usuario?.avatar} sx={{ width: 80, height: 80, bgcolor: "primary.main", mb: 2 }}>
           {getInitials(guia.usuario?.nombre, guia.usuario?.apellido)}
         </Avatar>
         <Typography variant="h5" fontWeight="bold">

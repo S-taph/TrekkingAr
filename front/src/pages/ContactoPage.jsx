@@ -22,6 +22,7 @@ import {
   WhatsApp as WhatsAppIcon,
 } from "@mui/icons-material"
 import Header from "../components/Header"
+import Footer from "../components/Footer"
 import { contactoAPI } from "../services/api"
 
 /**
@@ -386,6 +387,8 @@ export default function ContactoPage() {
           ¡Mensaje enviado exitosamente! Te responderemos pronto.
         </Alert>
       </Snackbar>
+
+      <Footer />
     </Box>
   )
 }

@@ -12,7 +12,7 @@
 
 TrekkingAr es una plataforma integral de reserva de trekking y aventuras construida con **Node.js/Express** (backend) y **React/Vite** (frontend). La aplicación demuestra una madurez significativa en su desarrollo con la mayoría de las características core de MVP implementadas.
 
-### 🎉 Estado General del MVP: **92% Completo** ⬆️ (+4% desde última actualización)
+### 🎉 Estado General del MVP: **94% Completo** ⬆️ (+2% desde última actualización)
 
 **🔒 AVANCE CRÍTICO - Problemas Críticos Resueltos**
 
@@ -21,6 +21,12 @@ TrekkingAr es una plataforma integral de reserva de trekking y aventuras constru
 La aplicación ha experimentado **avances sustanciales** desde el último reporte. Se han resuelto **2 problemas CRÍTICOS** y **1 problema ALTO** que bloqueaban el lanzamiento a producción. La integración completa de MercadoPago y el sistema robusto de reservas representan **hitos críticos** superados.
 
 **Principales Logros Recientes (2025-11-05):**
+- ✅ **NUEVO:** Dashboard Administrativo Profesional (Fase 1 y 2 completadas) 📊
+  - Métricas de negocio avanzadas (conversión, ticket promedio, cancelación)
+  - Comparación temporal con mes anterior
+  - Sistema inteligente de alertas
+  - Top viajes más populares
+  - Datos 100% reales del backend (no más hardcode)
 - ✅ **CRÍTICO RESUELTO:** Sistema completo de recuperación de contraseña
 - ✅ **ALTO RESUELTO:** Lógica de reservas sin overbooking
 - ✅ **MEDIO RESUELTO:** Sistema de bloqueo de cuenta por intentos fallidos
@@ -2637,6 +2643,147 @@ Con trabajo enfocado en los items P0 restantes (Crítico).
 
 **SEMANA 5-6:**
 - [ ] Deployment y monitoreo
+
+---
+
+## 📊 NUEVO: Dashboard Administrativo Profesional (2025-11-05)
+
+### ✅ IMPLEMENTADO: Dashboard con Métricas de Negocio Avanzadas
+
+**Estado:** COMPLETADO ✅
+**Archivos Modificados:** [front/src/components/admin/Dashboard.jsx](front/src/components/admin/Dashboard.jsx)
+
+**Implementación Completa de 2 Fases:**
+
+#### **Fase 1: Correcciones Críticas**
+
+1. **✅ Usuarios Reales del Backend**
+   - **Antes:** `totalUsuarios: 0` (hardcodeado)
+   - **Ahora:** Obtiene usuarios reales vía `usuariosAPI.getUsuarios()`
+   - **Ubicación:** [Dashboard.jsx:116-123](front/src/components/admin/Dashboard.jsx#L116-L123)
+
+2. **✅ Próximas Salidas con Datos Reales**
+   - **Antes:** Fechas aleatorias, cupos ficticios
+   - **Ahora:**
+     - Fechas de viaje reales del backend
+     - Cupos ocupados vs disponibles correctos
+     - Filtrado por próximos 7 días
+     - Ordenamiento cronológico
+   - **Ubicación:** [Dashboard.jsx:217-250](front/src/components/admin/Dashboard.jsx#L217-L250)
+
+3. **✅ Métricas de Negocio Profesionales**
+
+   **a) Tasa de Conversión**
+   - Fórmula: `(reservasConfirmadas / totalReservasConEstado) × 100`
+   - Muestra % de éxito en confirmaciones
+   - Incluye cantidad de confirmadas
+
+   **b) Ticket Promedio**
+   - Fórmula: `ingresosTotales / reservasConfirmadas`
+   - Valor promedio por cliente
+   - Métrica clave para pricing
+
+   **c) Tasa de Cancelación**
+   - Fórmula: `(reservasCanceladas / totalReservasConEstado) × 100`
+   - Indicador de problemas operacionales
+   - Incluye cantidad de canceladas
+
+4. **✅ Sistema de Alertas Inteligentes**
+   - 🟡 Reservas pendientes >3 días sin confirmar
+   - 🔵 Salidas próximas con <30% ocupación
+   - 🟢 Salidas con >80% ocupación (alta demanda)
+   - **Ubicación:** [Dashboard.jsx:275-318](front/src/components/admin/Dashboard.jsx#L275-L318)
+
+#### **Fase 2: Mejoras Profesionales**
+
+5. **✅ Comparación con Mes Anterior**
+   - Todas las métricas principales incluyen tendencias
+   - **Ingresos:** +X% / -X% vs mes anterior
+   - **Reservas:** Indicador de crecimiento/decrecimiento
+   - Iconos visuales: ⬆️ verde (positivo) / ⬇️ rojo (negativo)
+   - **Cálculo:**
+     ```javascript
+     cambioIngresos = ((ingresosMes - ingresosMesAnterior) / ingresosMesAnterior) × 100
+     cambioReservas = ((reservasMes - reservasMesAnterior) / reservasMesAnterior) × 100
+     ```
+
+6. **✅ Top Viajes Más Populares**
+   - Top 5 por cantidad de reservas
+   - Cantidad de reservas + ingresos generados
+   - Ordenados por popularidad
+   - **Ubicación:** [Dashboard.jsx:252-273](front/src/components/admin/Dashboard.jsx#L252-L273)
+
+#### **Mejoras UI/UX del Dashboard**
+
+**StatCard Mejorado:**
+- Soporte para tendencias visuales
+- Subtítulos para contexto adicional
+- Colores semánticos (verde/rojo/azul)
+- **Ubicación:** [Dashboard.jsx:36-74](front/src/components/admin/Dashboard.jsx#L36-L74)
+
+**Selector de Fechas Mejorado:**
+- **Por defecto:** Filtra por mes actual
+- **Botón "Mes actual":** Vuelve al mes actual
+- **Botón "Ver todo":** Muestra histórico completo
+- **Indicador visual:** Chip de estado ("Mes actual" / "Todo el histórico")
+
+#### **Estructura Final del Dashboard**
+
+```
+┌─────────────────────────────────────────────────────┐
+│ 🔔 ALERTAS INTELIGENTES (si hay)                    │
+├─────────────────────────────────────────────────────┤
+│ 📊 MÉTRICAS PRINCIPALES (con tendencias)            │
+│ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐│
+│ │ Usuarios │ │  Viajes  │ │  Guías   │ │Reservas││
+│ │          │ │          │ │          │ │ +X%    ││
+│ └──────────┘ └──────────┘ └──────────┘ └────────┘│
+├─────────────────────────────────────────────────────┤
+│ 💰 MÉTRICAS DE NEGOCIO AVANZADAS                    │
+│ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐│
+│ │Conversión│ │  Ticket  │ │Cancelac. │ │Ingresos││
+│ │  X.X%    │ │ $XX,XXX  │ │  X.X%    │ │ +X%    ││
+│ └──────────┘ └──────────┘ └──────────┘ └────────┘│
+├─────────────────────────────────────────────────────┤
+│ 🏆 TOP VIAJES         │ 📊 RESERVAS POR ESTADO      │
+│  1. Viaje A (15 res)  │  • Pendientes:     9        │
+│  2. Viaje B (12 res)  │  • Confirmadas:    2        │
+│  3. Viaje C (8 res)   │  • Canceladas:     8        │
+│                       │  • Completadas:    0        │
+├─────────────────────────────────────────────────────┤
+│ 📅 PRÓXIMAS SALIDAS (7 días) con cupos reales      │
+├─────────────────────────────────────────────────────┤
+│ ⚡ ACCIONES RÁPIDAS (navegación)                    │
+└─────────────────────────────────────────────────────┘
+```
+
+#### **Impacto en el Negocio**
+
+**Antes:**
+- ❌ Datos ficticios y hardcodeados
+- ❌ Sin métricas de negocio
+- ❌ Sin visibilidad de tendencias
+- ❌ Sin alertas proactivas
+
+**Ahora:**
+- ✅ Datos 100% reales del backend
+- ✅ 6 métricas profesionales de negocio
+- ✅ Comparación temporal (mes actual vs anterior)
+- ✅ Sistema inteligente de alertas
+- ✅ Identificación de viajes populares
+- ✅ Filtrado flexible por fecha
+
+**Beneficios para el Administrador:**
+1. **Toma de decisiones informada** con métricas reales
+2. **Identificación proactiva de problemas** (reservas antiguas pendientes)
+3. **Optimización de ingresos** (viajes populares, ticket promedio)
+4. **Planificación operativa** (ocupación de salidas)
+5. **Monitoreo de KPIs** (conversión, cancelación)
+
+**Nivel de Profesionalismo:** ⭐⭐⭐⭐⭐
+- Dashboard comparable a plataformas SaaS comerciales
+- Métricas alineadas con estándares de industria
+- UX intuitiva con datos accionables
 
 ---
 

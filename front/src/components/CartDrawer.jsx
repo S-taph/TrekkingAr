@@ -121,20 +121,57 @@ export const CartDrawer = ({ open, onClose }) => {
                       opacity: updatingItems[item.id] ? 0.5 : 1,
                     }}
                   >
-                    {/* Título del viaje */}
-                    <Box sx={{ width: "100%" }}>
-                      <Typography variant="subtitle1" fontWeight={600}>
-                        {item.viaje?.titulo || "Viaje"}
-                      </Typography>
-                      {item.fecha_viaje && (
-                        <Typography variant="body2" color="text.secondary">
-                          Fecha:{" "}
-                          {new Date(item.fecha_viaje.fecha_inicio).toLocaleDateString()}
-                        </Typography>
+                    {/* Imagen y Título del viaje */}
+                    <Box sx={{ width: "100%", display: "flex", gap: 2 }}>
+                      {/* Imagen del viaje */}
+                      {item.fechaViaje?.viaje?.imagen_principal_url && (
+                        <Box
+                          sx={{
+                            width: 80,
+                            height: 80,
+                            borderRadius: 1,
+                            overflow: 'hidden',
+                            flexShrink: 0,
+                            bgcolor: 'grey.200',
+                          }}
+                        >
+                          <img
+                            src={item.fechaViaje.viaje.imagen_principal_url}
+                            alt={item.fechaViaje?.viaje?.titulo || 'Viaje'}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                            }}
+                          />
+                        </Box>
                       )}
-                      <Typography variant="body2" color="primary" fontWeight={600}>
-                        ${item.precio_unitario.toLocaleString()} x {item.cantidad}
-                      </Typography>
+
+                      {/* Información del viaje */}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          variant="subtitle1"
+                          fontWeight={600}
+                          sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                          }}
+                        >
+                          {item.fechaViaje?.viaje?.titulo || "Viaje"}
+                        </Typography>
+                        {item.fechaViaje && (
+                          <Typography variant="body2" color="text.secondary">
+                            Fecha:{" "}
+                            {new Date(item.fechaViaje.fecha_inicio).toLocaleDateString()}
+                          </Typography>
+                        )}
+                        <Typography variant="body2" color="primary" fontWeight={600}>
+                          ${item.precio_unitario.toLocaleString()} x {item.cantidad}
+                        </Typography>
+                      </Box>
                     </Box>
 
                     {/* Controles de cantidad */}

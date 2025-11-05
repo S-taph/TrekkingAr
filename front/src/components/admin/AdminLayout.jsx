@@ -164,7 +164,7 @@ export default function AdminLayout({ children, currentPath = "/admin", onNaviga
           : "1px solid rgba(255,255,255,0.1)"
       })}>
         <Box display="flex" alignItems="center" gap={2}>
-          <Avatar sx={{ bgcolor: "#1976d2" }}>
+          <Avatar src={user?.avatar} sx={{ bgcolor: "#1976d2" }}>
             {user?.nombre?.charAt(0).toUpperCase() || "A"}
           </Avatar>
           <Box>

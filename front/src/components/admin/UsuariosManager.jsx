@@ -23,6 +23,7 @@ import {
   Grid,
   Paper,
   InputAdornment,
+  Avatar,
 } from "@mui/material"
 import { DataGrid } from "@mui/x-data-grid"
 import { Edit, Search, ManageAccounts } from "@mui/icons-material"
@@ -66,6 +67,8 @@ export default function UsuariosManager() {
       }
 
       const data = await usuariosAPI.getUsuarios(params)
+      console.log('[UsuariosManager] Usuarios recibidos:', data)
+      console.log('[UsuariosManager] Primer usuario (muestra):', data[0])
       setUsuarios(data)
     } catch (err) {
       console.error("Error al cargar usuarios:", err)
@@ -130,11 +133,8 @@ export default function UsuariosManager() {
         rol: newRol,
       })
 
-      setUsuarios((prev) =>
-        prev.map((u) =>
-          u.id_usuarios === editDialog.usuario.id_usuarios ? { ...u, rol: newRol } : u
-        )
-      )
+      // Recargar usuarios desde el backend para reflejar el estado real de la base de datos
+      await loadUsuarios()
 
       setSuccessMessage(`Rol actualizado a "${newRol}" correctamente`)
       handleCloseEditDialog()
@@ -159,6 +159,19 @@ export default function UsuariosManager() {
 
   const columns = [
     { field: "id_usuarios", headerName: "ID", width: 90 },
+    {
+      field: "avatar",
+      headerName: "Foto",
+      width: 80,
+      renderCell: (params) => (
+        <Avatar
+          src={params.row.avatar}
+          sx={{ width: 40, height: 40 }}
+        >
+          {params.row.nombre?.charAt(0)}{params.row.apellido?.charAt(0)}
+        </Avatar>
+      ),
+    },
     { field: "nombre", headerName: "Nombre", width: 150 },
     { field: "apellido", headerName: "Apellido", width: 150 },
     { field: "email", headerName: "Email", width: 200 },

@@ -23,6 +23,7 @@ import {
   VerifiedUser as VerifiedIcon,
 } from "@mui/icons-material"
 import Header from "../components/Header"
+import Footer from "../components/Footer"
 import { guiasAPI } from "../services/api"
 
 /**
@@ -44,10 +45,12 @@ export default function NosotrosPage() {
       const response = await guiasAPI.getGuias({ activo: true })
 
       if (response.success) {
-        // Filtrar solo guías que tienen foto de perfil
-        const guiasConFoto = (response.data.guias || []).filter(
-          (guia) => guia.usuario?.avatar
-        )
+        // Filtrar solo guías que tienen foto de perfil subida (no de Google OAuth)
+        const guiasConFoto = (response.data.guias || []).filter((guia) => {
+          const avatar = guia.usuario?.avatar
+          // Solo mostrar guías con fotos subidas localmente (excluir fotos de Google)
+          return avatar && avatar.includes('/uploads/avatars/')
+        })
         setGuias(guiasConFoto)
       }
     } catch (error) {
@@ -89,7 +92,7 @@ export default function NosotrosPage() {
         sx={{
           position: "relative",
           height: "400px",
-          backgroundImage: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('/mountain-bg.jpg')",
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('/mountain-background.png')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           display: "flex",
@@ -400,6 +403,8 @@ export default function NosotrosPage() {
           </Grid>
         </Paper>
       </Container>
+
+      <Footer />
     </Box>
   )
 }

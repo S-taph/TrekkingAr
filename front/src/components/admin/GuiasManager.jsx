@@ -237,7 +237,7 @@ export default function GuiasManager() {
             Filtros
           </Typography>
           <Grid2 container spacing={2}>
-            <Grid2 item xs={12} md={4}>
+            <Grid2 xs={12} md={4}>
               <TextField
                 fullWidth
                 size="medium"
@@ -249,7 +249,7 @@ export default function GuiasManager() {
                 }}
               />
             </Grid2>
-            <Grid2 item xs={12} md={4}>
+            <Grid2 xs={12} md={4}>
               <TextField
                 fullWidth
                 size="medium"
@@ -259,17 +259,13 @@ export default function GuiasManager() {
                 placeholder="ej: montañismo, trekking"
               />
             </Grid2>
-            <Grid2 item xs={12} md={4}>
-              <FormControl fullWidth size="medium">
-                <InputLabel sx={{ fontSize: "1rem" }}>Estado</InputLabel>
+            <Grid2 xs={12} md={4}>
+              <FormControl fullWidth size="medium" sx={{ minWidth: 120 }}>
+                <InputLabel>Estado</InputLabel>
                 <Select
                   value={filters.disponible}
                   label="Estado"
                   onChange={(e) => handleFilterChange("disponible", e.target.value)}
-                  sx={{
-                    minHeight: "56px",
-                    fontSize: "1rem",
-                  }}
                 >
                   <MenuItem value="">Todos</MenuItem>
                   <MenuItem value="true">Activos</MenuItem>
@@ -290,11 +286,11 @@ export default function GuiasManager() {
         <>
           <Grid2 container spacing={3}>
             {guias.map((guia) => (
-              <Grid2 item xs={12} sm={6} md={4} key={guia.id_guia}>
+              <Grid2 xs={12} sm={6} md={4} key={guia.id_guia}>
                 <Card elevation={2} sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
                   <CardContent sx={{ flexGrow: 1 }}>
                     <Box display="flex" alignItems="center" mb={2}>
-                      <Avatar sx={{ mr: 2, bgcolor: "primary.main" }}>
+                      <Avatar src={guia.usuario?.avatar} sx={{ mr: 2, bgcolor: "primary.main" }}>
                         {getInitials(guia.usuario?.nombre, guia.usuario?.apellido)}
                       </Avatar>
                       <Box flexGrow={1}>

@@ -154,7 +154,7 @@ export const createReserva = async (req, res) => {
         {
           model: Usuario,
           as: "usuario",
-          attributes: ["id_usuarios", "nombre", "apellido", "email"],
+          attributes: ["id_usuarios", "nombre", "apellido", "email", "avatar"],
         },
         {
           model: Compra,
@@ -256,7 +256,7 @@ export const getAllReservas = async (req, res) => {
         {
           model: Usuario,
           as: "usuario",
-          attributes: ["id_usuarios", "nombre", "apellido", "email", "telefono"],
+          attributes: ["id_usuarios", "nombre", "apellido", "email", "telefono", "avatar"],
         },
         {
           model: Compra,
@@ -302,12 +302,24 @@ export const getAllReservas = async (req, res) => {
 }
 
 export const updateReservaStatus = async (req, res) => {
+  const transaction = await sequelize.transaction()
+
   try {
     const { id } = req.params
     const { estado_reserva, observaciones_reserva } = req.body
 
-    const reserva = await Reserva.findByPk(id)
+    const reserva = await Reserva.findByPk(id, {
+      include: [
+        {
+          model: FechaViaje,
+          as: "fecha_viaje",
+        },
+      ],
+      transaction,
+    })
+
     if (!reserva) {
+      await transaction.rollback()
       return res.status(404).json({
         success: false,
         message: "Reserva no encontrada",
@@ -317,23 +329,73 @@ export const updateReservaStatus = async (req, res) => {
     // Validar transiciones de estado válidas
     const estadosValidos = ["pendiente", "confirmada", "en_progreso", "completada", "cancelada"]
     if (!estadosValidos.includes(estado_reserva)) {
+      await transaction.rollback()
       return res.status(400).json({
         success: false,
         message: "Estado de reserva inválido",
       })
     }
 
+    const estadoAnterior = reserva.estado_reserva
+
+    // Actualizar reserva
     await reserva.update({
       estado_reserva,
       ...(observaciones_reserva && { observaciones_reserva }),
+    }, { transaction })
+
+    // Ajustar cupos según cambios de estado
+    // Solo si cambia de/a cancelada, porque los otros estados mantienen los cupos ocupados
+    const fechaViaje = await FechaViaje.findByPk(reserva.id_fecha_viaje, {
+      lock: transaction.LOCK.UPDATE,
+      transaction,
     })
+
+    if (!fechaViaje) {
+      await transaction.rollback()
+      return res.status(404).json({
+        success: false,
+        message: "Fecha de viaje no encontrada",
+      })
+    }
+
+    // Si cambia DE cancelada A otro estado -> ocupar cupos
+    if (estadoAnterior === "cancelada" && estado_reserva !== "cancelada") {
+      const nuevosCuposOcupados = fechaViaje.cupos_ocupados + reserva.cantidad_personas
+      await fechaViaje.update(
+        { cupos_ocupados: nuevosCuposOcupados },
+        { transaction }
+      )
+      console.log(`[Reservas] Cupos ocupados aumentados: ${nuevosCuposOcupados}/${fechaViaje.cupos_totales}`)
+    }
+
+    // Si cambia A cancelada DESDE otro estado -> liberar cupos
+    if (estadoAnterior !== "cancelada" && estado_reserva === "cancelada") {
+      const nuevosCuposOcupados = Math.max(0, fechaViaje.cupos_ocupados - reserva.cantidad_personas)
+      await fechaViaje.update(
+        { cupos_ocupados: nuevosCuposOcupados },
+        { transaction }
+      )
+
+      // Si estaba completo y ahora hay cupos, marcar como disponible
+      if (fechaViaje.estado_fecha === "completo" && nuevosCuposOcupados < fechaViaje.cupos_totales) {
+        await fechaViaje.update(
+          { estado_fecha: "disponible" },
+          { transaction }
+        )
+      }
+
+      console.log(`[Reservas] Cupos liberados: ${nuevosCuposOcupados}/${fechaViaje.cupos_totales}`)
+    }
+
+    await transaction.commit()
 
     const reservaActualizada = await Reserva.findByPk(id, {
       include: [
         {
           model: Usuario,
           as: "usuario",
-          attributes: ["id_usuarios", "nombre", "apellido", "email"],
+          attributes: ["id_usuarios", "nombre", "apellido", "email", "avatar"],
         },
         {
           model: Compra,
@@ -349,6 +411,7 @@ export const updateReservaStatus = async (req, res) => {
       data: { reserva: reservaActualizada },
     })
   } catch (error) {
+    await transaction.rollback()
     console.error("Error al actualizar estado de reserva:", error)
     res.status(500).json({
       success: false,
@@ -450,6 +513,265 @@ export const cancelReserva = async (req, res) => {
   } catch (error) {
     await transaction.rollback()
     console.error("Error al cancelar reserva:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error interno del servidor",
+    })
+  }
+}
+
+/**
+ * Sincroniza los cupos_ocupados de todas las fechas de viaje
+ * basándose en las reservas no canceladas
+ * ADMIN ONLY - para corregir inconsistencias
+ */
+export const syncCuposOcupados = async (req, res) => {
+  const transaction = await sequelize.transaction()
+
+  try {
+    // Obtener todas las fechas de viaje
+    const fechasViaje = await FechaViaje.findAll({ transaction })
+
+    let actualizaciones = 0
+    const resultados = []
+
+    for (const fechaViaje of fechasViaje) {
+      // Calcular cupos ocupados basados en reservas NO canceladas
+      const reservasActivas = await Reserva.findAll({
+        where: {
+          id_fecha_viaje: fechaViaje.id_fechas_viaje,
+          estado_reserva: {
+            [Op.ne]: "cancelada", // Diferente de cancelada
+          },
+        },
+        transaction,
+      })
+
+      const cuposCalculados = reservasActivas.reduce(
+        (sum, reserva) => sum + reserva.cantidad_personas,
+        0
+      )
+
+      // Si hay diferencia, actualizar
+      if (fechaViaje.cupos_ocupados !== cuposCalculados) {
+        await fechaViaje.update(
+          { cupos_ocupados: cuposCalculados },
+          { transaction }
+        )
+
+        resultados.push({
+          id_fecha_viaje: fechaViaje.id_fechas_viaje,
+          cupos_anteriores: fechaViaje.cupos_ocupados,
+          cupos_nuevos: cuposCalculados,
+          diferencia: cuposCalculados - fechaViaje.cupos_ocupados,
+        })
+
+        actualizaciones++
+
+        console.log(
+          `[Sync] Fecha ${fechaViaje.id_fechas_viaje}: ${fechaViaje.cupos_ocupados} -> ${cuposCalculados}`
+        )
+      }
+    }
+
+    await transaction.commit()
+
+    res.json({
+      success: true,
+      message: `Sincronización completada. ${actualizaciones} fechas actualizadas`,
+      data: {
+        fechas_procesadas: fechasViaje.length,
+        fechas_actualizadas: actualizaciones,
+        detalles: resultados,
+      },
+    })
+  } catch (error) {
+    await transaction.rollback()
+    console.error("Error sincronizando cupos:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error interno del servidor",
+    })
+  }
+}
+
+/**
+ * Obtener diagnóstico detallado de cupos para una fecha específica
+ * Muestra todas las reservas no canceladas y calcula el sobrecupo
+ */
+export const diagnosticoCupos = async (req, res) => {
+  try {
+    const { idFechaViaje } = req.params
+
+    // Obtener la fecha de viaje con su viaje
+    const fechaViaje = await FechaViaje.findByPk(idFechaViaje, {
+      include: [
+        {
+          model: Viaje,
+          as: "viaje",
+          attributes: ["titulo"],
+        },
+      ],
+    })
+
+    if (!fechaViaje) {
+      return res.status(404).json({
+        success: false,
+        message: "Fecha de viaje no encontrada",
+      })
+    }
+
+    // Obtener todas las reservas NO canceladas para esta fecha
+    const reservasActivas = await Reserva.findAll({
+      where: {
+        id_fecha_viaje: idFechaViaje,
+        estado_reserva: {
+          [Op.ne]: "cancelada",
+        },
+      },
+      include: [
+        {
+          model: Usuario,
+          as: "usuario",
+          attributes: ["email", "nombre", "apellido", "avatar"],
+        },
+      ],
+      order: [["fecha_reserva", "ASC"]],
+    })
+
+    // Calcular totales
+    const totalPersonas = reservasActivas.reduce(
+      (sum, reserva) => sum + reserva.cantidad_personas,
+      0
+    )
+
+    // Formatear reservas para el diagnóstico
+    const reservasDetalle = reservasActivas.map((reserva) => ({
+      id_reserva: reserva.id_reserva,
+      numero_reserva: reserva.numero_reserva,
+      cantidad_personas: reserva.cantidad_personas,
+      estado_reserva: reserva.estado_reserva,
+      fecha_reserva: reserva.fecha_reserva,
+      cliente_email: reserva.usuario?.email || "Sin email",
+      cliente_nombre:
+        `${reserva.usuario?.nombre || ""} ${reserva.usuario?.apellido || ""}`.trim() ||
+        "Sin nombre",
+    }))
+
+    res.json({
+      success: true,
+      data: {
+        id_fecha_viaje: fechaViaje.id_fechas_viaje,
+        viaje_titulo: fechaViaje.viaje?.titulo || "Sin título",
+        fecha_inicio: fechaViaje.fecha_inicio,
+        fecha_fin: fechaViaje.fecha_fin,
+        cupos_totales: fechaViaje.cupos_totales,
+        cupos_ocupados: fechaViaje.cupos_ocupados,
+        cupos_disponibles: fechaViaje.cupos_disponibles,
+        total_reservas: reservasActivas.length,
+        total_personas: totalPersonas,
+        sobrecupo: Math.max(0, totalPersonas - fechaViaje.cupos_totales),
+        reservas: reservasDetalle,
+      },
+    })
+  } catch (error) {
+    console.error("Error en diagnóstico de cupos:", error)
+    res.status(500).json({
+      success: false,
+      message: "Error interno del servidor",
+    })
+  }
+}
+
+/**
+ * RESETEAR TODAS LAS RESERVAS
+ * ⚠️ CUIDADO: Elimina todas las reservas, compras y items de carrito
+ * Solo para desarrollo o limpieza completa del sistema
+ * ADMIN ONLY
+ */
+export const resetAllReservas = async (req, res) => {
+  const transaction = await sequelize.transaction()
+
+  try {
+    // Importar modelos necesarios
+    const CarritoItem = (await import("../models/CarritoItem.js")).default
+    const Carrito = (await import("../models/Carrito.js")).default
+    const Pago = (await import("../models/Pago.js")).default
+
+    // 1. Contar antes de eliminar
+    const countReservas = await Reserva.count({ transaction })
+    const countCompras = await Compra.count({ transaction })
+    const countPagos = await Pago.count({ transaction })
+    const countCarritoItems = await CarritoItem.count({ transaction })
+    const countCarritos = await Carrito.count({ transaction })
+
+    // 2. Eliminar PAGOS PRIMERO (referencian a compras)
+    await Pago.destroy({
+      where: {},
+      truncate: false,
+      transaction,
+    })
+
+    // 3. Eliminar RESERVAS (referencian a compras)
+    await Reserva.destroy({
+      where: {},
+      truncate: false,
+      transaction,
+    })
+
+    // 4. Eliminar COMPRAS (ya no tienen dependencias)
+    await Compra.destroy({
+      where: {},
+      truncate: false,
+      transaction,
+    })
+
+    // 5. Eliminar ITEMS DE CARRITO (referencian a carritos)
+    await CarritoItem.destroy({
+      where: {},
+      truncate: false,
+      transaction,
+    })
+
+    // 6. Eliminar CARRITOS (ya no tienen items)
+    await Carrito.destroy({
+      where: {},
+      truncate: false,
+      transaction,
+    })
+
+    // 7. Resetear cupos_ocupados de todas las fechas a 0
+    const fechasViaje = await FechaViaje.findAll({ transaction })
+    await FechaViaje.update(
+      { cupos_ocupados: 0 },
+      { where: {}, transaction }
+    )
+
+    await transaction.commit()
+
+    console.log("⚠️  [RESET] Todas las reservas han sido eliminadas")
+    console.log(`   - Pagos eliminados: ${countPagos}`)
+    console.log(`   - Reservas eliminadas: ${countReservas}`)
+    console.log(`   - Compras eliminadas: ${countCompras}`)
+    console.log(`   - Items de carrito eliminados: ${countCarritoItems}`)
+    console.log(`   - Carritos eliminados: ${countCarritos}`)
+    console.log(`   - Fechas reseteadas: ${fechasViaje.length}`)
+
+    res.json({
+      success: true,
+      message: "Todas las reservas han sido eliminadas exitosamente",
+      data: {
+        pagos_eliminados: countPagos,
+        reservas_eliminadas: countReservas,
+        compras_eliminadas: countCompras,
+        items_carrito_eliminados: countCarritoItems,
+        carritos_eliminados: countCarritos,
+        fechas_reseteadas: fechasViaje.length,
+      },
+    })
+  } catch (error) {
+    await transaction.rollback()
+    console.error("Error reseteando reservas:", error)
     res.status(500).json({
       success: false,
       message: "Error interno del servidor",

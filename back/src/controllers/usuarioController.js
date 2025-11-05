@@ -1,6 +1,7 @@
 import { Usuario, UsuarioRol } from "../models/associations.js"
 import { Op } from "sequelize"
 import bcrypt from "bcrypt"
+import roleService from "../services/roleService.js"
 
 const getUsuarios = async (req, res) => {
   try {
@@ -37,7 +38,7 @@ const getUsuarios = async (req, res) => {
 
     const usuarios = await Usuario.findAll({
       where: whereClause,
-      attributes: ["id_usuarios", "nombre", "apellido", "email", "dni", "rol", "activo", "created_at"],
+      attributes: ["id_usuarios", "nombre", "apellido", "email", "dni", "rol", "activo", "avatar", "created_at"],
       include: [{
         model: UsuarioRol,
         as: "roles",
@@ -54,7 +55,13 @@ const getUsuarios = async (req, res) => {
     // Map usuarios to include roles array
     const usuariosWithRoles = usuarios.map(usuario => {
       const usuarioData = usuario.toJSON()
-      usuarioData.rolesArray = usuario.roles?.map(r => r.rol) || []
+      // Incluir el rol principal del campo 'rol' de la tabla usuarios
+      const rolPrincipal = usuarioData.rol
+      // Incluir los roles adicionales de la tabla usuario_roles
+      const rolesAdicionales = usuario.roles?.map(r => r.rol) || []
+      // Combinar ambos y eliminar duplicados
+      const todosLosRoles = [rolPrincipal, ...rolesAdicionales]
+      usuarioData.rolesArray = [...new Set(todosLosRoles)].filter(Boolean)
       return usuarioData
     })
 
@@ -74,7 +81,7 @@ const getUsuarioById = async (req, res) => {
     const { id } = req.params
 
     const usuario = await Usuario.findByPk(id, {
-      attributes: ["id_usuarios", "nombre", "apellido", "email", "dni", "rol", "activo"],
+      attributes: ["id_usuarios", "nombre", "apellido", "email", "dni", "rol", "activo", "avatar"],
     })
 
     if (!usuario) {
@@ -119,6 +126,24 @@ const updateUsuario = async (req, res) => {
       })
     }
 
+    // Validar DNI si está presente
+    if (dni !== undefined && dni !== null && dni.trim() !== "") {
+      // Validar que sea solo números
+      if (!/^\d+$/.test(dni)) {
+        return res.status(400).json({
+          success: false,
+          message: "El DNI debe contener solo números"
+        })
+      }
+      // Validar longitud (DNI argentino: 7-8 dígitos)
+      if (dni.length < 7 || dni.length > 8) {
+        return res.status(400).json({
+          success: false,
+          message: "El DNI debe tener entre 7 y 8 dígitos"
+        })
+      }
+    }
+
     // Los usuarios normales no pueden cambiar su rol ni estado activo
     const updateData = {
       nombre: nombre || usuario.nombre,
@@ -137,6 +162,22 @@ const updateUsuario = async (req, res) => {
     // Actualizar usuario
     await usuario.update(updateData)
 
+    // Si se actualizó el rol, sincronizar con la tabla usuario_roles
+    if (req.user.rol === 'admin' && rol && rol !== usuario.rol) {
+      try {
+        await roleService.assignRole(
+          id,
+          rol,
+          req.user.id_usuarios,
+          `Rol principal actualizado a '${rol}' desde panel de administración`
+        )
+        console.log(`[USUARIOS] ✅ Rol '${rol}' sincronizado en usuario_roles para usuario ${id}`)
+      } catch (error) {
+        console.error(`[USUARIOS] ⚠️  Error sincronizando rol en usuario_roles:`, error.message)
+        // No fallar la petición si la sincronización falla
+      }
+    }
+
     res.json({
       success: true,
       message: "Usuario actualizado exitosamente",
@@ -145,6 +186,24 @@ const updateUsuario = async (req, res) => {
 
   } catch (error) {
     console.error("Error actualizando usuario:", error)
+
+    // Mejorar mensajes de error según el tipo de error
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: "Error de validación: Por favor, complete los campos obligatorios correctamente",
+        error: error.errors?.map(e => e.message).join(', ')
+      })
+    }
+
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({
+        success: false,
+        message: "El email o DNI ya está registrado",
+        error: error.errors?.map(e => e.message).join(', ')
+      })
+    }
+
     res.status(500).json({
       success: false,
       message: "Error interno del servidor",

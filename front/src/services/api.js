@@ -24,6 +24,7 @@ const apiRequest = async (endpoint, options = {}) => {
   const config = {
     headers: {
       "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "true", // Bypass ngrok interstitial page
       ...(token ? { "Authorization": `Bearer ${token}` } : {}), // Solo en cross-origin
       ...options.headers,
     },
@@ -252,10 +253,21 @@ export const usuariosAPI = {
     const formData = new FormData()
     formData.append("avatar", file)
 
+    // Detectar si estamos en modo cross-origin para incluir token
+    const useFallbackAuth = isCrossOrigin()
+    const token = useFallbackAuth ? safeGetItem('auth_token') : null
+
+    const headers = {
+      "ngrok-skip-browser-warning": "true",
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    }
+    // NO establecer Content-Type para que el browser lo haga automático con boundary correcto
+
     const response = await fetch(`${API_BASE_URL}/usuarios/${id}/avatar`, {
       method: "POST",
       credentials: "include",
-      body: formData, // No establecer Content-Type, el browser lo hace automático
+      headers,
+      body: formData,
     })
 
     return await response.json()

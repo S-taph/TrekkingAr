@@ -40,6 +40,7 @@ import {
   WhatsApp,
 } from "@mui/icons-material"
 import Header from "../components/Header"
+import Footer from "../components/Footer"
 import HeroImage from "../components/HeroImage"
 import ImageLightbox from "../components/ImageLightbox"
 import SimilarTripsCarousel from "../components/SimilarTripsCarousel"
@@ -50,6 +51,7 @@ import FomoBadge from "../components/FomoBadge"
 import TotalRow from "../components/TotalRow"
 import TrustBadges from "../components/TrustBadges"
 import PriceBreakdown from "../components/PriceBreakdown"
+import AddedToCartDrawer from "../components/AddedToCartDrawer"
 import { useTrip } from "../hooks/useTrip"
 import { useCart } from "../context/CartContext"
 import { useAuth } from "../context/AuthContext"
@@ -70,6 +72,8 @@ export default function TripDetailPage() {
   const [addingToCart, setAddingToCart] = useState(false)
   const [activeTab, setActiveTab] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [addedToCartDrawerOpen, setAddedToCartDrawerOpen] = useState(false)
+  const [addedProductData, setAddedProductData] = useState(null)
 
   useEffect(() => {
     if (trip) {
@@ -105,6 +109,21 @@ export default function TripDetailPage() {
 
       if (result.success) {
         console.log("Agregado al carrito exitosamente")
+
+        // Obtener la imagen principal del viaje
+        const tripImage = trip.imagenes?.[0]
+          ? (typeof trip.imagenes[0] === 'string' ? trip.imagenes[0] : trip.imagenes[0].url)
+          : trip.imagen_principal_url
+
+        // Preparar datos para el drawer de confirmación
+        setAddedProductData({
+          title: trip.titulo,
+          quantity: cantidad,
+          image: tripImage,
+        })
+
+        // Abrir drawer de confirmación
+        setAddedToCartDrawerOpen(true)
       }
     } catch (err) {
       console.error("Error al agregar al carrito:", err)
@@ -719,9 +738,9 @@ export default function TripDetailPage() {
                   <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, color: "text.primary" }}>
                     Itinerario del viaje
                   </Typography>
-                  {trip.itinerario ? (
+                  {trip.itinerario_detallado ? (
                     <Typography variant="body1" component="div" color="text.primary" sx={{ whiteSpace: "pre-line", lineHeight: 1.8 }}>
-                      {trip.itinerario}
+                      {trip.itinerario_detallado}
                     </Typography>
                   ) : (
                     <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
@@ -800,6 +819,15 @@ export default function TripDetailPage() {
         tripName={trip.titulo}
         showOnMobile={true}
       />
+
+      {/* DRAWER DE CONFIRMACIÓN DE AGREGADO AL CARRITO */}
+      <AddedToCartDrawer
+        open={addedToCartDrawerOpen}
+        onClose={() => setAddedToCartDrawerOpen(false)}
+        productData={addedProductData}
+      />
+
+      <Footer />
     </Box>
   )
 }

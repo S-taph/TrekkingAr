@@ -592,6 +592,21 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
           </Typography>
 
           <Grid2 container spacing={3}>
+            {/* Título - primera posición */}
+            <Grid2 xs={12} md={12} sx={{ width: '100%' }}>
+              <TextField
+                fullWidth
+                required
+                name="titulo"
+                label="Título del Viaje"
+                value={formData.titulo}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                error={Boolean(fieldErrors.titulo)}
+                helperText={fieldErrors.titulo || ""}
+              />
+            </Grid2>
+
             {/* Categoría y Dificultad en la misma fila */}
             <Grid2 xs={12} md={6}>
               <FormControl
@@ -654,7 +669,7 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             </Grid2>
 
             {/* Destino - full width */}
-            <Grid2 xs={12} sx={{ width: "100%" }}>
+            <Grid2 xs={12} md={12} sx={{ width: '100%' }}>
               <Autocomplete
                 freeSolo
                 options={destinos}
@@ -706,32 +721,16 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
                     placeholder="Ej: El Chaltén, Bariloche, Aconcagua..."
                   />
                 )}
-                sx={{ width: "100%" }}
-              />
-            </Grid2>
-
-            {/* Título - full width */}
-            <Grid2 xs={12}>
-              <TextField
-                fullWidth
-                required
-                name="titulo"
-                label="Título del Viaje"
-                value={formData.titulo}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                error={Boolean(fieldErrors.titulo)}
-                helperText={fieldErrors.titulo || ""}
               />
             </Grid2>
 
             {/* Descripción corta - full width */}
-            <Grid2 xs={12}>
+            <Grid2 xs={12} md={12} sx={{ width: '100%' }}>
               <TextField
                 fullWidth
                 required
                 multiline
-                rows={3}
+                rows={4}
                 name="descripcion_corta"
                 label="Descripción Corta"
                 value={formData.descripcion_corta}
@@ -743,12 +742,13 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
             </Grid2>
 
             {/* Descripción completa - full width */}
-            <Grid2 xs={12}>
+            <Grid2 xs={12} md={12} sx={{ width: '100%' }}>
               <TextField
                 fullWidth
                 required
                 multiline
-                rows={6}
+                minRows={4}
+                maxRows={20}
                 name="descripcion_completa"
                 label="Descripción Completa"
                 value={formData.descripcion_completa}
@@ -885,53 +885,65 @@ export default function ViajeForm({ viaje, mode, onSuccess, onCancel }) {
 
           <Grid2 container spacing={3}>
             {/* Qué Incluye - full width */}
-            <Grid2 xs={12}>
+            <Grid2 xs={12} md={12} sx={{ width: '100%' }}>
               <TextField
                 fullWidth
                 required
                 multiline
-                rows={4}
+                minRows={4}
+                maxRows={20}
                 name="incluye"
                 label="Qué Incluye"
                 value={formData.incluye}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={Boolean(fieldErrors.incluye)}
-                helperText={fieldErrors.incluye || "Servicios y elementos incluidos en el precio (separados por comas o líneas)"}
+                helperText={fieldErrors.incluye || "Servicios y elementos incluidos en el precio"}
+                FormHelperTextProps={{
+                  sx: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
+                }}
               />
             </Grid2>
 
             {/* Qué NO Incluye - full width */}
-            <Grid2 xs={12}>
+            <Grid2 xs={12} md={12} sx={{ width: '100%' }}>
               <TextField
                 fullWidth
                 required
                 multiline
-                rows={4}
+                minRows={4}
+                maxRows={20}
                 name="no_incluye"
                 label="Qué NO Incluye"
                 value={formData.no_incluye}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={Boolean(fieldErrors.no_incluye)}
-                helperText={fieldErrors.no_incluye || "Servicios y elementos NO incluidos en el precio (separados por comas o líneas)"}
+                helperText={fieldErrors.no_incluye || "Servicios y elementos NO incluidos"}
+                FormHelperTextProps={{
+                  sx: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
+                }}
               />
             </Grid2>
 
             {/* Recomendaciones - full width */}
-            <Grid2 xs={12}>
+            <Grid2 xs={12} md={12} sx={{ width: '100%' }}>
               <TextField
                 fullWidth
                 required
                 multiline
-                rows={4}
+                minRows={4}
+                maxRows={20}
                 name="recomendaciones"
                 label="Recomendaciones"
                 value={formData.recomendaciones}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={Boolean(fieldErrors.recomendaciones)}
-                helperText={fieldErrors.recomendaciones || "Recomendaciones importantes para los participantes (equipamiento, preparación física, etc.)"}
+                helperText={fieldErrors.recomendaciones || "Recomendaciones importantes para los participantes"}
+                FormHelperTextProps={{
+                  sx: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
+                }}
               />
             </Grid2>
           </Grid2>

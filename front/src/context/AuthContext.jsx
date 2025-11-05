@@ -60,13 +60,14 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.login(credentials)
       if (response.success) {
-        setUser(response.data.user)
+        // Obtener perfil completo del usuario (incluye avatar y todos los campos)
+        await checkAuth()
         return { success: true, user: response.data.user }
       }
     } catch (error) {
       return { success: false, error: error.message }
     }
-  }, [])
+  }, [checkAuth])
 
   const register = useCallback(async (userData) => {
     try {

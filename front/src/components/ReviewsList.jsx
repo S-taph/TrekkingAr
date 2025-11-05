@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, Container, Grid, CircularProgress, Alert } from '@mui/material';
 import ReviewCard from './ReviewCard';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003/api';
+import { reviewsAPI } from '../services/api';
 
 /**
  * ReviewsList - Lista de reviews/comentarios
@@ -27,15 +25,19 @@ const ReviewsList = ({ limit = 6, viajeId = null }) => {
           ...(viajeId && { viajeId })
         };
 
-        const response = await axios.get(`${API_URL}/reviews`, { params });
+        const response = await reviewsAPI.getReviews(params);
 
-        if (response.data.success) {
-          setReviews(response.data.data.reviews || []);
+        console.log('Response completa:', response);
+
+        if (response.success) {
+          setReviews(response.data.reviews || []);
         } else {
+          console.error('Respuesta sin success=true:', response);
           throw new Error('Error al cargar reviews');
         }
       } catch (err) {
         console.error('Error fetching reviews:', err);
+        console.error('Error details:', err.message);
         setError('No se pudieron cargar los comentarios');
         setReviews([]);
       } finally {
@@ -73,7 +75,9 @@ const ReviewsList = ({ limit = 6, viajeId = null }) => {
   return (
     <Box
       sx={{
-        backgroundColor: '#FFE8DC',
+        backgroundColor: (theme) => theme.palette.mode === 'dark'
+          ? 'rgba(255, 255, 255, 0.05)'  // Gris oscuro sutil en modo oscuro
+          : '#FFE8DC',  // Color melocotón en modo claro
         py: { xs: 6, md: 8 },
         borderRadius: 2,
       }}
