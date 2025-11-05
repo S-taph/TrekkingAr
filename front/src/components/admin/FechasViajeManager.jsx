@@ -175,8 +175,8 @@ export default function FechasViajeManager({ viajeId }) {
         return
       }
 
-      if (new Date(formData.fecha_inicio) >= new Date(formData.fecha_fin)) {
-        setError("La fecha de inicio debe ser anterior a la fecha de fin")
+      if (new Date(formData.fecha_inicio) > new Date(formData.fecha_fin)) {
+        setError("La fecha de fin no puede ser anterior a la fecha de inicio")
         return
       }
 
