@@ -189,18 +189,46 @@ const updateUsuario = async (req, res) => {
 
     // Mejorar mensajes de error según el tipo de error
     if (error.name === 'SequelizeValidationError') {
+      // Agrupar errores por campo y tomar solo el primero de cada campo
+      const erroresPorCampo = {}
+      error.errors?.forEach(e => {
+        if (!erroresPorCampo[e.path]) {
+          // Traducir nombres de campos al español
+          const campoTraducido = {
+            'nombre': 'Nombre',
+            'apellido': 'Apellido',
+            'email': 'Email',
+            'telefono': 'Teléfono',
+            'dni': 'DNI'
+          }[e.path] || e.path
+
+          erroresPorCampo[e.path] = `${campoTraducido}: ${e.message}`
+        }
+      })
+
+      const errores = Object.values(erroresPorCampo)
+
       return res.status(400).json({
         success: false,
-        message: "Error de validación: Por favor, complete los campos obligatorios correctamente",
-        error: error.errors?.map(e => e.message).join(', ')
+        message: errores.length > 0 ? errores.join('\n') : 'Error de validación',
+        error: errores.join(', ')
       })
     }
 
     if (error.name === 'SequelizeUniqueConstraintError') {
+      const errores = error.errors?.map(e => {
+        const campoTraducido = {
+          'email': 'El email',
+          'dni': 'El DNI'
+        }[e.path] || 'El campo'
+
+        return `${campoTraducido} ya está registrado`
+      }) || []
+
       return res.status(400).json({
         success: false,
-        message: "El email o DNI ya está registrado",
-        error: error.errors?.map(e => e.message).join(', ')
+        message: errores[0] || "El email o DNI ya está registrado",
+        error: errores.join(', ')
       })
     }
 

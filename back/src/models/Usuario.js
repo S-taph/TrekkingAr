@@ -34,7 +34,9 @@ const Usuario = sequelize.define(
       allowNull: true, // Allow null for Google OAuth users
       unique: true,
       validate: {
-        isInt: true,
+        isInt: {
+          msg: 'El DNI debe contener solo números'
+        },
         len: {
           args: [7, 8],
           msg: 'El DNI debe tener 7 u 8 dígitos'

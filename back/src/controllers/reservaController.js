@@ -204,6 +204,7 @@ export const getReservasByUser = async (req, res) => {
             {
               model: Viaje,
               as: "viaje",
+              attributes: ["id_viaje", "titulo", "descripcion_corta", "imagen_principal_url", "duracion_dias", "dificultad"],
             },
           ],
         },

@@ -192,13 +192,15 @@ const ImageLightbox = ({
                   top: '50%',
                   transform: 'translateY(-50%)',
                   zIndex: 10,
-                  color: 'white',
-                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  color: 'rgba(0,0,0,0.87)',
+                  backgroundColor: 'rgba(255,255,255,0.9)',
                   width: { xs: 40, sm: 56 },
                   height: { xs: 40, sm: 56 },
                   '&:hover': {
-                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    backgroundColor: 'white',
+                    transform: 'translateY(-50%) scale(1.1)',
                   },
+                  transition: 'all 0.2s ease',
                   '&.swiper-button-disabled': {
                     opacity: 0.3,
                   }
@@ -216,13 +218,15 @@ const ImageLightbox = ({
                   top: '50%',
                   transform: 'translateY(-50%)',
                   zIndex: 10,
-                  color: 'white',
-                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  color: 'rgba(0,0,0,0.87)',
+                  backgroundColor: 'rgba(255,255,255,0.9)',
                   width: { xs: 40, sm: 56 },
                   height: { xs: 40, sm: 56 },
                   '&:hover': {
-                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    backgroundColor: 'white',
+                    transform: 'translateY(-50%) scale(1.1)',
                   },
+                  transition: 'all 0.2s ease',
                   '&.swiper-button-disabled': {
                     opacity: 0.3,
                   }

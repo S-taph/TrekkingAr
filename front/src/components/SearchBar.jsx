@@ -37,8 +37,7 @@ const SearchBar = ({ onSearch }) => {
   return (
     <Box
       sx={{
-        width: "100%",
-        maxWidth: "100%",
+        width: "100vw",
         position: "relative",
         left: "50%",
         right: "50%",
@@ -50,7 +49,6 @@ const SearchBar = ({ onSearch }) => {
         backgroundPosition: "center 42%",
         backgroundRepeat: "no-repeat",
         mb: 4,
-        overflow: "hidden",
       }}
     >
       <Container maxWidth="lg">

@@ -414,30 +414,30 @@ export default function FechasViajeManager({ viajeId }) {
         </Paper>
       ) : (
         <TableContainer component={Paper}>
-          <Table>
+          <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Fecha Inicio</TableCell>
-                <TableCell>Fecha Fin</TableCell>
-                <TableCell>Cupos Disponibles</TableCell>
-                <TableCell>Cupos Ocupados</TableCell>
-                <TableCell>Precio</TableCell>
-                <TableCell>Guías</TableCell>
-                <TableCell>Estado</TableCell>
-                <TableCell>Acciones</TableCell>
+                <TableCell sx={{ fontSize: '0.8rem', fontWeight: 600 }}>Fecha Inicio</TableCell>
+                <TableCell sx={{ fontSize: '0.8rem', fontWeight: 600 }}>Fecha Fin</TableCell>
+                <TableCell sx={{ fontSize: '0.8rem', fontWeight: 600 }}>Cupos Disp.</TableCell>
+                <TableCell sx={{ fontSize: '0.8rem', fontWeight: 600 }}>Cupos Ocup.</TableCell>
+                <TableCell sx={{ fontSize: '0.8rem', fontWeight: 600 }}>Precio</TableCell>
+                <TableCell sx={{ fontSize: '0.8rem', fontWeight: 600 }}>Guías</TableCell>
+                <TableCell sx={{ fontSize: '0.8rem', fontWeight: 600 }}>Estado</TableCell>
+                <TableCell sx={{ fontSize: '0.8rem', fontWeight: 600 }}>Acciones</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {fechas.map((fecha) => (
                 <TableRow key={fecha.id_fechas_viaje}>
-                  <TableCell>{formatDate(fecha.fecha_inicio)}</TableCell>
-                  <TableCell>{formatDate(fecha.fecha_fin)}</TableCell>
-                  <TableCell>{fecha.cupos_disponibles}</TableCell>
-                  <TableCell>{fecha.cupos_ocupados || 0}</TableCell>
-                  <TableCell>
+                  <TableCell sx={{ fontSize: '0.75rem' }}>{formatDate(fecha.fecha_inicio)}</TableCell>
+                  <TableCell sx={{ fontSize: '0.75rem' }}>{formatDate(fecha.fecha_fin)}</TableCell>
+                  <TableCell sx={{ fontSize: '0.75rem' }}>{fecha.cupos_disponibles}</TableCell>
+                  <TableCell sx={{ fontSize: '0.75rem' }}>{fecha.cupos_ocupados || 0}</TableCell>
+                  <TableCell sx={{ fontSize: '0.75rem' }}>
                     {fecha.precio_fecha ? `$${parseFloat(fecha.precio_fecha).toLocaleString()}` : "Precio base"}
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ fontSize: '0.75rem' }}>
                     <GuiasCell fechaId={fecha.id_fechas_viaje} />
                   </TableCell>
                   <TableCell>{getEstadoChip(fecha.estado_fecha)}</TableCell>

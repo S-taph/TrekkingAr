@@ -380,7 +380,12 @@ export default function GaleriaPage() {
                 top: 16,
                 right: 16,
                 bgcolor: "rgba(255,255,255,0.9)",
-                "&:hover": { bgcolor: "white" },
+                color: "rgba(0,0,0,0.87)",
+                "&:hover": {
+                  bgcolor: "white",
+                  transform: "scale(1.1)",
+                },
+                transition: "all 0.2s ease",
                 zIndex: 2,
               }}
             >
@@ -397,11 +402,16 @@ export default function GaleriaPage() {
                   top: "50%",
                   transform: "translateY(-50%)",
                   bgcolor: "rgba(255,255,255,0.9)",
-                  "&:hover": { bgcolor: "white" },
+                  color: "rgba(0,0,0,0.87)",
+                  "&:hover": {
+                    bgcolor: "white",
+                    transform: "translateY(-50%) scale(1.1)",
+                  },
+                  transition: "all 0.2s ease",
                   zIndex: 2,
                 }}
               >
-                <NavigateBefore />
+                <NavigateBefore fontSize="large" />
               </IconButton>
             )}
 
@@ -415,11 +425,16 @@ export default function GaleriaPage() {
                   top: "50%",
                   transform: "translateY(-50%)",
                   bgcolor: "rgba(255,255,255,0.9)",
-                  "&:hover": { bgcolor: "white" },
+                  color: "rgba(0,0,0,0.87)",
+                  "&:hover": {
+                    bgcolor: "white",
+                    transform: "translateY(-50%) scale(1.1)",
+                  },
+                  transition: "all 0.2s ease",
                   zIndex: 2,
                 }}
               >
-                <NavigateNext />
+                <NavigateNext fontSize="large" />
               </IconButton>
             )}
 
@@ -453,15 +468,15 @@ export default function GaleriaPage() {
                     maxWidth: "600px",
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, color: "rgba(0,0,0,0.87)" }}>
                     {selectedImage.titulo}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" data-testid="lightbox-destino">
+                  <Typography variant="body2" sx={{ color: "rgba(0,0,0,0.6)" }} data-testid="lightbox-destino">
                     {typeof selectedImage.destino === 'string'
                       ? selectedImage.destino
                       : selectedImage.destino?.nombre || 'Destino no especificado'}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                  <Typography variant="caption" sx={{ display: "block", mt: 1, color: "rgba(0,0,0,0.6)" }}>
                     Imagen {currentIndex + 1} de {images.length}
                   </Typography>
                 </Box>

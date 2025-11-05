@@ -16,6 +16,7 @@ import {
   Tab,
   Card,
   CardContent,
+  CardMedia,
   Chip,
   Dialog,
   DialogTitle,
@@ -38,6 +39,7 @@ import Header from "../components/Header"
 import Footer from "../components/Footer"
 import { useAuth } from "../context/AuthContext"
 import { usuariosAPI, reservasAPI } from "../services/api"
+import { buildImageUrl, handleImageError } from "../utils/imageUrl"
 
 /**
  * ProfilePage - Página de perfil de usuario mejorada
@@ -120,7 +122,7 @@ export default function ProfilePage() {
         const now = new Date()
         const proximosViajes = reservas.filter(r => {
           if (r.estado_reserva !== "confirmada") return false
-          const fechaViaje = new Date(r.FechaViaje?.fecha_inicio || r.fecha_reserva)
+          const fechaViaje = new Date(r.fecha_viaje?.fecha_inicio || r.fecha_reserva)
           return fechaViaje > now
         }).length
 
@@ -202,6 +204,7 @@ export default function ProfilePage() {
       }
     } catch (error) {
       console.error("Error guardando perfil:", error)
+      // Mostrar el mensaje de error del servidor (ya procesado por apiRequest)
       setError(error.message || "Error al guardar los cambios")
     } finally {
       setSaving(false)
@@ -450,7 +453,7 @@ export default function ProfilePage() {
               )}
 
               {error && (
-                <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+                <Alert severity="error" sx={{ mb: 3, whiteSpace: 'pre-line' }} onClose={() => setError(null)}>
                   {error}
                 </Alert>
               )}
@@ -540,15 +543,31 @@ export default function ProfilePage() {
               ) : (
                 <Stack spacing={2}>
                   {recentReservas.map((reserva) => (
-                    <Card key={reserva.id_reservas} variant="outlined">
-                      <CardContent>
+                    <Card key={reserva.id_reserva} variant="outlined" sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' } }}>
+                      {reserva.fecha_viaje?.viaje?.imagen_principal_url && (
+                        <CardMedia
+                          component="img"
+                          sx={{
+                            width: { xs: '100%', sm: 140 },
+                            height: { xs: 180, sm: 140 },
+                            objectFit: 'cover'
+                          }}
+                          image={buildImageUrl(
+                            reserva.fecha_viaje.viaje.imagen_principal_url,
+                            reserva.fecha_viaje.viaje.id_viaje
+                          )}
+                          alt={reserva.fecha_viaje.viaje.titulo}
+                          onError={handleImageError}
+                        />
+                      )}
+                      <CardContent sx={{ flex: 1 }}>
                         <Grid container spacing={2} alignItems="center">
                           <Grid item xs={12} md={6}>
                             <Typography variant="h6">
-                              {reserva.Viaje?.nombre || "Viaje"}
+                              {reserva.fecha_viaje?.viaje?.titulo || "Viaje"}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                              Fecha: {formatDate(reserva.FechaViaje?.fecha_inicio || reserva.fecha_reserva)}
+                              Fecha: {formatDate(reserva.fecha_viaje?.fecha_inicio || reserva.fecha_reserva)}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
                               Pasajeros: {reserva.cantidad_personas || 1}
@@ -556,7 +575,7 @@ export default function ProfilePage() {
                           </Grid>
                           <Grid item xs={12} md={3}>
                             <Typography variant="h6" color="primary.main">
-                              ${reserva.precio_total?.toFixed(2) || "0.00"}
+                              ${Number(reserva.subtotal_reserva || reserva.compra?.total_compra || 0).toFixed(2)}
                             </Typography>
                           </Grid>
                           <Grid item xs={12} md={3}>

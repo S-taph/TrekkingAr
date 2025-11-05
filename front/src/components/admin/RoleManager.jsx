@@ -276,7 +276,7 @@ export default function RoleManager({ usuario, open, onClose, onSuccess }) {
                 )}
 
                 {showAddRole && (
-                  <Box sx={{ p: 2, bgcolor: "#f5f5f5", borderRadius: 1 }}>
+                  <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1 }}>
                     <FormControl fullWidth size="small" sx={{ mb: 2 }}>
                       <InputLabel>Seleccionar Rol</InputLabel>
                       <Select
@@ -331,7 +331,7 @@ export default function RoleManager({ usuario, open, onClose, onSuccess }) {
                     )}
 
                     {showGuiaForm && (
-                      <Box sx={{ p: 2, bgcolor: "#f5f5f5", borderRadius: 1 }}>
+                      <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1 }}>
                         <Typography variant="subtitle2" gutterBottom>
                           Datos del Guía
                         </Typography>
