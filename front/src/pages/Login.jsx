@@ -229,6 +229,20 @@ export default function Login() {
                 required
               />
 
+              {!isRegister && (
+                <Box sx={{ textAlign: "right" }}>
+                  <Link
+                    component="button"
+                    type="button"
+                    onClick={() => navigate("/forgot-password")}
+                    variant="body2"
+                    sx={{ cursor: "pointer" }}
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                </Box>
+              )}
+
               <Button
                 type="submit"
                 variant="contained"
@@ -256,23 +270,41 @@ export default function Login() {
                 </Typography>
               </Divider>
 
-              {/* Botón de Google */}
+              {/* Botón de Google - Estilo oficial */}
               <Button
                 variant="outlined"
                 size="large"
                 fullWidth
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                startIcon={<GoogleIcon />}
                 sx={{
-                  borderColor: "#4285f4",
-                  color: "#4285f4",
+                  border: "1px solid #dadce0",
+                  color: "#3c4043",
                   textTransform: "none",
+                  fontWeight: 500,
+                  fontSize: "14px",
+                  padding: "10px 24px",
+                  backgroundColor: "#fff",
                   "&:hover": {
-                    borderColor: "#357ae8",
-                    backgroundColor: "rgba(66, 133, 244, 0.04)",
+                    backgroundColor: "#f8f9fa",
+                    border: "1px solid #dadce0",
+                    boxShadow: "0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15)",
+                  },
+                  "&:active": {
+                    backgroundColor: "#f1f3f4",
+                  },
+                  "& .MuiButton-startIcon": {
+                    marginRight: "12px",
                   },
                 }}
+                startIcon={
+                  <Box
+                    component="img"
+                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                    alt="Google"
+                    sx={{ width: 18, height: 18 }}
+                  />
+                }
               >
                 Continuar con Google
               </Button>

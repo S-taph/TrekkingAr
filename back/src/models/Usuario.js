@@ -108,6 +108,22 @@ const Usuario = sequelize.define(
       allowNull: true,
       field: "password_reset_expiry",
     },
+    failed_login_attempts: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false,
+      field: "failed_login_attempts",
+    },
+    locked_until: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "locked_until",
+    },
+    last_failed_login: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "last_failed_login",
+    },
   },
   {
     timestamps: true,

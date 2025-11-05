@@ -136,6 +136,26 @@ export const login = async (req, res) => {
       })
     }
 
+    // Verificar si la cuenta está bloqueada
+    const now = new Date()
+    if (usuario.locked_until && new Date(usuario.locked_until) > now) {
+      const minutesLeft = Math.ceil((new Date(usuario.locked_until) - now) / (1000 * 60))
+      await auditService.logFailedLogin(email, req, "Cuenta bloqueada")
+      return res.status(423).json({
+        success: false,
+        message: `Cuenta bloqueada temporalmente. Intenta de nuevo en ${minutesLeft} minuto(s).`,
+        locked_until: usuario.locked_until
+      })
+    }
+
+    // Si el bloqueo expiró, desbloquear la cuenta
+    if (usuario.locked_until && new Date(usuario.locked_until) <= now) {
+      await usuario.update({
+        locked_until: null,
+        failed_login_attempts: 0
+      })
+    }
+
     // Verificar si está activo
     if (!usuario.activo) {
       await auditService.logFailedLogin(email, req, "Cuenta desactivada")
@@ -148,13 +168,46 @@ export const login = async (req, res) => {
     // Verificar password
     const isValidPassword = await bcrypt.compare(password, usuario.password_hash)
     if (!isValidPassword) {
-      // Registrar intento fallido
-      await auditService.logFailedLogin(email, req, "Contraseña incorrecta")
+      // Incrementar intentos fallidos
+      const newAttempts = (usuario.failed_login_attempts || 0) + 1
+      const updateData = {
+        failed_login_attempts: newAttempts,
+        last_failed_login: now
+      }
+
+      // Bloquear cuenta si alcanza 5 intentos fallidos
+      const MAX_ATTEMPTS = 5
+      const LOCKOUT_DURATION_MINUTES = 15
+
+      if (newAttempts >= MAX_ATTEMPTS) {
+        const lockoutUntil = new Date(now.getTime() + LOCKOUT_DURATION_MINUTES * 60 * 1000)
+        updateData.locked_until = lockoutUntil
+
+        await usuario.update(updateData)
+        await auditService.logFailedLogin(email, req, `Contraseña incorrecta - Cuenta bloqueada (${newAttempts} intentos)`)
+
+        return res.status(423).json({
+          success: false,
+          message: `Demasiados intentos fallidos. Tu cuenta ha sido bloqueada por ${LOCKOUT_DURATION_MINUTES} minutos.`,
+          locked_until: lockoutUntil
+        })
+      }
+
+      await usuario.update(updateData)
+      await auditService.logFailedLogin(email, req, `Contraseña incorrecta (Intento ${newAttempts}/${MAX_ATTEMPTS})`)
+
       return res.status(401).json({
         success: false,
-        message: "Credenciales incorrectas",
+        message: `Credenciales incorrectas. Intentos restantes: ${MAX_ATTEMPTS - newAttempts}`,
       })
     }
+
+    // Login exitoso - resetear contador de intentos fallidos
+    await usuario.update({
+      failed_login_attempts: 0,
+      locked_until: null,
+      last_failed_login: null
+    })
 
     // Registrar login exitoso en auditoría
     await auditService.logLogin(usuario, req, "tradicional")

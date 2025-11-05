@@ -9,10 +9,16 @@ const router = express.Router()
 
 // Validaciones
 const registerValidation = [
-  body("email").isEmail().withMessage("Debe ser un email válido").normalizeEmail(),
-  body("password").isLength({ min: 6 }).withMessage("La contraseña debe tener al menos 6 caracteres"),
-  body("nombre").trim().isLength({ min: 2 }).withMessage("El nombre debe tener al menos 2 caracteres"),
-  body("apellido").trim().isLength({ min: 2 }).withMessage("El apellido debe tener al menos 2 caracteres"),
+  body("email").isEmail().withMessage("Debe ser un email válido").normalizeEmail().trim(),
+  body("password")
+    .isLength({ min: 8 })
+    .withMessage("La contraseña debe tener al menos 8 caracteres")
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+    .withMessage("La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial (@$!%*?&)"),
+  body("nombre").trim().escape().isLength({ min: 2 }).withMessage("El nombre debe tener al menos 2 caracteres"),
+  body("apellido").trim().escape().isLength({ min: 2 }).withMessage("El apellido debe tener al menos 2 caracteres"),
+  body("telefono").optional().trim().escape(),
+  body("experiencia_previa").optional().trim().escape(),
 ]
 
 const loginValidation = [
@@ -26,7 +32,11 @@ const forgotPasswordValidation = [
 
 const resetPasswordValidation = [
   body("token").notEmpty().withMessage("El token es requerido"),
-  body("newPassword").isLength({ min: 6 }).withMessage("La contraseña debe tener al menos 6 caracteres"),
+  body("newPassword")
+    .isLength({ min: 8 })
+    .withMessage("La contraseña debe tener al menos 8 caracteres")
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+    .withMessage("La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial (@$!%*?&)"),
 ]
 
 // Rutas de autenticación

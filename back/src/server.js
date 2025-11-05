@@ -12,6 +12,8 @@ import session from "express-session"
 import { createServer } from "http"
 import { Server } from "socket.io"
 import jwt from "jsonwebtoken"
+import mongoSanitize from "express-mongo-sanitize"
+import xss from "xss-clean"
 
 // Importar rutas
 import authRoutes from "./routes/authRoutes.js"
@@ -214,7 +216,22 @@ const corsOptions = {
 };
 
 // Middlewares globales
-app.use(helmet()) // Headers de seguridad
+// Headers de seguridad con Content Security Policy
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://sdk.mercadopago.com"],
+      imgSrc: ["'self'", "data:", "https:", "http:"],
+      connectSrc: ["'self'", process.env.BACKEND_URL, "https://api.mercadopago.com", "wss:", "ws:"],
+      frameSrc: ["'self'", "https://www.mercadopago.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
+    }
+  }
+}))
 app.use(cors(corsOptions)) // CORS configurado dinámicamente
 app.use(limiter) // Rate limiting
 app.use(cookieParser()) // Agregando middleware de cookie-parser
@@ -233,6 +250,10 @@ app.use(session({
 
 app.use(express.json({ limit: "10mb" })) // Parse JSON
 app.use(express.urlencoded({ extended: true })) // Parse URL-encoded
+
+// Sanitización de input
+app.use(mongoSanitize()) // Prevenir NoSQL injection
+app.use(xss()) // Prevenir XSS attacks
 
 // Serve static uploads
 import path from "path"
